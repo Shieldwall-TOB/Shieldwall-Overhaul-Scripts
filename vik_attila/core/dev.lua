@@ -602,6 +602,11 @@ local function dev_game_created()
     return _G.game_created
 end
 
+--v function(faction_name: string, callback:(function(context: CA_CONTEXT)))
+function dev_turn_start(faction_name, callback)
+    get_eh():add_listener("DevTurnStart"..faction_name, "FactionTurnStart", function(context) return context:faction():name() == faction_name end,
+    callback, true)
+end
 
 
 return {
@@ -632,5 +637,6 @@ return {
     pre_first_tick = dev_pre_first_tick,
     post_first_tick = dev_post_first_tick,
     is_game_created = dev_game_created,
-    is_new_game = dev_is_new_game
+    is_new_game = dev_is_new_game,
+    turn_start = dev_turn_start
 }

@@ -23,13 +23,9 @@ local function check_not_null(ca_object)
     return not ca_object:is_null_interface()
 end
 
---v function(char: CA_CHAR) --> boolean
-local function check_is_char_from_viking_faction(char)
-    local viking_sc = {
-        vik_sub_cult_viking_gael = true,
-        vik_sub_cult_anglo_viking = true
-    } --:map<string, boolean>
-    return not not viking_sc[char:faction():subculture()]
+--v function(faction: CA_FACTION) --> boolean
+local function check_is_faction_human(faction)
+    return faction:is_human()
 end
 
 --v function(faction: CA_FACTION) --> boolean
@@ -90,13 +86,25 @@ local function check_is_char_near_church(char)
 end
 
 
+--v function(char: CA_CHAR) --> boolean
+local function check_is_char_from_viking_faction(char)
+    local viking_sc = {
+        vik_sub_cult_viking_gael = true,
+        vik_sub_cult_anglo_viking = true
+    } --:map<string, boolean>
+    return not not viking_sc[char:faction():subculture()]
+end
 
 
 
 return {
     not_null = check_not_null,
-    is_char_from_viking_faction = check_is_char_from_viking_faction,
+    --faction
+    is_faction_human = check_is_faction_human,
     is_faction_viking_faction = check_is_faction_viking_faction,
+    --region
     is_region_low_public_order = check_is_region_low_public_order,
+    --characters
+    is_char_from_viking_faction = check_is_char_from_viking_faction,
     is_char_near_church = check_is_char_near_church
 }

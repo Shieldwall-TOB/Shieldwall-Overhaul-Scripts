@@ -5,3 +5,7 @@
 
 --# assume global class FACTION_RESOURCE
 --# type global RESOURCE_KIND = "population" | "capacity_fill" | "resource_bar" | "faction_focus"
+
+--# assume global class DECREE
+
+--# assume global class REGION_DETAIL

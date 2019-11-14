@@ -10,6 +10,20 @@
 -----------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------
 
+--v function(text: string)
+local function failure_log(text)
+
+	local pre = "ERROR:"
+    local logText = tostring(text)
+    local logTimeStamp = os.date("%d, %m %Y %X")
+    local popLog = io.open("sheildwall_critical.txt","a")
+    --# assume logTimeStamp: string
+    popLog :write(pre..":  [".. logTimeStamp .. "]:  "..logText .. "  \n")
+    popLog :flush()
+    popLog :close()
+end
+
+failure_log("test")
 -- change this to false to not load the script
 local load_script = true;
 
@@ -152,4 +166,10 @@ cm:register_first_tick_callback(
 -------------------------------------------------------
 --	additional script files to load
 -------------------------------------------------------
+local ok, err = pcall(function()
 require("shieldwall_scripted")
+end) if not ok then
+	failure_log("Critical Error")
+	failure_log(tostring(err))
+	failure_log(debug.trackback())
+end

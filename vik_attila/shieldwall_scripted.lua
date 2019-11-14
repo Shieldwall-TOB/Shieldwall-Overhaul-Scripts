@@ -39,7 +39,16 @@ end
 
 
 local ok, err = pcall( function()
+    --global mechanics; these shouldn't need to reference other things!
     require("global_mechanics/Shroud")
+    --culture mechanics
+    require("culture_mechanics/burghal")
+
+    --faction mechanics
+
+    --decrees: these need to access the data from faction and cultural mechanics; keep them at the bottom.
+
+    --episodic scripting (events): these need to access basically everything, load them last.
 end) 
 if not ok then
     dev.log("Error loading gameplay scripts!")
