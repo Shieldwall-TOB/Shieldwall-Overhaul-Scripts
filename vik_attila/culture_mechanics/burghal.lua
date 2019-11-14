@@ -42,15 +42,15 @@ dev.first_tick(function(context)
         local faction_name = BURGHAL_FACTIONS[i]
         local faction_obj = dev.get_faction(faction_name)
         if faction_obj:is_human() then
-            local resource = PettyKingdoms.FactionResource.new(faction_name, "vik_english_peasant", "capacity_fill", 0, 3, {})
-            ENG_BURGHAL[faction_name] = resource
-            resource.conversion_function = function(self) --:FACTION_RESOURCE
+            local resource = PettyKingdoms.FactionResource.new(faction_name, "vik_english_peasant", "capacity_fill", 0, 3, {},
+            function(self) --:FACTION_RESOURCE
                 if self.value >= self.cap_value then
                     return "positive"
                 else
                     return "negative"
                 end
-            end
+            end)
+            ENG_BURGHAL[faction_name] = resource
             refresh_burghal(faction_name)
         end
     end

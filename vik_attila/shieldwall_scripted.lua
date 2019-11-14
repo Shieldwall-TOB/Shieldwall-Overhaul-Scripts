@@ -30,6 +30,7 @@ end
 PettyKingdoms = {} 
 local ok, err = pcall( function()
     PettyKingdoms.FactionResource = require("modules/FactionResource")
+    PettyKingdoms.RegionDetail = require("modules/RegionDetail")
 end) 
 if not ok then
     dev.log("Error loading module library")
@@ -42,6 +43,7 @@ end
 local ok, err = pcall( function()
     --global mechanics; these shouldn't need to reference other things!
     require("global_mechanics/Shroud")
+    require("global_mechanics/Manpower")
     --culture mechanics
     require("culture_mechanics/burghal")
 

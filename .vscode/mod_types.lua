@@ -1,5 +1,6 @@
+--# type global SAVE_SPEC = {save: (function(any) --> string), load: (function(string) --> any)}
 --# type global SAVE_SCHEMA = {name: string, for_save: vector<string>, 
---# specifiers:map<string, {save: (function(any) --> string), load: (function(string) --> any)}>?
+--# specifiers:map<string, SAVE_SPEC>?
 --#}
 
 

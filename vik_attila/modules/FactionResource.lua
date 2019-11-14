@@ -2,13 +2,14 @@
 local faction_resource = {} --# assume faction_resource: FACTION_RESOURCE
 
 
---v function(faction_name: string, resource_key: string, kind: RESOURCE_KIND, default_value: int, cap_value: int, breakdown_factors: map<string, int>) --> FACTION_RESOURCE
-function faction_resource.new(faction_name, resource_key, kind, default_value, cap_value,breakdown_factors)
+--v function(faction_name: string, resource_key: string, kind: RESOURCE_KIND, default_value: int, cap_value: int, breakdown_factors: map<string, int>,
+--v converter: (function(self: FACTION_RESOURCE)--> string)?) --> FACTION_RESOURCE
+function faction_resource.new(faction_name, resource_key, kind, default_value, cap_value,breakdown_factors, converter)
     local self = {}
     setmetatable(self, {
         __index = faction_resource
     }) --# assume self: FACTION_RESOURCE
-
+    dev.log("Creating resource ["..resource_key.."] for faction ["..faction_name.."] of kind ["..kind.."]")
     self.owning_faction = faction_name
     self.key = resource_key
     self.kind = kind
@@ -17,7 +18,7 @@ function faction_resource.new(faction_name, resource_key, kind, default_value, c
     self.last_bundle = nil --:string
     self.full_cap_is_negative = false --:boolean
     self.human_only = true --:boolean
-    self.conversion_function = function(self) --:FACTION_RESOURCE
+    self.conversion_function = converter or function(self) --:FACTION_RESOURCE
          return tostring(self.value) 
     end
     self.breakdown_factors = breakdown_factors
@@ -149,10 +150,14 @@ end
 
 local instances = {} --:map<string, map<string, FACTION_RESOURCE>>
 
---v function(faction_name: string, resource_key: string, kind: RESOURCE_KIND, default_value: int, cap_value: int, breakdown_factors: map<string, int>) --> FACTION_RESOURCE
-local function new_instance(faction_name, resource_key, kind, default_value, cap_value,breakdown_factors)
+--v function(faction_name: string, resource_key: string, kind: RESOURCE_KIND, default_value: int, cap_value: int, breakdown_factors: map<string, int>,
+--v converter: (function(self: FACTION_RESOURCE)--> string)?) --> FACTION_RESOURCE
+local function new_instance(faction_name, resource_key, kind, default_value, cap_value,breakdown_factors, converter)
     instances[resource_key] = instances[resource_key] or {}
     instances[resource_key][faction_name] = faction_resource.new(faction_name, resource_key, kind, default_value, cap_value,breakdown_factors)
+    if converter and dev.is_game_created() then
+        instances[resource_key][faction_name]:reapply()
+    end
     return instances[resource_key][faction_name]
 end
 
@@ -164,6 +169,7 @@ local function get_faction_resource(resource_key, faction_name)
     end
     return instances[resource_key][faction_name]
 end
+
 
 return {
     new = new_instance,

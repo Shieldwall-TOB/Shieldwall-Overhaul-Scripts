@@ -383,7 +383,7 @@ function dev_mround(num, mult)
     return (math.floor((num/mult)+0.5))*mult
 end
 
---v [NO_CHECK] function(str: string, delim:string) --> table
+--v [NO_CHECK] function(str: string, delim:string) --> vector<string>
 function dev_split_string(str, delim)
     local res = { };
     local pattern = string.format("([^%s]+)%s()", delim, delim);
@@ -501,8 +501,14 @@ end
 
 
 
---v function() --> CA_REGION_LIST
-local function dev_region_list()
+--v function(faction: CA_FACTION?) --> CA_REGION_LIST
+local function dev_region_list(faction)
+    if faction then
+        --# assume faction: CA_FACTION! 
+        if not faction:is_null_interface() then
+         return faction:region_list()
+        end
+    end
     return cm:model():world():region_manager():region_list()
 end
 
