@@ -28,7 +28,7 @@ local function set_capacity_value(faction_name, effect_bundle, current_value, ma
     local uic = get_culture_mechanics_bar()
     if not not uic then
         cm:apply_effect_bundle(faction_name, effect_bundle, 0)
-        uic:InterfaceFunction("set_culture_mechanics_data", "vik_english_peasant_negative", faction_name, current_value, maximum_value);
+        uic:InterfaceFunction("set_culture_mechanics_data", effect_bundle, faction_name, current_value, maximum_value);
     end
 end
 

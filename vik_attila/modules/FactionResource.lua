@@ -34,8 +34,48 @@ function faction_resource.log(self, t)
     dev.log(tostring(t), self.key)
 end
 
+--v [NO_CHECK] function(kind: RESOURCE_KIND) --> function(self: FACTION_RESOURCE)
+local function get_applicator_for_kind(kind)
+    local switch = {
+        population = function(self)
+            local setter = UIScript.culture_mechanics[self.kind]
+            if setter then
+                local new_bundle = self.key .. "_" .. self.conversion_function(self)
+                if self.last_bundle then
+                    cm:remove_effect_bundle(self.last_bundle, self.owning_faction)
+                end
+                setter(self.owning_faction, new_bundle, self.value)
+                self.last_bundle = new_bundle
+            else
+                self:log("Could not find a setter function for this kind!")
+            end
+        end,
+        capacity_fill = function(self)
+            local setter = UIScript.culture_mechanics[self.kind]
+            if setter then
+                local new_bundle = self.key .. "_" .. self.conversion_function(self)
+                if self.last_bundle then
+                    cm:remove_effect_bundle(self.last_bundle, self.owning_faction)
+                end
+                setter(self.owning_faction, new_bundle, self.value, self.cap_value)
+                self.last_bundle = new_bundle
+            else
+                self:log("Could not find a setter function for this kind!")
+            end
+        end,
+        resource_bar = function(self)
+
+        end,
+        faction_focus = function(self)
+
+        end
+    }--:map<RESOURCE_KIND, function(self: FACTION_RESOURCE, any...)>
+    return switch[kind]
+
+end
+
 --v [NO_CHECK] function(kind: RESOURCE_KIND) --> (function(self: FACTION_RESOURCE, arg: WHATEVER))
-local function get_human_faction_value_setter_for_kind(kind)
+local function get_setter_for_kind(kind)
     local switch = {
         population = function(self, arg)
             if not (type(arg[1]) == "number") then
@@ -43,7 +83,6 @@ local function get_human_faction_value_setter_for_kind(kind)
             else
                 self.value = arg[1]
             end
-            UIScript.culture_mechanics[self.kind](self.owning_faction, self.key .. "_" .. self.conversion_function(self), self.value)
         end,
         capacity_fill = function(self, arg)
             if type(arg[1]) == "number" and type(arg[2]) == "number" then
@@ -51,12 +90,6 @@ local function get_human_faction_value_setter_for_kind(kind)
                 self.cap_value = arg[2]
             else
                 self:log("Set new value called but supplied args are incorrectly typed: expected two numbers")
-            end
-            local setter = UIScript.culture_mechanics[self.kind]
-            if setter then
-                setter(self.owning_faction, self.key .. "_" .. self.conversion_function(self), self.value, self.cap_value)
-            else
-                self:log("Could not find a setter function for this kind!")
             end
         end,
         resource_bar = function(self, arg)
@@ -81,9 +114,11 @@ function faction_resource.set_new_value(self, ...)
         return --TODO implement AI functions 
     end
 
-    local value_func = get_human_faction_value_setter_for_kind(self.kind)
-    if value_func then
+    local value_func = get_setter_for_kind(self.kind)
+    local applicator_func = get_applicator_for_kind(self.kind)
+    if value_func and applicator_func then
         value_func(self, arg)
+        applicator_func(self)
         dev.eh:trigger_event("FactionResourceValueChanged", dev.get_faction(self.owning_faction), self.key)
     else
         self:log("Set new value called with unrecognized mechanic kind: "..self.kind)
@@ -100,6 +135,17 @@ function faction_resource.change_value(self, change_value, factor)
     end
     self:set_new_value(new_value)
 end
+
+--v function(self: FACTION_RESOURCE)
+function faction_resource.reapply(self)
+    local applicator_func = get_applicator_for_kind(self.kind)
+    if applicator_func then
+        applicator_func(self)
+    else
+        self:log("Reapply called with unrecognized mechanic kind: "..self.kind)
+    end
+end
+
 
 local instances = {} --:map<string, map<string, FACTION_RESOURCE>>
 

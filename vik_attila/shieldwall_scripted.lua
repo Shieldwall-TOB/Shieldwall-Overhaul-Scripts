@@ -15,6 +15,7 @@ if not ok then
     dev.log(debug.traceback())
 end
 
+--require game data
 Gamedata = {}
 local ok, err = pcall( function()
     Gamedata.general = require("game_data/general_data")
@@ -25,6 +26,7 @@ if not ok then
     dev.log(debug.traceback())
 end
 
+--require object models
 PettyKingdoms = {} 
 local ok, err = pcall( function()
     PettyKingdoms.FactionResource = require("modules/FactionResource")
@@ -36,8 +38,7 @@ if not ok then
 end
 
 
-
-
+--require mechanics scripts
 local ok, err = pcall( function()
     --global mechanics; these shouldn't need to reference other things!
     require("global_mechanics/Shroud")
@@ -45,16 +46,19 @@ local ok, err = pcall( function()
     require("culture_mechanics/burghal")
 
     --faction mechanics
-
+    require("faction_mechanics/mierce_hoards")
     --decrees: these need to access the data from faction and cultural mechanics; keep them at the bottom.
-
-    --episodic scripting (events): these need to access basically everything, load them last.
 end) 
 if not ok then
-    dev.log("Error loading gameplay scripts!")
+    dev.log("Error loading mechanics scripts!")
     dev.log(tostring(err))
     dev.log(debug.traceback())
 end
+
+--require traits
+
+
+--require episodic scripting
 
 
 
