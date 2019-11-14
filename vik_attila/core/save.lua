@@ -36,7 +36,7 @@ local type_switch = {
     ["table"] = function(field) --:map<any, any>
         local ret = ""
         for k, v in pairs(field) do
-            ret = ret .. tostring(k) .. "," .. tostring(v) .. ";"
+            ret = ret .. tostring(k) .. "," .. tostring(v) .. ",;"
         end
         return ret
     end,
@@ -45,15 +45,19 @@ local type_switch = {
     end
 } -- explicit type
 
---v function(save_string: string) --> map<string, WHATEVER>
-local function parse_save_string(save_string)
+--v function(save_string: string, specifiers:map<string, {save: (function(any) --> string), load: (function(string) --> any)}>?) --> map<string, WHATEVER>
+local function parse_save_string(save_string, specifiers)
+    local spec_functions = specifiers or {}
     local retval = {} --:map<string, WHATEVER>
     local fields = SplitString(save_string, "|")
     for f = 1, #fields do
         local name_value_splitter = SplitString(fields[f], ":")
         local field_name = name_value_splitter[1]
         local field_string = name_value_splitter[2]
-        if string.find(field_name, ";") then
+        if spec_functions[field_name] then
+            --there is a specifier for how to load this field.
+            retval[field_name] = spec_functions[field_name].load(field_string)
+        elseif string.find(field_name, ";") then
             --it is a table
             retval[field_name] = {}
             local table_entries = SplitString(save_string, ";");
@@ -105,7 +109,7 @@ local function load_object(obj)
     --load callback on attachment
     local ok, err = pcall(function()
         local save_string = load_data(obj.save.name)
-        local loaded_table = parse_save_string(save_string)
+        local loaded_table = parse_save_string(save_string, obj.save.specifiers)
         for key, value in pairs(loaded_table) do
             obj[key] = loaded_table[key]
         end
