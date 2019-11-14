@@ -7,15 +7,7 @@ local BURGHAL_FACTIONS = {
 ENG_BURGHAL = {} --:map<string, FACTION_RESOURCE>
 
 for i = 1, #BURGHAL_FACTIONS do
-    local resource = PettyKingdoms.FactionResource.new(BURGHAL_FACTIONS[i], "vik_english_peasant", "capacity_fill", 0, 3, {})
-    ENG_BURGHAL[BURGHAL_FACTIONS[i]] = resource
-    resource.conversion_function = function(self) --:FACTION_RESOURCE
-        if self.value >= self.cap_value then
-            return "positive"
-        else
-            return "negative"
-        end
-    end
+
 end
 
 --v function(region_list: CA_REGION_LIST) --> (number, number)
@@ -45,14 +37,71 @@ local function refresh_burghal(faction_name)
 end
 
 dev.first_tick(function(context)
+    --build objects
     for i = 1, #BURGHAL_FACTIONS do
         local faction_name = BURGHAL_FACTIONS[i]
-        if dev.get_faction(faction_name):is_human() then
+        local faction_obj = dev.get_faction(faction_name)
+        if faction_obj:is_human() then
+            local resource = PettyKingdoms.FactionResource.new(faction_name, "vik_english_peasant", "capacity_fill", 0, 3, {})
+            ENG_BURGHAL[faction_name] = resource
+            resource.conversion_function = function(self) --:FACTION_RESOURCE
+                if self.value >= self.cap_value then
+                    return "positive"
+                else
+                    return "negative"
+                end
+            end
             refresh_burghal(faction_name)
-            dev.turn_start(faction_name, function(context)
-                refresh_burghal(context:faction():name())
-            end)
-
         end
     end
+
+    cm:add_listener(
+        "FactionTurnStart_Burghal",
+        "FactionTurnStart",
+        function(context) return context:faction():is_human() == true and not not ENG_BURGHAL[context:faction():name()] end,
+        function(context) refresh_burghal(context:faction():name()) end,
+        true
+    );
+    
+    cm:add_listener(
+        "FactionLeaderSignsPeaceTreaty_Burghal",
+        "FactionLeaderSignsPeaceTreaty",
+        function(context) return (function() for key, _ in pairs(ENG_BURGHAL) do if dev.get_faction(key):is_human() then return true end end return false end)() end,
+        function(context) 
+            local humans = cm:get_human_factions()
+            for i = 1, #humans do
+                if ENG_BURGHAL[humans[i]] then
+                    refresh_burghal(humans[i])
+                end
+            end
+        end,
+        true
+    );
+    
+    cm:add_listener(
+        "GovernorAssignedCharacterEvent_Burghal",
+        "GovernorAssignedCharacterEvent",
+        function(context) return (function() for key, _ in pairs(ENG_BURGHAL) do if dev.get_faction(key):is_human() then return true end end return false end)() end,
+        function(context) 
+            local humans = cm:get_human_factions()
+            for i = 1, #humans do
+                if ENG_BURGHAL[humans[i]] then
+                    refresh_burghal(humans[i])
+                end
+            end
+        end,
+        true
+    );
+    
+    cm:add_listener(
+        "IncidentOccuredEvent_Burghal",
+        "IncidentOccuredEvent",
+        function(context) return not not ENG_BURGHAL[context:faction():name()] end,
+        function(context)
+            refresh_burghal(context:faction():name())
+        end,
+        true
+    )
+        
+        
 end)

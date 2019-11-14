@@ -77,15 +77,56 @@ local function parse_save_string(save_string)
     return retval
 end
 
+local GAME_LOADED = false --:boolean
+local OBJECTS_PENDING = {} --:vector<WHATEVER>
+local SAVED_DATA = {} --:map<string, string>
+local SAVE_CALLBACKS = {} --:vector<function(context:WHATEVER)>
+local DATA_TO_LOAD = "" --:string
+
+--v function(name: string, data: string, context: WHATEVER)
+local function save_data(name, data, context)
+    cm:save_value(name, data, context)
+    DATA_TO_LOAD = DATA_TO_LOAD .. name .. ";"
+end
+
+--v function(name: string) --> string
+local function load_data(name)
+    return SAVED_DATA[name] or ""
+end
+
+--v function(callback: function(context:WHATEVER))
+local function add_saving_callback(callback)
+    table.insert(SAVE_CALLBACKS, callback)
+end
+
+
+--v function(obj: WHATEVER)
+local function load_object(obj)
+    --load callback on attachment
+    local ok, err = pcall(function()
+        local save_string = load_data(obj.save.name)
+        local loaded_table = parse_save_string(save_string)
+        for key, value in pairs(loaded_table) do
+            obj[key] = loaded_table[key]
+        end
+    end) 
+    if not ok then
+        log("Error loading object:")
+        log(err, true)
+        log(debug.traceback())
+        log_tab = 0 
+    end
+end
+
+
 --v [NO_CHECK] function(obj:any)
 local function attach(obj)
     if not obj.save then
         --TODO log
         return
     end
-
     --save callback
-    cm:register_saving_game_callback(function(context) 
+    add_saving_callback(function(context) 
         local ok, err = pcall(function()
             local save_string = "" --:string
             log("Saving object: "..obj.save.name)
@@ -95,7 +136,7 @@ local function attach(obj)
                 log_tab = 1
                 if field == nil or field == "" then
                     -- do nothing, this field does not currently exist.
-                elseif obj.save.specifiers[field_name] then
+                elseif obj.save.specifiers and obj.save.specifiers[field_name] then
                     --if we have a save specifier and this field exists, use it
                     save_string = save_string .. "|" .. field_name .. ":" .. obj.save.specifiers[field_name].save(field) .. ":"
                 elseif type_switch[type(field)] then
@@ -105,7 +146,7 @@ local function attach(obj)
                 end
             end
             log_tab = 0
-            cm:save_value(obj.save.name, save_string, context)
+            save_data(obj.save.name, save_string, context)
         end) 
         if not ok then
             log("Error savng object:")
@@ -113,23 +154,36 @@ local function attach(obj)
             log_tab = 0  
         end
     end)
-    --load callback
-    cm:register_loading_game_callback(function(context)
-        local ok, err = pcall(function()
-            local save_string = cm:load_value(obj.save.name, "", context)
-            local loaded_table = parse_save_string(save_string, obj)
-            for key, value in pairs(loaded_table) do
-                obj[key] = loaded_table[key]
-            end
-        end) 
-        if not ok then
-            log("Error loading object:")
-            log(err, true)
-            log(debug.traceback())
-            log_tab = 0 
-        end
-    end)
+    --load any data about this object we happen to be storing.
+    if GAME_LOADED then
+        load_object(obj)
+    else
+        OBJECTS_PENDING[#OBJECTS_PENDING+1] = obj
+    end
 end
+
+cm:register_loading_game_callback(function(context)
+    local coredata = cm:load_value("SHIELDWALL_SAVE", "", context)
+    log("Loading the game!", true)
+    log("Data to load for this session: "..coredata, true)
+    local data_to_load = SplitString(coredata, ";")
+    for i = 1, #data_to_load do
+        SAVED_DATA[data_to_load[i]] = cm:load_value(data_to_load[i], "", context)
+    end
+    GAME_LOADED = true
+    for i = 1, #OBJECTS_PENDING do
+        load_object(OBJECTS_PENDING[i])
+    end
+end)
+
+cm:register_saving_game_callback(function(context)
+    DATA_TO_LOAD = ""
+    for i = 1, #SAVE_CALLBACKS do
+        SAVE_CALLBACKS[i](context)
+    end
+    log("Finished saving the game, data to load next session: "..DATA_TO_LOAD, true)
+    cm:save_value("SHIELDWALL_SAVE", DATA_TO_LOAD, context)
+end)
 
 return {
     attach_to_object = attach

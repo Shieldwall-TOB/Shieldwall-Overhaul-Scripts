@@ -395,7 +395,10 @@ function dev_split_string(str, delim)
     return res;
 end
 
-
+--v [NO_CHECK] function(...:any) --> WHATEVER
+function dev_pack_args(...)
+    return {n=select('#', ...), ...} 
+end
 
 --v function(call: function(CA_REGION) --> string)
 local function dev_add_settlement_select_log_call(call)
@@ -628,6 +631,7 @@ return {
     faction_list = dev_faction_list,
     clamp = dev_clamp,
     mround = dev_mround,
+    arg = dev_pack_args,
     split_string = dev_split_string,
     add_settlement_selected_log = dev_add_settlement_select_log_call,
     add_character_selected_log = dev_add_character_select_log_call,

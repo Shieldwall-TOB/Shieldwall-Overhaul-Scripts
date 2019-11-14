@@ -34,31 +34,35 @@ function faction_resource.log(self, t)
     dev.log(tostring(t), self.key)
 end
 
---v [NO_CHECK] function(kind: RESOURCE_KIND) --> (function(self: FACTION_RESOURCE, any...))
+--v [NO_CHECK] function(kind: RESOURCE_KIND) --> (function(self: FACTION_RESOURCE, arg: WHATEVER))
 local function get_human_faction_value_setter_for_kind(kind)
     local switch = {
-        population = function(self, ...)
-            if not (type(arg[2]) == "number") then
-                self.log("Set new value for called but supplied arg #2 is not a number")
+        population = function(self, arg)
+            if not (type(arg[1]) == "number") then
+                self:log("Set new value for called but supplied arg #2 is not a number")
             else
-                self.value = arg[2]
+                self.value = arg[1]
             end
             UIScript.culture_mechanics[self.kind](self.owning_faction, self.key .. "_" .. self.conversion_function(self), self.value)
         end,
-        capacity_fill = function(self, ...)
-            if type(arg[2]) == "number" and type(arg[3]) == "number" then
-                self.value = arg[2]
-                self.cap_value = arg[3]
+        capacity_fill = function(self, arg)
+            if type(arg[1]) == "number" and type(arg[2]) == "number" then
+                self.value = arg[1]
+                self.cap_value = arg[2]
             else
-                self.log("Set new value called but supplied args are incorrectly typed: expected two numbers")
+                self:log("Set new value called but supplied args are incorrectly typed: expected two numbers")
             end
-    
-            UIScript.culture_mechanics[self.kind](self.owning_faction, self.key .. "_" .. self.conversion_function(self), self.value, self.cap_value)
+            local setter = UIScript.culture_mechanics[self.kind]
+            if setter then
+                setter(self.owning_faction, self.key .. "_" .. self.conversion_function(self), self.value, self.cap_value)
+            else
+                self:log("Could not find a setter function for this kind!")
+            end
         end,
-        resource_bar = function(self, ...)
+        resource_bar = function(self, arg)
 
         end,
-        faction_focus = function(self, ...)
+        faction_focus = function(self, arg)
 
         end
     }--:map<RESOURCE_KIND, function(self: FACTION_RESOURCE, any...)>
@@ -67,6 +71,10 @@ end
 
 --v function(self: FACTION_RESOURCE, ...:any)
 function faction_resource.set_new_value(self, ...)
+    local arg = dev.arg(...)
+    --local argtext =  "" for k,v in pairs(arg) do argtext = argtext..tostring(k)..":"..tostring(v)..";" end 
+    --self:log("Set new value called with args: "..argtext)
+    
     if not dev.is_game_created() then
         self:log("Cannot apply values before first tick has begun!")
     elseif not dev.get_faction(self.owning_faction):is_human() then
@@ -75,7 +83,7 @@ function faction_resource.set_new_value(self, ...)
 
     local value_func = get_human_faction_value_setter_for_kind(self.kind)
     if value_func then
-        value_func(self, ...)
+        value_func(self, arg)
         dev.eh:trigger_event("FactionResourceValueChanged", dev.get_faction(self.owning_faction), self.key)
     else
         self:log("Set new value called with unrecognized mechanic kind: "..self.kind)

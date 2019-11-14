@@ -24,6 +24,7 @@ end
 
 --v function(faction_name: string, effect_bundle: string, current_value: int, maximum_value: int)
 local function set_capacity_value(faction_name, effect_bundle, current_value, maximum_value)
+    log("Set Capacity Value called for ["..faction_name.."] with bundle ["..effect_bundle.."] and UI: ["..current_value.."/"..maximum_value.."] ")
     local uic = get_culture_mechanics_bar()
     if not not uic then
         cm:apply_effect_bundle(faction_name, effect_bundle, 0)
