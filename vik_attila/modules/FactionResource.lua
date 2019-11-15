@@ -22,6 +22,7 @@ function faction_resource.new(faction_name, resource_key, kind, default_value, c
          return tostring(self.value) 
     end
     self.breakdown_factors = breakdown_factors
+    self.uic_override = nil --:vector<string>
     self.save = {
         name = self.key .. self.owning_faction, 
         for_save = {"breakdown_factors", "value", "last_bundle", "cap_value"}
@@ -45,7 +46,7 @@ local function get_applicator_for_kind(kind)
                 if self.last_bundle then
                     cm:remove_effect_bundle(self.last_bundle, self.owning_faction)
                 end
-                setter(self.owning_faction, new_bundle, self.value)
+                setter(self.owning_faction, new_bundle, self.value, self.uic_override)
                 self.last_bundle = new_bundle
             else
                 self:log("Could not find a setter function for this kind!")
@@ -58,7 +59,7 @@ local function get_applicator_for_kind(kind)
                 if self.last_bundle then
                     cm:remove_effect_bundle(self.last_bundle, self.owning_faction)
                 end
-                setter(self.owning_faction, new_bundle, self.value, self.cap_value)
+                setter(self.owning_faction, new_bundle, self.value, self.cap_value, self.uic_override)
                 self.last_bundle = new_bundle
             else
                 self:log("Could not find a setter function for this kind!")
@@ -154,7 +155,7 @@ local instances = {} --:map<string, map<string, FACTION_RESOURCE>>
 --v converter: (function(self: FACTION_RESOURCE)--> string)?) --> FACTION_RESOURCE
 local function new_instance(faction_name, resource_key, kind, default_value, cap_value,breakdown_factors, converter)
     instances[resource_key] = instances[resource_key] or {}
-    instances[resource_key][faction_name] = faction_resource.new(faction_name, resource_key, kind, default_value, cap_value,breakdown_factors)
+    instances[resource_key][faction_name] = faction_resource.new(faction_name, resource_key, kind, default_value, cap_value,breakdown_factors, converter)
     if converter and dev.is_game_created() then
         instances[resource_key][faction_name]:reapply()
     end

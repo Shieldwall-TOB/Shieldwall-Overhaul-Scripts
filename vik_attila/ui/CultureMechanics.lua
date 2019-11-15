@@ -12,10 +12,13 @@ local function get_culture_mechanics_bar()
     return culture_mechanics
 end
 
---v function(faction_name: string, effect_bundle: string, numeric_value: int)
-local function set_population_value(faction_name, effect_bundle, numeric_value)
+--v function(faction_name: string, effect_bundle: string, numeric_value: int, alternate_uic: vector<string>?)
+local function set_population_value(faction_name, effect_bundle, numeric_value, alternate_uic)
     log("Set Population Value called for ["..faction_name.."] with bundle ["..effect_bundle.."] and UI: ["..numeric_value.."]")
     local uic = get_culture_mechanics_bar()
+    if alternate_uic then --# assume alternate_uic: vector<string>!
+        uic = dev.uic_from_vec(cm:ui_root(), alternate_uic)
+    end
     if not not uic then
         cm:apply_effect_bundle(effect_bundle, faction_name, 0)
         uic:InterfaceFunction("set_culture_mechanics_data", effect_bundle, faction_name, numeric_value)

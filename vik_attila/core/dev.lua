@@ -618,6 +618,8 @@ function dev_turn_start(faction_name, callback)
 end
 
 
+
+
 return {
     log = MODLOG,
     export = RAWPRINT,
@@ -627,6 +629,7 @@ return {
     out_children = dev_print_all_uicomponent_children,
     out_details_for_children = dev_print_all_uicomponent_details,
     get_uic = find_uicomponent,
+    uic_from_vec = find_uicomponent_by_table,
     get_faction = dev_get_faction,
     get_region = dev_get_region,
     get_character = dev_get_character,
