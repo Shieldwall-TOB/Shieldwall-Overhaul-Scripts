@@ -612,13 +612,42 @@ local function dev_game_created()
 end
 
 --v function(faction_name: string, callback:(function(context: CA_CONTEXT)))
-function dev_turn_start(faction_name, callback)
+local function dev_turn_start(faction_name, callback)
     get_eh():add_listener("DevTurnStart"..faction_name, "FactionTurnStart", function(context) return context:faction():name() == faction_name end,
     callback, true)
 end
 
+--v function(incident_key: string, callback: function(context: WHATEVER))
+local function dev_respond_to_incident(incident_key, callback)
+    get_eh():add_listener(
+		incident_key.."_response",
+		"IncidentOccuredEvent",
+		function(context)
+			return context:dilemma() == incident_key
+		end,
+        function(context)
+            MODLOG("Responding to incident: "..incident_key)
+			callback(context)
+		end,
+		false
+	)
+end
 
-
+--v function(dilemma_key: string, callback: function(context: WHATEVER))
+local function dev_respond_to_dilemma(dilemma_key, callback)
+    get_eh():add_listener(
+		dilemma_key.."_response",
+		"DilemmaChoiceMadeEvent",
+		function(context)
+			return context:dilemma() == dilemma_key
+		end,
+        function(context)
+            MODLOG("Responding to dilemma: "..dilemma_key)
+			callback(context)
+		end,
+		false
+	)
+end
 
 return {
     log = MODLOG,
@@ -651,5 +680,7 @@ return {
     post_first_tick = dev_post_first_tick,
     is_game_created = dev_game_created,
     is_new_game = dev_is_new_game,
-    turn_start = dev_turn_start
+    turn_start = dev_turn_start,
+    respond_to_incident = dev_respond_to_incident,
+    respond_to_dilemma = dev_respond_to_dilemma
 }

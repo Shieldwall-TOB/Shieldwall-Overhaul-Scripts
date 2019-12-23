@@ -126,7 +126,7 @@ end
 --v [NO_CHECK] function(obj:any)
 local function attach(obj)
     if not obj.save then
-        --TODO log
+        log("Attempted to attach to an object without a savable fields schema")
         return
     end
     --save callback

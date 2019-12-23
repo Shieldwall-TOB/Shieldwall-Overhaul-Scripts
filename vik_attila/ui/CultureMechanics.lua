@@ -17,7 +17,10 @@ local function set_population_value(faction_name, effect_bundle, numeric_value, 
     log("Set Population Value called for ["..faction_name.."] with bundle ["..effect_bundle.."] and UI: ["..numeric_value.."]")
     local uic = get_culture_mechanics_bar()
     if alternate_uic then --# assume alternate_uic: vector<string>!
-        uic = dev.uic_from_vec(cm:ui_root(), alternate_uic)
+        alt_uic = dev.uic_from_vec(cm:ui_root(), alternate_uic)
+        if alt_uic then
+            --move it under the CM bar.
+        end
     end
     if not not uic then
         cm:apply_effect_bundle(effect_bundle, faction_name, 0)

@@ -9,4 +9,4 @@
 
 --# assume global class DECREE
 
---# assume global class REGION_DETAIL
+--# assume global class RIOT_MANAGER

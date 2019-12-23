@@ -95,6 +95,35 @@ local function check_is_char_from_viking_faction(char)
     return not not viking_sc[char:faction():subculture()]
 end
 
+--v function(character: CA_CHAR) --> boolean
+local function check_does_char_have_household_guard(character)
+	local faction_to_follower_trait = {
+		["vik_fact_circenn"] = "vik_follower_champion_circenn",
+		["vik_fact_west_seaxe"] = "vik_follower_champion_west_seaxe",
+		["vik_fact_mierce"] = "vik_follower_champion_mierce",
+		["vik_fact_mide"]  = "vik_follower_champion_mide",
+		["vik_fact_east_engle"]  = "vik_follower_champion_east_engle",
+		["vik_fact_northymbre"]  = "vik_follower_champion_northymbre",
+		["vik_fact_strat_clut"]  = "vik_follower_champion_strat_clut",
+		["vik_fact_gwined"]  = "vik_follower_champion_gwined",
+		["vik_fact_dyflin"]  = "vik_follower_champion_dyflin",
+		["vik_fact_sudreyar"]  = "vik_follower_champion_sudreyar",
+		["vik_fact_northleode"]  = "vik_follower_champion",
+		["vik_fact_caisil"]  = "vik_follower_champion",
+		["nil"] = "vik_follower_champion"
+	} --:map<string, string>
+
+	local faction_name = character:faction():name()
+	local skill_key = faction_to_follower_trait[faction_name]
+	if skill_key == nil then
+		skill_key = faction_to_follower_trait["nil"]
+	end
+	if character:has_skill(skill_key.."_2") then
+		return true
+	end
+	return false
+end
+
 
 
 return {
@@ -106,5 +135,6 @@ return {
     is_region_low_public_order = check_is_region_low_public_order,
     --characters
     is_char_from_viking_faction = check_is_char_from_viking_faction,
-    is_char_near_church = check_is_char_near_church
+    is_char_near_church = check_is_char_near_church,
+    does_char_have_household_guard = check_does_char_have_household_guard
 }
