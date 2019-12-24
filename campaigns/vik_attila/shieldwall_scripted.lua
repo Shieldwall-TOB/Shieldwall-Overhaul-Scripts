@@ -59,7 +59,7 @@ if not ok then
 end
 
 --require traits
-
+traits_manager = require("traits/helpers/trait_manager")
 
 --require episodic scripting
 

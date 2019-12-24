@@ -1,6 +1,5 @@
 --this object helps handle the implementation of a given trait.
-local pkm = _G.pkm
-local cd = _G.cd
+
 local TM_TRIGGERED_DILEMMA = {} --:map<string, map<string, boolean>>
 
 --# assume global class TRAIT_MANAGER
@@ -13,7 +12,7 @@ function trait_manager.new(trait_key)
     }) --# assume self: TRAIT_MANAGER
     --stores the name
     self.key = trait_key
-    self.first_tick = false
+    self.first_tick = false --:boolean
     dev.first_tick(function(context) self.first_tick = true end)
     --handle the trait's flag for normal character dilemmas
     self.flagged_cqi = cm:get_saved_value("tm_"..self.key.."_flagged_cqi") or -1 --:CA_CQI
@@ -262,7 +261,8 @@ end
 
 --v function(self: TRAIT_MANAGER, other_trait: string, effect: number)
 function trait_manager.set_cross_loyalty(self, other_trait, effect)
-    cd.add_trait_cross_loyalty_to_trait(self.key, other_trait, 1)
+    --TODO: Restore cross loyalty
+    --cd.add_trait_cross_loyalty_to_trait(self.key, other_trait, 1)
 end
 
 --v function(self: TRAIT_MANAGER, event: string, conditional_function: (function(context:WHATEVER) --> (boolean, CA_FACTION)))

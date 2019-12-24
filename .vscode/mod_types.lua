@@ -10,3 +10,4 @@
 --# assume global class DECREE
 
 --# assume global class RIOT_MANAGER
+--# assume global class CHARACTER_POLITICS
