@@ -6,9 +6,6 @@ local BURGHAL_FACTIONS = {
 
 ENG_BURGHAL = {} --:map<string, FACTION_RESOURCE>
 
-for i = 1, #BURGHAL_FACTIONS do
-
-end
 
 --v function(region_list: CA_REGION_LIST) --> (number, number)
 local function calculate_burghal_value(region_list)

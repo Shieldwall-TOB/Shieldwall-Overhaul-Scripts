@@ -19,6 +19,7 @@ end
 Gamedata = {}
 local ok, err = pcall( function()
     Gamedata.general = require("game_data/general_data")
+    Gamedata.base_pop = require("game_data/base_pop_values")
 end) 
 if not ok then
     dev.log("Error loading module library")
@@ -31,6 +32,7 @@ PettyKingdoms = {}
 local ok, err = pcall( function()
     PettyKingdoms.FactionResource = require("modules/FactionResource")
     PettyKingdoms.RiotManager = require("modules/RiotManager")
+    PettyKingdoms.FoodStorage = require("modules/FoodStorage")
 end) 
 if not ok then
     dev.log("Error loading module library")
@@ -62,7 +64,6 @@ end
 traits_manager = require("traits/helpers/trait_manager")
 
 --require episodic scripting
-
 
 
 --[[ old vanilla shit

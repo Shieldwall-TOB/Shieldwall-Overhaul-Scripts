@@ -19,9 +19,6 @@ end
 local exports = {} --:map<string, boolean>
 --v function(name: string, ...: string)
 local function RAWPRINT(name, ...)
-    if exports[name] == nil then
-        return
-    end
     logText = arg[1]
     if #arg > 1 then
         for i = 2, #arg do
@@ -35,20 +32,7 @@ local function RAWPRINT(name, ...)
     popLog :close()
 end
 
---v function(name: string, ...: string)
-local function new_export(name, ...)
-    exports[name] = true
-    logText = arg[1]
-    if #arg > 1 then
-        for i = 2, #arg do
-            logText = logText.."\t"..arg[i]
-        end
-    end
-    local popLog = io.open("sheildwall_output_"..name..".tsv","w+")
-    popLog :write(logText.."\n")
-    popLog :flush()
-    popLog :close()
-end
+
 
 
 
@@ -367,7 +351,7 @@ cm:register_ui_created_callback( function()
 end)
 
 --v [NO_CHECK] function(item:number, min:number?, max:number?) --> number
-function dev_clamp(item, min, max)
+local function dev_clamp(item, min, max)
     local ret = item 
     if max and ret > max then
         ret = max
@@ -378,13 +362,13 @@ function dev_clamp(item, min, max)
 end
 
 --v function(num: number, mult: int) --> int
-function dev_mround(num, mult)
+local function dev_mround(num, mult)
     --round num to the nearest multiple of num
     return (math.floor((num/mult)+0.5))*mult
 end
 
 --v [NO_CHECK] function(str: string, delim:string) --> vector<string>
-function dev_split_string(str, delim)
+local function dev_split_string(str, delim)
     local res = { };
     local pattern = string.format("([^%s]+)%s()", delim, delim);
     while (true) do
@@ -396,7 +380,7 @@ function dev_split_string(str, delim)
 end
 
 --v [NO_CHECK] function(...:any) --> WHATEVER
-function dev_pack_args(...)
+local function dev_pack_args(...)
     return {n=select('#', ...), ...} 
 end
 
@@ -531,7 +515,7 @@ local function dev_readonlytable(t)
 end
 
 --v function (callback: function(), timer: number?, name: string?)
-function dev_callback(callback, timer, name)
+local function dev_callback(callback, timer, name)
     add_callback(wrapFunction(callback), timer, name)
 end
 
@@ -541,22 +525,22 @@ local post_first_tick_callbacks = {} --:vector<function(context: WHATEVER)>
 local new_game_callbacks = {} --:vector<function(context: WHATEVER)>
 
 --v function(callback: function(context: WHATEVER))
-function dev_pre_first_tick(callback)
+local function dev_pre_first_tick(callback)
     table.insert(pre_first_tick_callbacks, callback)
 end
 
 --v function(callback: function(context: WHATEVER))
-function dev_first_tick(callback)
+local function dev_first_tick(callback)
     table.insert(first_tick_callbacks, callback)
 end
 
 --v function(callback: function(context: WHATEVER))
-function dev_post_first_tick(callback)
+local function dev_post_first_tick(callback)
     table.insert(post_first_tick_callbacks, callback)
 end
 
 --v function(callback: function(context: WHATEVER))
-function dev_new_game_callback(callback)
+local function dev_new_game_callback(callback)
     if cm:get_saved_value("dev_new_game_callback") then
         return
     end
@@ -652,7 +636,6 @@ end
 return {
     log = MODLOG,
     export = RAWPRINT,
-    new_export = new_export,
     callback = dev_callback,
     eh = get_eh(),
     out_children = dev_print_all_uicomponent_children,
