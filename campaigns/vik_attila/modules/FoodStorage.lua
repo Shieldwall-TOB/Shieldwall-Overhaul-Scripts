@@ -72,7 +72,7 @@ end
 --v function(self: FOOD_MANAGER, draw: number)
 function food_manager.set_food_draw(self, draw)
     local old_draw = self:food_being_drawn()
-    draw = dev.mround(dev.clamp(draw, 0, self:food_in_storage()), 5)
+    draw = dev.mround(dev.clamp(draw, 0, self:food_in_storage()), 1)
     if draw == old_draw then
         return
     end
@@ -94,7 +94,7 @@ end
 
 --v function(self: FOOD_MANAGER, storage_cap: number)
 function food_manager.set_storage_cap(self, storage_cap)
-    local storage_cap = dev.mround(dev.clamp(storage_cap, 0, food_storage_cap_absolute), 5)
+    local storage_cap = dev.mround(dev.clamp(storage_cap, 0, food_storage_cap_absolute), 1)
     cm:set_saved_value(self.save_name.."_storage_cap", storage_cap)
 end
 
