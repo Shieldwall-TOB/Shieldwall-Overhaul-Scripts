@@ -29,9 +29,11 @@ function riot_manager.new(region_key)
     return self
 end
 
---v function(self: RIOT_MANAGER, t: any)
-function riot_manager.log(self, t)
-    dev.log(tostring(t), self.key)
+--v function(self: RIOT_MANAGER, t: any, is_human: boolean)
+function riot_manager.log(self, t, is_human)
+    if is_human then
+        dev.log(tostring(t), self.key)
+    end
 end
 
 --v function(self: RIOT_MANAGER) --> CA_REGION
@@ -67,10 +69,11 @@ end
 --v function(self: RIOT_MANAGER, public_order: number) --> boolean
 function riot_manager.should_riot_start(self, public_order)
     local faction = dev.get_region(self.key):owning_faction()
+    local is_human = faction:is_human()
     local roll = cm:random_number(100)
-	self:log("Checking if region can rebel with a -PO ["..public_order.."]. They rolled ["..roll.."] ")
+	self:log("Checking if region can rebel with a -PO ["..public_order.."]. They rolled ["..roll.."] ", is_human)
 	if public_order > roll then -- public order / 100 chance
-		self:log("Chance check passed")
+		self:log("Chance check passed", is_human)
 		local character_list = faction:character_list()
 		for i = 0, character_list:num_items() - 1 do
 			local character = character_list:item_at(i)
@@ -80,13 +83,13 @@ function riot_manager.should_riot_start(self, public_order)
 				for j = 0, army:unit_list():num_items() - 1 do
 					size = size + army:unit_list():item_at(j):percentage_proportion_of_full_strength()
 				end
-				self:log("Character with army ["..size.."] found in region")
+				self:log("Character with army ["..size.."] found in region", is_human)
 				if size > 500 then
 					return false --cannot rebel if an army of 6 or more units is around.
 				end
 			end
 		end
-		self:log("Checks passed, region can rebel")
+		self:log("Checks passed, region can rebel", is_human)
 		return true
 	end
 	return false
@@ -116,7 +119,7 @@ function riot_manager.find_valid_riot_event(self)
         local ok = event_info.condition(self)
         if ok then
             local incident = prefix..self.key
-            self:log("Found valid riot event: "..incident)
+            self:log("Found valid riot event: "..incident, true)
             if event_info.is_dilemma then
                 if event_info.response then
                     dev.respond_to_incident(incident, event_info.response)
@@ -137,7 +140,7 @@ function riot_manager.new_turn(self)
     local region_name = region:name()
     local public_order = self:public_order()
     local owning_faction = region:owning_faction()
-    self:log("Starting turn!")
+    self:log("Starting turn!", owning_faction:is_human())
     if self.riot_in_progress then
         --we are rioting!
         self.riot_timer = self.riot_timer - 1 
