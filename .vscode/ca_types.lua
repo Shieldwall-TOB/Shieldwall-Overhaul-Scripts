@@ -75,7 +75,7 @@
 --# assume CA_UIC.Resize: method(w: number, h: number)
 --# assume CA_UIC.SetInteractive: method(interactive: boolean)
 --# assume CA_UIC.SetOpacity: method(opacity: number)
---# assume CA_UIC.SetState: method(state: BUTTON_STATE)
+--# assume CA_UIC.SetState: method(state: string)
 --# assume CA_UIC.SetStateText: method(text: string)
 --# assume CA_UIC.SetVisible: method(visible: boolean)
 --# assume CA_UIC.SetDisabled: method(disabled: boolean)

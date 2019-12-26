@@ -8,6 +8,7 @@ Save = require("core/save")
 UIScript = {}
 local ok, err = pcall( function()
     UIScript.culture_mechanics = require("ui/CultureMechanics")
+    UIScript.decree_panel = require("ui/DecreePanel")
 end) 
 if not ok then
     dev.log("Error loading ui library")
@@ -33,6 +34,7 @@ local ok, err = pcall( function()
     PettyKingdoms.FactionResource = require("modules/FactionResource")
     PettyKingdoms.RiotManager = require("modules/RiotManager")
     PettyKingdoms.FoodStorage = require("modules/FoodStorage")
+    PettyKingdoms.Decree = require("modules/Decree")
 end) 
 if not ok then
     dev.log("Error loading module library")

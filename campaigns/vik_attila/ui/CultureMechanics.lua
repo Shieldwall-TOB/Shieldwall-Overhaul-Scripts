@@ -1,6 +1,6 @@
 --v function(text: any)
 local function log(text)
-    dev.log(tostring(text), "UIScript")
+    dev.log(tostring(text), "CultUI")
 end
 
 --v function() --> CA_UIC
