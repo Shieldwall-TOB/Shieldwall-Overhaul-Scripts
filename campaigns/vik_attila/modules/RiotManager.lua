@@ -177,7 +177,7 @@ dev.first_tick(function(context)
         "RiotManagerRegionChangesOwnership",
         "RegionChangesOwnership",
         function(context)
-            return not not instances[context:region():name()]:new_turn()
+            return not not instances[context:region():name()]
         end,
         function(context)
             local detail = instances[context:region():name()]
@@ -191,7 +191,7 @@ dev.first_tick(function(context)
         "RiotManagerRegionTurnStart",
         "RegionTurnStart",
         function(context)
-            return not not instances[context:region():name()]:new_turn()
+            return not not instances[context:region():name()]
         end,
         function(context)
             local detail = instances[context:region():name()]:new_turn()
