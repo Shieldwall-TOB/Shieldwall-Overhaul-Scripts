@@ -16,6 +16,7 @@ end
 local function set_population_value(faction_name, effect_bundle, numeric_value, breakdown_factors, alternate_uic)
     log("Set Population Value called for ["..faction_name.."] with bundle ["..effect_bundle.."] and UI: ["..numeric_value.."]")
     local uic = get_culture_mechanics_bar()
+    local mechanic_root = string.gsub(effect_bundle, "_%d", "")
     if alternate_uic then --# assume alternate_uic: vector<string>!
         alt_uic = dev.uic_from_vec(cm:ui_root(), alternate_uic)
         if alt_uic then
@@ -26,6 +27,9 @@ local function set_population_value(faction_name, effect_bundle, numeric_value, 
     if not not uic then
         cm:apply_effect_bundle(effect_bundle, faction_name, 0)
         uic:InterfaceFunction("set_culture_mechanics_data", effect_bundle, faction_name, numeric_value)
+        for factor, quantity in pairs(breakdown_factors) do
+            uic:InterfaceFunction("add_culture_mechanics_breakdown_factor", factor, quantity, mechanic_root, faction_name)
+        end
     end
 end
 

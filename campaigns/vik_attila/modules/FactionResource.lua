@@ -46,7 +46,7 @@ local function get_applicator_for_kind(kind)
                 if self.last_bundle then
                     cm:remove_effect_bundle(self.last_bundle, self.owning_faction)
                 end
-                setter(self.owning_faction, new_bundle, self.value, self.break_down_factors, self.uic_override)
+                setter(self.owning_faction, new_bundle, self.value, self.breakdown_factors, self.uic_override)
                 self.last_bundle = new_bundle
             else
                 self:log("Could not find a setter function for this kind!")

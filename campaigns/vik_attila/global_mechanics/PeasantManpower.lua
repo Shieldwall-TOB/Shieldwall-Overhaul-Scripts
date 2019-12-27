@@ -1,11 +1,11 @@
 MANPOWER_SERF = {} --:map<string, FACTION_RESOURCE>
 
-local region_factor = "manpower_region_population"
-local devastation_factor = "manpower_region_devastation"
-local recruitment_factor = "manpower_recruitment"
-local thriving_factor = "manpower_thriving_regions"
-local growth_factor = "manpower_growth"
-local famine_factor = "manpower_famine"
+local region_factor = "culture_manpower_region_population"
+local devastation_factor = "culture_manpower_region_devastation"
+local recruitment_factor = "culture_manpower_recruitment"
+local thriving_factor = "culture_manpower_thriving_regions"
+local growth_factor = "culture_manpower_growth"
+local famine_factor = "culture_manpower_famine"
 
 local base_growth = 2 
 local famine_loss = 6 
