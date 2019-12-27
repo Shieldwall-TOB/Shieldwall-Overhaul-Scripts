@@ -35,6 +35,7 @@ local ok, err = pcall( function()
     PettyKingdoms.RiotManager = require("modules/RiotManager")
     PettyKingdoms.FoodStorage = require("modules/FoodStorage")
     PettyKingdoms.Decree = require("modules/Decree")
+    PettyKingdoms.RegionManpower = require("modules/RegionManpower")
 end) 
 if not ok then
     dev.log("Error loading module library")

@@ -36,7 +36,7 @@ end)
 
 
 
-return {
+local base_pop =  {
 	["vik_reg_sconnin"] = {serf = 100, lord = 25},
 	["vik_reg_bathanceaster"] = {serf = 50, lord = 75},
 	["vik_reg_scrobbesburg"] = {serf = 100, lord = 25},
@@ -266,4 +266,6 @@ return {
 	["vik_reg_moige_bile"] = {serf = 100, lord = 25},
 	["vik_reg_cenannas"] = {serf = 150, lord = 25},
 	["vik_reg_lann_padarn"] = {serf = 100, lord = 25}
-}
+} --:map<string, {serf: number, lord: number}>
+
+return base_pop

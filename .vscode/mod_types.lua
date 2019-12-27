@@ -10,6 +10,7 @@
 --# assume global class FACTION_DECREE_HANDLER
 --# assume global class DECREE
 
+--# assume global class REGION_MANPOWER
 --# assume global class RIOT_MANAGER
 --# assume global class CHARACTER_POLITICS
 --# assume global class FOOD_MANAGER

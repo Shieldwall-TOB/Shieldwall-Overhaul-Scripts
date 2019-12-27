@@ -482,6 +482,23 @@ local function dev_is_char_normal_general(character)
     return character:character_type("general") and character:has_military_force() and character:military_force():is_army() and (not character:military_force():is_armed_citizenry()) 
 end
 
+--v function(character: CA_CHAR) --> string
+local function dev_closest_settlement_to_char(character)
+    local region_list = cm:model():world():region_manager():region_list();
+	local target_distance = 0 --:number
+	local region_key = ""
+	for i = 0, region_list:num_items() - 1 do
+		local region = region_list:item_at(i);
+		local lx = region:settlement():logical_position_x() - character:logical_position_x()
+		local ly = region:settlement():logical_position_y() - character:logical_position_y()
+		local region_distance = ((lx * lx) + (ly * ly))
+		if region_key == "" or region_distance < target_distance then
+			region_key = region:name();
+			target_distance = region_distance;
+		end
+	end
+	return region_key;
+end
 
 
 
@@ -633,6 +650,33 @@ local function dev_respond_to_dilemma(dilemma_key, callback)
 	)
 end
 
+local last_time_settlement_sacked = {} --:map<string, number>
+--v function(settlement: string) --> number
+local function dev_last_time_sacked(settlement)
+    return last_time_settlement_sacked[settlement] or -10
+end
+
+cm:register_loading_game_callback(function(context)
+    last_time_settlement_sacked = cm:load_value("last_time_settlement_sacked", {}, context)
+end)
+
+cm:register_saving_game_callback(function(context)
+    cm:save_value("last_time_settlement_sacked", last_time_settlement_sacked, context)
+end)
+
+get_eh():add_listener(
+    "DevCharacterPerformsOccupationDecisionSack",
+    "CharacterPerformsOccupationDecisionSack",
+    true,
+    function(context)
+        local region_key = dev_closest_settlement_to_char(context:character())
+        if region_key ~= "" then
+            last_time_settlement_sacked[region_key] = cm:model():turn_number()
+        end
+    end,
+    true
+)
+
 return {
     log = MODLOG,
     export = RAWPRINT,
@@ -648,6 +692,7 @@ return {
     is_char_normal_general = dev_is_char_normal_general,
     get_force = dev_get_force,
     lookup = char_lookup_str,
+    closest_settlement_to_char = dev_closest_settlement_to_char,
     region_list = dev_region_list,
     faction_list = dev_faction_list,
     clamp = dev_clamp,
@@ -665,5 +710,6 @@ return {
     is_new_game = dev_is_new_game,
     turn_start = dev_turn_start,
     respond_to_incident = dev_respond_to_incident,
-    respond_to_dilemma = dev_respond_to_dilemma
+    respond_to_dilemma = dev_respond_to_dilemma,
+    last_time_sacked = dev_last_time_sacked
 }
