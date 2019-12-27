@@ -160,6 +160,17 @@ function food_manager.mod_food_storage(self, quantity)
     end
 end
 
+--v function(self: FOOD_MANAGER, region: CA_REGION)
+function food_manager.lose_food_from_region(self, region)
+    local cap_from_region = self:food_storage_from_region(region)
+    local food_in_storage = self:food_in_storage()
+    local food_store_cap = self:food_store_cap()
+    local prop = cap_from_region/(food_store_cap - food_storage_cap_base) 
+    local loss = dev.mround(food_in_storage*prop, 1)
+    self:mod_food_storage(-1*loss)
+end
+
+
 local instances = {} --:map<string, FOOD_MANAGER>
 
 dev.first_tick(function(context)
@@ -186,8 +197,7 @@ dev.first_tick(function(context)
             function(context)
                 local instance = instances[context:prev_faction():name()]
                 local region = context:region()
-                local cap_from_region = instance:food_storage_from_region(context:region())
-                local food_in_storage = instance:food_in_storage()
+                instance:lose_food_from_region(region)
             end,
             true)
         dev.eh:add_listener(

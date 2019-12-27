@@ -20,7 +20,7 @@ function riot_manager.new(region_key)
     self.last_riot_event = "none" --:string
     --save schema
     self.save = {
-        name = self.key .. "_detail",
+        name = self.key .. "_riots",
         for_save = {
              "riot_in_progress", "riot_timer", "riot_event_cooldown", "last_riot_event"
         }, 
@@ -104,9 +104,13 @@ function riot_manager.start_riot(self, owning_faction)
     cm:trigger_incident(faction_name, riot_begins_event..self.key, true)
 end
 
---v function(self: RIOT_MANAGER)
-function riot_manager.end_riot(self)
-
+--v function(self: RIOT_MANAGER, owning_faction: CA_FACTION)
+function riot_manager.end_riot(self, owning_faction)
+    self.riot_in_progress = false
+    self.riot_event_cooldown = 0
+    self.riot_timer = 0
+    local faction_name = owning_faction:name()
+    cm:trigger_incident(faction_name, riot_ends_event..self.key, true)
 end
 
 --v function(self: RIOT_MANAGER)
@@ -145,7 +149,7 @@ function riot_manager.new_turn(self)
         --we are rioting!
         self.riot_timer = self.riot_timer - 1 
         if public_order > 0 or self.riot_timer <= 0 then
-            self:end_riot()
+            self:end_riot(owning_faction)
         elseif self.riot_event_cooldown <= 0 then
             --riot should continue with an event
             self:find_valid_riot_event()
@@ -165,12 +169,16 @@ dev.first_tick(function(context)
     local region_list = dev.region_list()
     for i = 0, region_list:num_items() - 1 do
         local region = region_list:item_at(i)
-        instances[region:name()] = riot_manager.new(region:name())
+        if region:is_province_capital() then
+            instances[region:name()] = riot_manager.new(region:name())
+        end
     end
     dev.eh:add_listener(
         "RiotManagerRegionChangesOwnership",
         "RegionChangesOwnership",
-        true,
+        function(context)
+            return not not instances[context:region():name()]:new_turn()
+        end,
         function(context)
             local detail = instances[context:region():name()]
             --reset riot handling
@@ -182,7 +190,9 @@ dev.first_tick(function(context)
     dev.eh:add_listener(
         "RiotManagerRegionTurnStart",
         "RegionTurnStart",
-        true,
+        function(context)
+            return not not instances[context:region():name()]:new_turn()
+        end,
         function(context)
             local detail = instances[context:region():name()]:new_turn()
         end,

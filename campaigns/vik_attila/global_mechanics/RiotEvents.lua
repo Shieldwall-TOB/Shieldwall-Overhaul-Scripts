@@ -26,6 +26,20 @@ local riot_events = {
             cm:kill_character("character_cqi:"..tostring(gov), false, true)
         end,
         is_dilemma = false
+    },
+    {
+        name = "shield_rebellion_food_storage_",
+        condition = function(riot_manager) --:RIOT_MANAGER
+            local region = dev.get_region(riot_manager.key)
+            return PettyKingdoms.FoodStorage.get(region:owning_faction():name()):does_region_have_food_storage(region)
+        end,
+        response = function(context) --:WHATEVER
+            cm:set_saved_value(context:dilemma(), cm:model():turn_number())
+            local region_key = string.gsub(context:dilemma(), "shield_rebellion_stoning_", "")
+            local region = dev.get_region(region_key)
+            PettyKingdoms.FoodStorage.get(region:owning_faction():name()):lose_food_from_region(region)
+        end,
+        is_dilemma = false
     }
 }--:vector<{name: string, condition: (function(rioting_region: RIOT_MANAGER) --> boolean), response: (function(context: WHATEVER)), is_dilemma: boolean}>
 
