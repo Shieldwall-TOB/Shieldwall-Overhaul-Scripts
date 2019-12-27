@@ -46,7 +46,7 @@ local function get_applicator_for_kind(kind)
                 if self.last_bundle then
                     cm:remove_effect_bundle(self.last_bundle, self.owning_faction)
                 end
-                setter(self.owning_faction, new_bundle, self.value, self.uic_override)
+                setter(self.owning_faction, new_bundle, self.value, self.break_down_factors, self.uic_override)
                 self.last_bundle = new_bundle
             else
                 self:log("Could not find a setter function for this kind!")
@@ -137,6 +137,27 @@ function faction_resource.change_value(self, change_value, factor)
     end
     self:set_new_value(new_value)
 end
+
+--this function DOES NOT reapply any bundles or make proper changes. It expects you to call *either* reapply or a change value.
+--v function(self: FACTION_RESOURCE, factor: string)
+function faction_resource.clear_factor(self, factor)
+    local factor_value = self.breakdown_factors[factor] or 0
+    self.value = dev.mround(self.value - factor_value, 1)
+end
+
+--this function DOES NOT reapply any bundles or make proper changes. It expects you to call *either* reapply or a change value.
+--v function(self: FACTION_RESOURCE, factor: string, value: int)
+function faction_resource.set_factor(self, factor, value)
+    self:clear_factor(factor)
+    self.breakdown_factors[factor] = value
+    self.value = dev.mround(self.value + value, 1)
+end
+
+--v function(self: FACTION_RESOURCE, factor: string) --> int
+function faction_resource.get_factor(self, factor)
+    return self.breakdown_factors[factor] or 0
+end
+
 
 --v function(self: FACTION_RESOURCE)
 function faction_resource.reapply(self)

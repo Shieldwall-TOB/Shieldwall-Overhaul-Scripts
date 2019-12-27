@@ -12,14 +12,15 @@ local function get_culture_mechanics_bar()
     return culture_mechanics
 end
 
---v function(faction_name: string, effect_bundle: string, numeric_value: int, alternate_uic: vector<string>?)
-local function set_population_value(faction_name, effect_bundle, numeric_value, alternate_uic)
+--v function(faction_name: string, effect_bundle: string, numeric_value: int, breakdown_factors: map<string, number>, alternate_uic: vector<string>?)
+local function set_population_value(faction_name, effect_bundle, numeric_value, breakdown_factors, alternate_uic)
     log("Set Population Value called for ["..faction_name.."] with bundle ["..effect_bundle.."] and UI: ["..numeric_value.."]")
     local uic = get_culture_mechanics_bar()
     if alternate_uic then --# assume alternate_uic: vector<string>!
         alt_uic = dev.uic_from_vec(cm:ui_root(), alternate_uic)
         if alt_uic then
-            --move it under the CM bar.
+            UIComponent(alt_uic:Parent()):Divorce(alt_uic:Address())
+            uic:Adopt(alt_uic:Address())
         end
     end
     if not not uic then
