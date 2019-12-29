@@ -348,6 +348,24 @@ cm:register_ui_created_callback( function()
         end,
         true
     )
+    cm:add_listener(
+		"PanelClosedCampaign",
+		"PanelClosedCampaign",
+		true,
+		function(context)
+            MODLOG("Panel closed: "..context.string, "CAUI")
+		end,
+		true
+    );
+    cm:add_listener(
+		"PanelOpenedCampaign",
+		"PanelOpenedCampaign",
+		true,
+		function(context)
+            MODLOG("Panel opened: "..context.string, "CAUI")
+		end,
+		true
+	);
 end)
 
 --v [NO_CHECK] function(item:number, min:number?, max:number?) --> number

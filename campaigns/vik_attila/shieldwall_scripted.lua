@@ -9,6 +9,7 @@ UIScript = {}
 local ok, err = pcall( function()
     UIScript.culture_mechanics = require("ui/CultureMechanics")
     UIScript.decree_panel = require("ui/DecreePanel")
+    UIScript.recruitment_handler = require("ui/RecruitmentHandler")
 end) 
 if not ok then
     dev.log("Error loading ui library")
@@ -21,6 +22,7 @@ Gamedata = {}
 local ok, err = pcall( function()
     Gamedata.general = require("game_data/general_data")
     Gamedata.base_pop = require("game_data/base_pop_values")
+    Gamedata.unit_info = require("game_data/unit_info")
 end) 
 if not ok then
     dev.log("Error loading module library")

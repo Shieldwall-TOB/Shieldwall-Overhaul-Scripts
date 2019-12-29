@@ -3,6 +3,7 @@
 --# specifiers:map<string, SAVE_SPEC>?
 --#}
 
+--# assume global class RECRUITMENT_HANDLER
 
 --# assume global class FACTION_RESOURCE
 --# type global RESOURCE_KIND = "population" | "capacity_fill" | "resource_bar" | "faction_focus"

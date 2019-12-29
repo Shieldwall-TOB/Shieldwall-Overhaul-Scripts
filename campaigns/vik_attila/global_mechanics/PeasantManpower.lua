@@ -9,6 +9,14 @@ local famine_factor = "culture_manpower_famine"
 
 local base_growth = 2 
 local famine_loss = 6 
+local unit_size_mode_scalar = 0.5 --0.5 is shieldwall's default sizes.
+
+local peasant_castes = {
+    very_light = true,
+    medium = true,
+    light = true
+}--:map<string, boolean>
+
 
 --v function(total_food: number) --> (int, string)
 local function get_food_effect(total_food)
@@ -83,6 +91,7 @@ dev.first_tick(function(context)
         serfs.uic_override = {"layout", "top_center_holder", "cult_all_pop_serf"} 
     end    
 
+
     dev.eh:add_listener(
         "SerfsFactionBeginTurnPhaseNormal",
         "FactionBeginTurnPhaseNormal",
@@ -95,4 +104,22 @@ dev.first_tick(function(context)
         end,
         true)
     apply_turn_start(cm:model():world():whose_turn_is_it())
+
+
+    local rec_handler = UIScript.recruitment_handler.add_resource("sw_pop_serf", function(faction_name)
+        return PettyKingdoms.FactionResource.get("sw_pop_serf", faction_name).value
+    end, 
+    function(faction_name, quantity)
+        PettyKingdoms.FactionResource.get("sw_pop_serf", faction_name):change_value(quantity)
+    end, "dy_pop_peasant")
+    for k, entry in pairs(Gamedata.unit_info) do
+        if peasant_castes[entry.caste] then
+            rec_handler:set_cost_of_unit(entry.unit_key, dev.mround(entry.num_men*unit_size_mode_scalar, 1))
+        end
+    end
+    rec_handler:set_resource_tooltip("Caesar send help")
 end)
+
+
+
+

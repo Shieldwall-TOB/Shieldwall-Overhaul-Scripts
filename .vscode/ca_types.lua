@@ -135,6 +135,7 @@
 --game interface commands
 --ui
 --# assume CM.ui_root: method() --> CA_UIC
+--# assume CM.steal_user_input: method(steal: boolean)
 --effect bundles
 --# assume CM.apply_effect_bundle_to_region: method(bundle: string, region: string, turns: number)
 --# assume CM.remove_effect_bundle_from_region: method(bundle: string, region: string)
