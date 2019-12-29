@@ -24,6 +24,7 @@ function recruitment_resource_handler.new(resource, resource_getter, resource_mo
     self.uic_name = uic_name
 
     self.tooltip = " " --:string
+    self.image_state = "" --:string
     self.unit_costs = {} --:map<string, number>
     
     self.has_faction_whitelist = false
@@ -194,7 +195,7 @@ local function add_recruitment_resource(resource, resource_getter, resource_mod,
         function(context)
             local unit_component_ID = tostring(UIComponent(context.component):Id())
             --is our clicked component a unit?
-            if string.find(unit_component_ID, "_mercenary") and UIComponent(context.component):CurrentState() == "active" then
+            if string.find(unit_component_ID, "_mercenary") and UIComponent(context.component):CurrentState() == "active" and (not UIComponent(context.component):GetTooltipText():find("col:red")) then
                 local unitID = string.gsub(unit_component_ID, "_mercenary", "")
                 log(unitID.. " added to queue")
                 instance:add_unit_to_queue(unitID)
@@ -218,6 +219,24 @@ local function add_recruitment_resource(resource, resource_getter, resource_mod,
             end
         end,
         true)
+    dev.eh:add_listener(
+        "RecHandlerComponentMouseOn",
+        "ComponentMouseOn",
+        function(context)
+            return not not string.find(context.string, "_mercenary")
+        end,
+        function(context)
+            local unit_card = UIComponent(context.component)
+            local unit_component_ID = tostring(unit_card:Id())
+            local unitID = string.gsub(unit_component_ID, "_mercenary", "")
+            if instance.unit_costs[unitID] then
+                local pops = dev.get_uic(unit_card, "RecruitmentCost", "Cost", "Pops")
+                pops:SetState(instance.image_state)
+                pops:SetStateText(tostring(instance.unit_costs[unitID]))
+            end
+        end,
+        true
+    )
 
     return instance
 end

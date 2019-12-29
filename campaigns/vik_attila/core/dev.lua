@@ -72,6 +72,8 @@ local function log_uicomponent(uic)
     MODLOG("\tposition on screen:\t" .. tostring(pos_x) .. ", " .. tostring(pos_y));
     MODLOG("\tsize:\t\t\t" .. tostring(size_x) .. ", " .. tostring(size_y));
     MODLOG("\tstate:\t\t" .. tostring(uic:CurrentState()));
+    MODLOG("\tstateText:\t\t" .. tostring(uic:GetStateText()));
+    MODLOG("\tTooltipText:\t\t" .. tostring(uic:GetTooltipText()));
     MODLOG("\tvisible:\t\t" .. tostring(uic:Visible()));
     MODLOG("\tpriority:\t\t" .. tostring(uic:Priority()));
     MODLOG("\tchildren:");
