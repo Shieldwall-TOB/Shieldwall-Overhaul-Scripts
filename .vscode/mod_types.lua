@@ -11,6 +11,7 @@
 --# assume global class FACTION_DECREE_HANDLER
 --# assume global class DECREE
 --# assume global class VASSAL_FACTION
+--# assume global class FORCE_TRACKER
 
 --# assume global class REGION_MANPOWER
 --# assume global class RIOT_MANAGER

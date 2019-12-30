@@ -35,6 +35,7 @@ PettyKingdoms = {}
 local ok, err = pcall( function()
     PettyKingdoms.FactionResource = require("modules/FactionResource")
     PettyKingdoms.VassalTracking = require("modules/VassalTracking")
+    PettyKingdoms.ForceTracking = require("modules/ForceTracking")
     PettyKingdoms.RiotManager = require("modules/RiotManager")
     PettyKingdoms.FoodStorage = require("modules/FoodStorage")
     PettyKingdoms.Decree = require("modules/Decree")
@@ -49,7 +50,7 @@ end
 
 --require mechanics scripts
 local ok, err = pcall( function()
-    --global mechanics; these shouldn't need to reference other things!
+    --global mechanics; 
     require("global_mechanics/Shroud")
     require("global_mechanics/RiotEvents")
     require("global_mechanics/Bandits")
@@ -59,7 +60,7 @@ local ok, err = pcall( function()
 
     --faction mechanics
     require("faction_mechanics/mierce_hoards")
-    --decrees: these need to access the data from faction and cultural mechanics; keep them at the bottom.
+    --decrees
 end) 
 if not ok then
     dev.log("Error loading mechanics scripts!")

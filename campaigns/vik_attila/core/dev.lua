@@ -696,6 +696,20 @@ get_eh():add_listener(
     end,
     true
 )
+--v function(character: CA_CHAR) --> map<string, number>
+local function dev_generate_force_cache_entry(character)
+    if not dev_is_char_normal_general(character) then
+        return {}
+    end
+    local force = character:military_force()
+    local cache_entry = {} --:map<string, number>
+    for i=0,force:unit_list():num_items()-1 do
+        local unit_key = force:unit_list():item_at(i):unit_key()
+        cache_entry[unit_key] = cache_entry[unit_key] or 0
+        cache_entry[unit_key] = cache_entry[unit_key] + force:unit_list():item_at(i):percentage_proportion_of_full_strength()
+    end
+    return cache_entry
+end
 
 return {
     log = MODLOG,
@@ -731,5 +745,6 @@ return {
     turn_start = dev_turn_start,
     respond_to_incident = dev_respond_to_incident,
     respond_to_dilemma = dev_respond_to_dilemma,
-    last_time_sacked = dev_last_time_sacked
+    last_time_sacked = dev_last_time_sacked,
+    generate_force_cache_entry = dev_generate_force_cache_entry
 }
