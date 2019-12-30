@@ -212,6 +212,7 @@ dev.new_game(function(context)
             cm:disable_movement_for_character(dev.lookup(bandit))
             if not bandit:region():is_null_interface() then
                 BANDITS[bandit:region():name()] = tostring(bandit:command_queue_index())
+                cm:force_character_force_into_stance(dev.lookup(bandit:command_queue_index()), raid_stance)
             end
         end
     end
