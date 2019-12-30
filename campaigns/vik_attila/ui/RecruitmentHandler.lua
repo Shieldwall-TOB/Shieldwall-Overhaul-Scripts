@@ -205,7 +205,7 @@ local function add_recruitment_resource(resource, resource_getter, resource_mod,
         "RecHandlerUnitTrained",
         "UnitTrained",
         function(context)
-            return true
+            return context:unit():faction():is_human()
         end,
         function(context)
             local unit_key = context:unit():unit_key()

@@ -1,11 +1,11 @@
 MANPOWER_SERF = {} --:map<string, FACTION_RESOURCE>
 
-local region_factor = "culture_manpower_region_population"
-local devastation_factor = "culture_manpower_region_devastation"
-local recruitment_factor = "culture_manpower_recruitment"
-local thriving_factor = "culture_manpower_thriving_regions"
-local growth_factor = "culture_manpower_growth"
-local famine_factor = "culture_manpower_famine"
+local region_factor = "culture_manpower_region_population" --:string
+local devastation_factor = "culture_manpower_region_devastation" --:string
+local recruitment_factor = "culture_manpower_recruitment" --:string
+local thriving_factor = "culture_manpower_thriving_regions" --:string
+local growth_factor = "culture_manpower_growth" --:string
+local famine_factor = "culture_manpower_famine" --:string
 
 local base_growth = 2 
 local famine_loss = 6 
@@ -54,7 +54,7 @@ local function apply_turn_start(faction)
         local base_pop = dev.mround(region_manpower.base_serf*100, 1)
         region_pop_factor = region_pop_factor + base_pop
         if region_manpower.serf_multi < 100 then
-            lost_to_devastation = lost_to_devastation + dev.mround(region_manpower.base_serf*(100-region_manpower.serf_multi), 1)
+            lost_to_devastation = lost_to_devastation + dev.mround(region_manpower.base_serf*(region_manpower.serf_multi - 100), 1)
         elseif region_manpower.serf_multi > 100 then
             gained_from_thriving = gained_from_thriving + dev.mround(region_manpower.base_serf * (region_manpower.serf_multi - 100), 1)
         end
