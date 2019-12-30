@@ -34,6 +34,7 @@ end
 PettyKingdoms = {} 
 local ok, err = pcall( function()
     PettyKingdoms.FactionResource = require("modules/FactionResource")
+    PettyKingdoms.VassalTracking = require("modules/VassalTracking")
     PettyKingdoms.RiotManager = require("modules/RiotManager")
     PettyKingdoms.FoodStorage = require("modules/FoodStorage")
     PettyKingdoms.Decree = require("modules/Decree")
@@ -51,6 +52,7 @@ local ok, err = pcall( function()
     --global mechanics; these shouldn't need to reference other things!
     require("global_mechanics/Shroud")
     require("global_mechanics/RiotEvents")
+    require("global_mechanics/Bandits")
     require("global_mechanics/PeasantManpower")
     --culture mechanics
     require("culture_mechanics/burghal")
