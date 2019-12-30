@@ -1,13 +1,14 @@
 MANPOWER_SERF = {} --:map<string, FACTION_RESOURCE>
 
-local region_factor = "culture_manpower_region_population" --:string
-local devastation_factor = "culture_manpower_region_devastation" --:string
-local recruitment_factor = "culture_manpower_recruitment" --:string
-local thriving_factor = "culture_manpower_thriving_regions" --:string
-local growth_factor = "culture_manpower_growth" --:string
-local famine_factor = "culture_manpower_famine" --:string
+local region_factor = "manpower_region_population" --:string
+local sacking_factor = "manpower_region_sacked_or_occupied" --:string
+local recruitment_factor = "manpower_recruitment" --:string
+local raiding_factor = "manpower_region_raided" --:string
+local growth_factor = "manpower_growth" --:string
+local famine_factor = "manpower_famine" --:string
+local riots_factor = "manpower_rioting" --:string
 
-local base_growth = 2 
+local base_growth = 1 
 local famine_loss = 6 
 local unit_size_mode_scalar = 0.5 --0.5 is shieldwall's default sizes.
 
@@ -40,30 +41,15 @@ end
 --v function(faction: CA_FACTION)
 local function apply_turn_start(faction)
     local region_pop_factor = 0
-    local lost_to_devastation = 0
-    local gained_from_thriving = 0
     local serfs = MANPOWER_SERF[faction:name()]
     local past_growth = serfs:get_factor(growth_factor)
     local past_famine = serfs:get_factor(famine_factor) --this will be a negative number
     local past_levy = serfs:get_factor(recruitment_factor) --this will be a negative number
-    local actual_pop_base = past_growth + past_famine + past_levy
-    local region_list = dev.region_list(faction)
-    for i = 0, region_list:num_items() - 1 do
-        local current_region = region_list:item_at(i)
-        local region_manpower = PettyKingdoms.RegionManpower.get(current_region:name())
-        local base_pop = dev.mround(region_manpower.base_serf*100, 1)
-        region_pop_factor = region_pop_factor + base_pop
-        if region_manpower.serf_multi < 100 then
-            lost_to_devastation = lost_to_devastation + dev.mround(region_manpower.base_serf*(region_manpower.serf_multi - 100), 1)
-        elseif region_manpower.serf_multi > 100 then
-            gained_from_thriving = gained_from_thriving + dev.mround(region_manpower.base_serf * (region_manpower.serf_multi - 100), 1)
-        end
-        actual_pop_base = actual_pop_base + dev.mround(region_manpower.base_serf*region_manpower.serf_multi, 1)
-    end
-    --regional factors
-    serfs:set_factor(region_factor, region_pop_factor)
-    serfs:set_factor(devastation_factor, lost_to_devastation)
-    serfs:set_factor(thriving_factor, gained_from_thriving)
+    local past_raids = serfs:get_factor(raiding_factor) --this will be a negative number
+    local region_base = serfs:get_factor(region_factor)
+    local riots_factor = serfs:get_factor(riots_factor)
+    local actual_pop_base = past_growth + past_famine + past_levy + region_base + past_raids + riots_factor
+
     --growth and famine
     local total_food = faction:total_food()
     if total_food >= -50 then
@@ -89,8 +75,22 @@ dev.first_tick(function(context)
         end)
         local serfs = MANPOWER_SERF[human_factions[i]]
         serfs.uic_override = {"layout", "top_center_holder", "cult_all_pop_serf"} 
+        local region_list = dev.region_list(dev.get_faction(human_factions[i]))
+        local region_base_pop = 0 --:number
+        for j = 0, region_list:num_items() - 1 do
+            local current_region = region_list:item_at(j)     
+            local manpower_obj = PettyKingdoms.RegionManpower.get(current_region:name())
+            region_base_pop = region_base_pop + manpower_obj.base_serf
+        end
+        serfs:set_factor(region_factor, dev.mround(region_base_pop, 1))
+        serfs:reapply()
     end    
-
+    PettyKingdoms.RegionManpower.activate("serf", function(faction_key, factor_key, change)
+        local pop = PettyKingdoms.FactionResource.get("sw_pop_serf", faction_key)
+        if pop then
+            pop:change_value(change, factor_key)
+        end
+    end)
 
     dev.eh:add_listener(
         "SerfsFactionBeginTurnPhaseNormal",
@@ -103,7 +103,7 @@ dev.first_tick(function(context)
             apply_turn_start(faction)
         end,
         true)
-
+    
 
 
     apply_turn_start(cm:model():world():whose_turn_is_it())
