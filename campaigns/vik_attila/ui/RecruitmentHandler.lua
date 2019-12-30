@@ -202,6 +202,26 @@ local function add_recruitment_resource(resource, resource_getter, resource_mod,
             end
         end, true)
     dev.eh:add_listener(
+        "RecHandlerComponentMouseOn",
+        "ComponentMouseOn",
+        function(context)
+            return not not string.find(context.string, "_mercenary")
+        end,
+        function(context)
+            local unit_card = UIComponent(context.component)
+            local unit_component_ID = tostring(unit_card:Id())
+            local unitID = string.gsub(unit_component_ID, "_mercenary", "")
+            if instance.unit_costs[unitID] then
+                local pops = dev.get_uic(unit_card, "RecruitmentCost", "Cost", "Pops")
+                pops:SetState(instance.image_state)
+                pops:SetStateText(tostring(instance.unit_costs[unitID]))
+            end
+        end,
+        true
+    )
+
+    --gameplay impacting listeners
+    dev.eh:add_listener(
         "RecHandlerUnitTrained",
         "UnitTrained",
         function(context)
@@ -220,23 +240,22 @@ local function add_recruitment_resource(resource, resource_getter, resource_mod,
         end,
         true)
     dev.eh:add_listener(
-        "RecHandlerComponentMouseOn",
-        "ComponentMouseOn",
+        "SerfsCharacterReplenishmentCached",
+        "CharacterReplenishmentCached",
+        true,
         function(context)
-            return not not string.find(context.string, "_mercenary")
-        end,
-        function(context)
-            local unit_card = UIComponent(context.component)
-            local unit_component_ID = tostring(unit_card:Id())
-            local unitID = string.gsub(unit_component_ID, "_mercenary", "")
-            if instance.unit_costs[unitID] then
-                local pops = dev.get_uic(unit_card, "RecruitmentCost", "Cost", "Pops")
-                pops:SetState(instance.image_state)
-                pops:SetStateText(tostring(instance.unit_costs[unitID]))
+            local replen_cache = context:table_data()
+            local faction_name = context:character():faction():name()
+            for unit_key, quantity in pairs(replen_cache) do 
+                if instance.unit_costs[unit_key] then
+                    instance.mod(faction_name, dev.mround(instance.unit_costs[unit_key]*-1*((quantity/unit_recruit_percentage)/100), 1))
+                    --Since we store unit size with the proportion of a unit available at the time of recruitment already factored in, 
+                    --we factor unit recruit percent here to reverse that and get replenishment based on the full unit size.
+                    --40*-1*((11.25/0.5)/100) = 9 men 
+                end
             end
         end,
-        true
-    )
+        true)
 
     return instance
 end

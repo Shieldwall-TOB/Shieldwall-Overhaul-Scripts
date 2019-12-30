@@ -103,6 +103,9 @@ dev.first_tick(function(context)
             apply_turn_start(faction)
         end,
         true)
+
+
+
     apply_turn_start(cm:model():world():whose_turn_is_it())
 
 
@@ -110,7 +113,7 @@ dev.first_tick(function(context)
         return PettyKingdoms.FactionResource.get("sw_pop_serf", faction_name).value
     end, 
     function(faction_name, quantity)
-        PettyKingdoms.FactionResource.get("sw_pop_serf", faction_name):change_value(quantity)
+        PettyKingdoms.FactionResource.get("sw_pop_serf", faction_name):change_value(quantity, recruitment_factor)
     end, "dy_pop_peasant")
     for k, entry in pairs(Gamedata.unit_info) do
         if peasant_castes[entry.caste] then
@@ -119,6 +122,7 @@ dev.first_tick(function(context)
     end
     rec_handler:set_resource_tooltip("Caesar send help")
     rec_handler.image_state = "peasant"
+        
 end)
 
 
