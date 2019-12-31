@@ -29,10 +29,26 @@ end
 local function new_decree_handler(faction_key, global_cooldown)
     local new_instance = faction_decree_handler.new(faction_key, global_cooldown)
     handler_instances[faction_key] = new_instance
+    dev.eh:add_listener(
+        faction_key.."_decrees_turn",
+        "FactionTurnStart",
+        function(context)
+            return context:faction():name() == faction_key
+        end,
+        function(context)
+            if new_instance.current_global > 0 then
+                new_instance.current_global =  new_instance.current_global - 1
+            end
+            if new_instance.zero_cost_turns > 0 then
+                new_instance.zero_cost_turns = new_instance.zero_cost_turns - 1
+            end
+        end,
+        true
+    )
 end
 
---v function(faction_name: string, index: number, event: string, duration: number, cooldown: number, currency: string?, currency_cost: number?, is_dilemma: boolean?) --> DECREE
-function decree.new(faction_name, index, event, duration, cooldown, currency, currency_cost, is_dilemma)
+--v function(faction_name: string, index: number, event: string, duration: number, cooldown: number, gold_cost: number, currency: string?, currency_cost: number?, is_dilemma: boolean?) --> DECREE
+function decree.new(faction_name, index, event, duration, cooldown, gold_cost, currency, currency_cost, is_dilemma)
     local self = {}
     setmetatable(self, {__index = decree})
     --# assume self: DECREE
@@ -45,7 +61,7 @@ function decree.new(faction_name, index, event, duration, cooldown, currency, cu
     self.is_locked = true --:boolean
     self.can_ever_relock = false --:boolean
     self.callback = function(decree) end --:function(decree: DECREE)
-    self.gold_cost = 0
+    self.gold_cost = gold_cost
     self.currency = currency or "none" --:string
     self.currency_cost = currency_cost or 0 --:number
     self.event = event
@@ -83,8 +99,11 @@ local currency_cost_checkers = {
 } --:map<string, (function(faction_name: string) --> number)>
 
 
---v function(self: DECREE, script_event: string, conditional: function(context: WHATEVER) --> (boolean, boolean?))
-function decree.add_unlock_condition(self, script_event, conditional)
+--v function(self: DECREE, script_event: string, conditional: function(context: WHATEVER) --> (boolean, boolean?), set_can_relock: boolean?)
+function decree.add_unlock_condition(self, script_event, conditional, set_can_relock)
+    if set_can_relock ~= nil then
+        self.can_ever_relock = not not set_can_relock
+    end
     dev.eh:add_listener(
         self.key.."_unlocks",
         script_event,
@@ -103,10 +122,20 @@ function decree.add_unlock_condition(self, script_event, conditional)
 
 end
 
+--v function(self: DECREE) --> number
+function decree.get_effective_gold_cost(self)
+    local effective_gold = self.gold_cost
+    if self.handler.zero_cost_turns > 0 then
+        effective_gold = 0
+    end
+    return effective_gold
+end
+
 --v function(self: DECREE)
 function decree.apply_costs(self)
-    if self.gold_cost ~= 0 then
-        cm:treasury_mod(self.owning_faction, self.gold_cost)
+    local gold_cost = self:get_effective_gold_cost()
+    if gold_cost ~= 0 and self.handler.zero_cost_turns == 0 then
+        cm:treasury_mod(self.owning_faction, gold_cost)
     end
     local currency_applicator = currency_cost_applicators[self.currency]
     if currency_applicator then
@@ -116,14 +145,7 @@ function decree.apply_costs(self)
     end
 end
 
---v function(self: DECREE) --> number
-function decree.get_effective_gold_cost(self)
-    local effective_gold = self.gold_cost
-    if self.handler.zero_cost_turns > 0 then
-        effective_gold = 0
-    end
-    return effective_gold
-end
+
 
 --v function(self: DECREE, effective_gold_cost: number) --> boolean
 function decree.can_owner_afford(self, effective_gold_cost)
@@ -161,9 +183,9 @@ end
 
 
 
---v function(faction_name: string, index: number, event: string, duration: number, cooldown: number, currency: string?, currency_cost: number?, is_dilemma: boolean?) --> DECREE
-local function new_decree(faction_name, index, event, duration, cooldown, currency, currency_cost, is_dilemma)
-    local instance = decree.new(faction_name, index, event, duration, cooldown, currency, currency_cost, is_dilemma)
+--v function(faction_name: string, index: number, event: string, duration: number, cooldown: number, gold_cost: number, currency: string?, currency_cost: number?, is_dilemma: boolean?) --> DECREE
+local function new_decree(faction_name, index, event, duration, cooldown, gold_cost, currency, currency_cost, is_dilemma)
+    local instance = decree.new(faction_name, index, event, duration, cooldown, gold_cost, currency, currency_cost, is_dilemma)
     decree_instances[faction_name] = decree_instances[faction_name] or {}
     decree_instances[faction_name][event] = instance
     if is_dilemma then
@@ -174,6 +196,10 @@ local function new_decree(faction_name, index, event, duration, cooldown, curren
                 return context:dilemma() == instance.event
             end,
             function(context) 
+                if instance.handler.global_cooldown > 0 then
+                    instance.handler.current_global = instance.handler.global_cooldown
+                end
+                instance.current_cooldown = instance.cooldown
                 dev.respond_to_dilemma(instance.event, function(context)
                     if instance.callback then
                         instance.callback(instance)
@@ -193,6 +219,7 @@ local function new_decree(faction_name, index, event, duration, cooldown, curren
                 if instance.handler.global_cooldown > 0 then
                     instance.handler.current_global = instance.handler.global_cooldown
                 end
+                instance.current_cooldown = instance.cooldown
                 dev.respond_to_incident(instance.event, function(context)
                     if instance.callback then
                         instance.callback(instance)
@@ -210,6 +237,19 @@ local function new_decree(faction_name, index, event, duration, cooldown, curren
         end,
         function(context)
             instance:update_panel()
+        end,
+        true
+    )
+    dev.eh:add_listener(
+        instance.key.."_turn",
+        "FactionTurnStart",
+        function(context)
+            return context:faction():name() == instance.owning_faction
+        end,
+        function(context)
+            if instance.current_cooldown > 0 then
+                instance.current_cooldown =  instance.current_cooldown - 1
+            end
         end,
         true
     )

@@ -14,15 +14,15 @@ dev.eh:add_listener(
     "PanelOpenedCampaign",
     function(context) return context.string == "decrees_panel" end,
     function(context) 
-        DECREES_PANEL = context.component;
         dev.eh:trigger_event("UpdateDecrees", dev.get_faction(cm:get_local_faction(true)))
     end,
     true
 )
 --v function() --> CA_UIC
 local function get_decree_panel()
-    if DECREES_PANEL then
-        return dev.get_uic(DECREES_PANEL)
+    local uic = dev.get_uic(cm:ui_root(), "decrees_panel")
+    if uic then
+        return uic
     else
         log("Warning: Could not provide decrees panel to script!")
         return nil
