@@ -61,6 +61,7 @@ local ok, err = pcall( function()
     --faction mechanics
     require("faction_mechanics/mierce_hoards")
     --decrees
+    require("decrees/WestSeaxeDecrees")
 end) 
 if not ok then
     dev.log("Error loading mechanics scripts!")
