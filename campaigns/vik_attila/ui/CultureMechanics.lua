@@ -18,11 +18,7 @@ local function set_population_value(faction_name, effect_bundle, numeric_value, 
     local uic = get_culture_mechanics_bar()
     local mechanic_root = string.gsub(effect_bundle, "_%d", "")
     if alternate_uic then --# assume alternate_uic: vector<string>!
-        alt_uic = dev.uic_from_vec(cm:ui_root(), alternate_uic)
-        if alt_uic then
-            UIComponent(alt_uic:Parent()):Divorce(alt_uic:Address())
-            uic:Adopt(alt_uic:Address())
-        end
+        uic = dev.uic_from_vec(cm:ui_root(), alternate_uic)
     end
     if not not uic then
         cm:apply_effect_bundle(effect_bundle, faction_name, 0)

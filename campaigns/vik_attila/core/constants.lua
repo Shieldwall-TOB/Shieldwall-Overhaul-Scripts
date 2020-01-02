@@ -7,4 +7,5 @@ return {
     __no_fog = false, --turn off fog of war.
     __log_settlements = true, -- log information about settlements when they are selected
     __log_characters = true, -- log information about characters when they are selected
+    __unit_size_scalar = 0.5 --0.5 is shieldwalls default. Controls unit sizes for population counts.
 }

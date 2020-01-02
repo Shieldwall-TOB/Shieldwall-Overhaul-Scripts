@@ -180,6 +180,7 @@ local function new_instance(faction_name, resource_key, kind, default_value, cap
     if converter and dev.is_game_created() then
         instances[resource_key][faction_name]:reapply()
     end
+    UIScript.effect_bundles.remove_effect_bundles_with_root(resource_key)
     return instances[resource_key][faction_name]
 end
 

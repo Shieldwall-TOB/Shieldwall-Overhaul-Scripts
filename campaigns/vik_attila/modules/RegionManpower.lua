@@ -5,6 +5,7 @@ local mod_functions = {} --:map<string, function(faction_key: string, factor_key
 
 --basic info
 local lord_effect_reduction = 0.5
+local lord_cap_proportion = 0.5
 
 --change values
 local natural_recovery_rate = 4
@@ -23,7 +24,7 @@ function region_manpower.new(key, base_serf, base_lord)
     }) --# assume self: REGION_MANPOWER
     self.key = key
     self.base_serf = base_serf --:number
-    self.base_lord = base_lord --:number
+    self.base_lord = dev.mround(base_lord*lord_cap_proportion, 1) --:number
 
     self.loss_cap = 100 --:number
     

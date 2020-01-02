@@ -7,10 +7,11 @@ local raiding_factor = "manpower_region_raided" --:string
 local growth_factor = "manpower_growth" --:string
 local famine_factor = "manpower_famine" --:string
 local riots_factor = "manpower_rioting" --:string
+local buildings_factor = "manpower_settlement_upgrades"
 
-local base_growth = 1 
+local base_growth = 0.5 
 local famine_loss = 6 
-local unit_size_mode_scalar = 0.5 --0.5 is shieldwall's default sizes.
+local unit_size_mode_scalar = CONST.__unit_size_scalar
 
 local peasant_castes = {
     very_light = true,
@@ -19,15 +20,15 @@ local peasant_castes = {
 }--:map<string, boolean>
 
 
---v function(total_food: number) --> (int, string)
+--v function(total_food: number) --> (number, string)
 local function get_food_effect(total_food)
     local thresholds_to_returns = {
         [-150] = {0, "Famine"}, --min food, famine, handled elsewhere
-        [-50] = {-1, "Food Shortages"},
-        [0] = {0, "Food Shortages"},
-        [100] = {1, "Food Surplus"}, --default level
-        [250] = {2, "Food Surplus"}
-    }--:map<number, {int, string}>
+        [-50] = {-0.3, "Food Shortages"},
+        [0] = {-0.1, "Food Shortages"},
+        [100] = {0.25, "Food Surplus"}, --default level
+        [250] = {0.5, "Food Surplus"}
+    }--:map<number, {number, string}>
     local thresholds = {-150, -50, 0, 100, 250} --:vector<number>
     for n = 1, #thresholds do
         if total_food < thresholds_to_returns[thresholds[n]][1] then
@@ -35,7 +36,7 @@ local function get_food_effect(total_food)
         end
     end
     --if we are above 250 food
-    return 3, "Food Surplus"
+    return 1, "Food Surplus"
 end
 
 --v function(faction: CA_FACTION)
@@ -47,8 +48,8 @@ local function apply_turn_start(faction)
     local past_levy = serfs:get_factor(recruitment_factor) --this will be a negative number
     local past_raids = serfs:get_factor(raiding_factor) --this will be a negative number
     local region_base = serfs:get_factor(region_factor)
-    local riots_factor = serfs:get_factor(riots_factor)
-    local actual_pop_base = past_growth + past_famine + past_levy + region_base + past_raids + riots_factor
+    local past_riots = serfs:get_factor(riots_factor)
+    local actual_pop_base = past_growth + past_famine + past_levy + region_base + past_raids + past_riots
 
     --growth and famine
     local total_food = faction:total_food()
@@ -65,16 +66,18 @@ local function apply_turn_start(faction)
     end
 end
 
+--v function(resource: FACTION_RESOURCE) --> string
+local function value_converter(resource)
+    return tostring(dev.clamp(math.ceil(resource.value/500) + 1, 1, 16))
+end
+
 dev.first_tick(function(context) 
 
     local human_factions = cm:get_human_factions()
     for i = 1, #human_factions do
-        MANPOWER_SERF[human_factions[i]] = PettyKingdoms.FactionResource.new(human_factions[i], "sw_pop_serf", "population", 0, 30000, {}, function(self)
-            return "3" 
-            --TODO pop value to bundle conversion
-        end)
+        MANPOWER_SERF[human_factions[i]] = PettyKingdoms.FactionResource.new(human_factions[i], "sw_pop_serf", "population", 0, 30000, {}, value_converter)
         local serfs = MANPOWER_SERF[human_factions[i]]
-        serfs.uic_override = {"layout", "top_center_holder", "cult_all_pop_serf"} 
+        serfs.uic_override = {"layout", "top_center_holder", "resources_bar2", "culture_mechanics"} 
         local region_list = dev.region_list(dev.get_faction(human_factions[i]))
         local region_base_pop = 0 --:number
         for j = 0, region_list:num_items() - 1 do
@@ -104,10 +107,17 @@ dev.first_tick(function(context)
         end,
         true)
     
-
-
-    apply_turn_start(cm:model():world():whose_turn_is_it())
-
+    if dev.is_new_game() then
+        for i = 1, #human_factions do
+            local serf = MANPOWER_SERF[human_factions[i]]
+            serf:set_factor(famine_factor, 0)
+            serf:set_factor(recruitment_factor, 0)
+            serf:set_factor(riots_factor, 0)
+            serf:set_factor(raiding_factor, 0)
+            --serf:set_factor(buildings_factor, 0)
+        end
+        apply_turn_start(cm:model():world():whose_turn_is_it())
+    end
 
     local rec_handler = UIScript.recruitment_handler.add_resource("sw_pop_serf", function(faction_name)
         return PettyKingdoms.FactionResource.get("sw_pop_serf", faction_name).value
