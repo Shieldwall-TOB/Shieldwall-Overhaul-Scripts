@@ -7,6 +7,7 @@ Save = require("core/save")
 --require UI Libaries
 UIScript = {}
 local ok, err = pcall( function()
+    UIScript.effect_bundles = require("ui/EffectBundleBar")
     UIScript.culture_mechanics = require("ui/CultureMechanics")
     UIScript.decree_panel = require("ui/DecreePanel")
     UIScript.recruitment_handler = require("ui/RecruitmentHandler")
@@ -55,6 +56,7 @@ local ok, err = pcall( function()
     require("global_mechanics/RiotEvents")
     require("global_mechanics/Bandits")
     require("global_mechanics/PeasantManpower")
+    require("global_mechanics/NobleManpower")
     --culture mechanics
     require("culture_mechanics/burghal")
 
