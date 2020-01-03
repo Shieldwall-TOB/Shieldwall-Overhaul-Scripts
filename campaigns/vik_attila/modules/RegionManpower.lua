@@ -23,9 +23,10 @@ function region_manpower.new(key, base_serf, base_lord)
         __index = region_manpower
     }) --# assume self: REGION_MANPOWER
     self.key = key
-    self.base_serf = base_serf --:number
-    self.base_lord = dev.mround(base_lord*lord_cap_proportion, 1) --:number
 
+    self.base_serf = base_serf 
+    self.base_lord = dev.mround(base_lord*lord_cap_proportion, 1) --:number
+    --bases included in save to avoid changes in existing save files.
     self.loss_cap = 100 --:number
     
 
@@ -35,7 +36,7 @@ function region_manpower.new(key, base_serf, base_lord)
     self.save = {
         name = self.key .. "_manpower",
         for_save = {
-             "serf_multi", "lord_multi", "settlement_serf_bonus", "estate_lord_bonus"
+             "loss_cap", "settlement_serf_bonus", "estate_lord_bonus", "base_serf", "base_lord"
         }, 
     }
     Save.attach_to_object(self)

@@ -173,7 +173,7 @@ end
 
 local instances = {} --:map<string, FOOD_MANAGER>
 
-dev.first_tick(function(context)
+dev.pre_first_tick(function(context)
     local humans = cm:get_human_factions()
     for i = 1, #humans do
         local current_faction = humans[i]

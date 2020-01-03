@@ -35,7 +35,7 @@ local function refresh_vassal_list()
     end
 end
 
-dev.first_tick(function(context)
+dev.pre_first_tick(function(context)
     local faction_list = dev.faction_list()
     for i = 0, faction_list:num_items() - 1 do
         local faction = faction_list:item_at(i)

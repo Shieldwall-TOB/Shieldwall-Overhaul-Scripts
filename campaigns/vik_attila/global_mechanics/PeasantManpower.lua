@@ -78,7 +78,7 @@ dev.first_tick(function(context)
         MANPOWER_SERF[human_factions[i]] = PettyKingdoms.FactionResource.new(human_factions[i], "sw_pop_serf", "population", 0, 30000, {}, value_converter)
         local serfs = MANPOWER_SERF[human_factions[i]]
         serfs.uic_override = {"layout", "top_center_holder", "resources_bar2", "culture_mechanics"} 
-        local region_list = dev.region_list(dev.get_faction(human_factions[i]))
+        local region_list = dev.get_faction(human_factions[i]):region_list()
         local region_base_pop = 0 --:number
         for j = 0, region_list:num_items() - 1 do
             local current_region = region_list:item_at(j)     

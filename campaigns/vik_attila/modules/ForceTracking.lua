@@ -24,7 +24,7 @@ end
 
 local instance = force_tracker.new()
 
-dev.first_tick(function(context)
+dev.pre_first_tick(function(context)
     dev.eh:add_listener(
         "ForceCacheCharacterTurnEnd",
         "CharacterTurnEnd",

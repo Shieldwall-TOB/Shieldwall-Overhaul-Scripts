@@ -2,9 +2,9 @@
 local faction_resource = {} --# assume faction_resource: FACTION_RESOURCE
 
 
---v function(faction_name: string, resource_key: string, kind: RESOURCE_KIND, default_value: int, cap_value: int, breakdown_factors: map<string, int>,
+--v function(faction_name: string, resource_key: string, kind: RESOURCE_KIND, default_value: int, cap_value: int,
 --v converter: (function(self: FACTION_RESOURCE)--> string)?) --> FACTION_RESOURCE
-function faction_resource.new(faction_name, resource_key, kind, default_value, cap_value,breakdown_factors, converter)
+function faction_resource.new(faction_name, resource_key, kind, default_value, cap_value, converter)
     local self = {}
     setmetatable(self, {
         __index = faction_resource
@@ -21,7 +21,7 @@ function faction_resource.new(faction_name, resource_key, kind, default_value, c
     self.conversion_function = converter or function(self) --:FACTION_RESOURCE
          return tostring(self.value) 
     end
-    self.breakdown_factors = breakdown_factors
+    self.breakdown_factors = {} --:map<string, int>
     self.uic_override = nil --:vector<string>
     self.save = {
         name = self.key .. self.owning_faction, 
@@ -176,7 +176,7 @@ local instances = {} --:map<string, map<string, FACTION_RESOURCE>>
 --v converter: (function(self: FACTION_RESOURCE)--> string)?) --> FACTION_RESOURCE
 local function new_instance(faction_name, resource_key, kind, default_value, cap_value,breakdown_factors, converter)
     instances[resource_key] = instances[resource_key] or {}
-    instances[resource_key][faction_name] = faction_resource.new(faction_name, resource_key, kind, default_value, cap_value,breakdown_factors, converter)
+    instances[resource_key][faction_name] = faction_resource.new(faction_name, resource_key, kind, default_value, cap_value, converter)
     if converter and dev.is_game_created() then
         instances[resource_key][faction_name]:reapply()
     end

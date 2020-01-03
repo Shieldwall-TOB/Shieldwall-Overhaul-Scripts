@@ -165,7 +165,7 @@ function riot_manager.new_turn(self)
 end
 
 local instances = {} --:map<string, RIOT_MANAGER>
-dev.first_tick(function(context)
+dev.pre_first_tick(function(context)
     local region_list = dev.region_list()
     for i = 0, region_list:num_items() - 1 do
         local region = region_list:item_at(i)

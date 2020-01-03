@@ -590,7 +590,7 @@ _G.game_created = false
 
 --v function() --> boolean
 local function dev_is_new_game()
-    return not not cm:get_saved_value("dev_new_game_callback")
+    return not cm:get_saved_value("dev_new_game_callback")
 end
 
 cm:register_first_tick_callback(function(context)
@@ -600,32 +600,52 @@ cm:register_first_tick_callback(function(context)
     MODLOG("===============THE GAME IS STARTING: RUNNING FIRST TICK CALLBACK===================", "FTC")
     MODLOG("===================================================================================", "FTC")
     MODLOG("===================================================================================", "FTC")
-    local ok, err = pcall( function()
-        for i = 1, #pre_first_tick_callbacks do
+    local x = os.clock()
+    for i = 1, #pre_first_tick_callbacks do
+        local ok, err = pcall( function()
             pre_first_tick_callbacks[i](context)
+        end)
+        if not ok then
+            MODLOG("ERROR IN FIRST TICK", "ERR")
+            MODLOG(tostring(err), "ERR")
         end
-        if not cm:get_saved_value("dev_new_game_callback") then
-            MODLOG("===================================================================================", "FTC")
-            MODLOG("===================================================================================", "FTC")
-            MODLOG("===============NEW GAME STARTED: RUNNING NEW GAME START CALLBACK===================", "FTC")
-            MODLOG("===================================================================================", "FTC")
-            MODLOG("===================================================================================", "FTC")
-            for i = 1, #new_game_callbacks do
-                new_game_callbacks[i](context)
-            end
-            cm:set_saved_value("dev_new_game_callback", true)
-        end
-        for i = 1, #first_tick_callbacks do
-            first_tick_callbacks[i](context)
-        end
-        for i = 1, #post_first_tick_callbacks do
-            post_first_tick_callbacks[i](context)
-        end
-    end)
-    if not ok then
-        MODLOG("ERROR IN FIRST TICK", "ERR")
-        MODLOG(tostring(err), "ERR")
     end
+    if not cm:get_saved_value("dev_new_game_callback") then
+        MODLOG("===================================================================================", "FTC")
+        MODLOG("===================================================================================", "FTC")
+        MODLOG("===============NEW GAME STARTED: RUNNING NEW GAME START CALLBACK===================", "FTC")
+        MODLOG("===================================================================================", "FTC")
+        MODLOG("===================================================================================", "FTC")
+        for i = 1, #new_game_callbacks do
+            local ok, err = pcall( function()
+            new_game_callbacks[i](context)
+            end)
+            if not ok then
+                MODLOG("ERROR IN FIRST TICK", "ERR")
+                MODLOG(tostring(err), "ERR")
+            end
+        end
+    end
+    for i = 1, #first_tick_callbacks do
+        local ok, err = pcall( function()
+            first_tick_callbacks[i](context)
+        end)
+        if not ok then
+            MODLOG("ERROR IN FIRST TICK", "ERR")
+            MODLOG(tostring(err), "ERR")
+        end
+    end
+    for i = 1, #post_first_tick_callbacks do
+        local ok, err = pcall( function()
+        post_first_tick_callbacks[i](context)
+        end)
+        if not ok then
+            MODLOG("ERROR IN FIRST TICK", "ERR")
+            MODLOG(tostring(err), "ERR")
+        end
+    end
+    cm:set_saved_value("dev_new_game_callback", true)
+    MODLOG(string.format("First tick complete: elapsed time: %.4f\n", os.clock() - x), "FTC")
 end)
 --v function() --> boolean
 local function dev_game_created()
