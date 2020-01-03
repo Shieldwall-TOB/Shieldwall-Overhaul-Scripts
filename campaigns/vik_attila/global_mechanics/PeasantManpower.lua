@@ -7,7 +7,8 @@ local raiding_factor = "manpower_region_raided" --:string
 local growth_factor = "manpower_growth" --:string
 local famine_factor = "manpower_famine" --:string
 local riots_factor = "manpower_rioting" --:string
-local buildings_factor = "manpower_settlement_upgrades"
+local buildings_factor = "manpower_settlement_upgrades" --:string
+local overcrowding_factor = "manpower_overcrowding_serf"
 
 local base_growth = 0.5 
 local famine_loss = 6 
@@ -41,7 +42,6 @@ end
 
 --v function(faction: CA_FACTION)
 local function apply_turn_start(faction)
-    local region_pop_factor = 0
     local serfs = MANPOWER_SERF[faction:name()]
     local past_growth = serfs:get_factor(growth_factor)
     local past_famine = serfs:get_factor(famine_factor) --this will be a negative number
@@ -50,7 +50,7 @@ local function apply_turn_start(faction)
     local region_base = serfs:get_factor(region_factor)
     local past_riots = serfs:get_factor(riots_factor)
     local actual_pop_base = past_growth + past_famine + past_levy + region_base + past_raids + past_riots
-
+    local growth = 0 --:int
     --growth and famine
     local total_food = faction:total_food()
     if total_food >= -50 then
@@ -58,11 +58,24 @@ local function apply_turn_start(faction)
             actual_pop_base = 200 --to prevent people from permanently running out of pop
         end
         local growth_perc_this_turn = base_growth + get_food_effect(total_food)
-        local growth = dev.mround(actual_pop_base * (growth_perc_this_turn/100), 1)
+        growth = dev.mround(actual_pop_base * (growth_perc_this_turn/100), 1)
         serfs:change_value(growth, growth_factor)
     else
         local loss = dev.mround(-1*(actual_pop_base * (famine_loss/100)), 1)
         serfs:change_value(loss, famine_factor)
+    end
+
+    --overpopulation
+    local pop_effective_cap = (region_base) * 2
+    local cap_perc = actual_pop_base / pop_effective_cap
+    if cap_perc > 1 then 
+        --lose everything over the cap.
+        local difference = pop_effective_cap - actual_pop_base
+        serfs:change_value(difference, overcrowding_factor)
+    elseif cap_perc > 0.75 then
+        --lose 4% of growth per 1% over 75% of cap.
+        local loss = (cap_perc - 0.75) * growth * -1
+        serfs:change_value(loss, overcrowding_factor)
     end
 end
 

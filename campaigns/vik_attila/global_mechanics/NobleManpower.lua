@@ -9,7 +9,8 @@ local growth_factor = "manpower_growth" --:string
 local famine_factor = "manpower_famine" --:string
 local riots_factor = "manpower_rioting" --:string
 local allegiance_factor = "manpower_region_allegiance" --:string
-local estates_factor = "manpower_estates"
+local estates_factor = "manpower_estates" --:string
+local overcrowding_factor = "manpower_overcrowding_lord"
 
 local base_growth = 0.15
 local famine_loss = 3 
@@ -63,7 +64,7 @@ local function apply_turn_start(faction)
     end
     nobles:set_factor(allegiance_factor, dev.mround(allegiance, 1))
     local actual_pop_base = past_growth + past_famine + past_levy + region_base + past_raids + past_riots + allegiance
-
+    local growth = 0 --:int
     --growth and famine
     local total_food = faction:total_food()
     if total_food >= -50 then
@@ -71,13 +72,25 @@ local function apply_turn_start(faction)
             actual_pop_base = 200 --to prevent people from permanently running out of pop
         end
         local growth_perc_this_turn = base_growth + get_food_effect(total_food)
-        local growth = dev.mround(actual_pop_base * (growth_perc_this_turn/100), 1)
+        growth = dev.mround(actual_pop_base * (growth_perc_this_turn/100), 1)
         nobles:change_value(growth, growth_factor)
     else
         local loss = dev.mround(-1*(actual_pop_base * (famine_loss/100)), 1)
         nobles:change_value(loss, famine_factor)
     end
 
+    --overpopulation
+    local pop_effective_cap = (region_base) * 4
+    local cap_perc = actual_pop_base / pop_effective_cap
+    if cap_perc > 1 then 
+        --lose everything over the cap.
+        local difference = pop_effective_cap - actual_pop_base
+        nobles:change_value(difference, overcrowding_factor)
+    elseif cap_perc > 0.80 then
+        --lose 5% of growth per 1% over 80% of cap.
+        local loss = (cap_perc - 0.8) * growth * -1
+        nobles:change_value(loss, overcrowding_factor)
+    end
 end
 
 
