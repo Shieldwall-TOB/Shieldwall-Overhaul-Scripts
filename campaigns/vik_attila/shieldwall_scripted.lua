@@ -57,6 +57,7 @@ local ok, err = pcall( function()
     require("global_mechanics/Bandits")
     require("global_mechanics/PeasantManpower")
     require("global_mechanics/NobleManpower")
+    require("global_mechanics/Monks")
     --culture mechanics
     require("culture_mechanics/burghal")
 

@@ -12,9 +12,11 @@ local natural_recovery_rate = 4
 local occupation_loss = -30
 local sack_loss = -60
 local raid_loss = -10
+local monk_training_rate = 1
 
 local estate_sizes = {} --:map<string, number>
 local settlement_sizes = {} --:map<string, number>
+local monastery_sizes = {} --:map<string, number>
 
 --v function(key: string, base_serf: number, base_lord: number) --> REGION_MANPOWER
 function region_manpower.new(key, base_serf, base_lord)
@@ -26,17 +28,19 @@ function region_manpower.new(key, base_serf, base_lord)
 
     self.base_serf = base_serf 
     self.base_lord = dev.mround(base_lord*lord_cap_proportion, 1) --:number
-    --bases included in save to avoid changes in existing save files.
     self.loss_cap = 100 --:number
     
 
     self.settlement_serf_bonus = 0 --:number
     self.estate_lord_bonus = 0 --:number
 
+    self.monk_pop = 0 --:number
+    self.monk_cap = 0 --:number
+
     self.save = {
         name = self.key .. "_manpower",
         for_save = {
-             "loss_cap", "settlement_serf_bonus", "estate_lord_bonus", "base_serf", "base_lord"
+             "loss_cap", "settlement_serf_bonus", "estate_lord_bonus", "monk_pop", "monk_cap"
         }, 
     }
     Save.attach_to_object(self)
@@ -66,7 +70,32 @@ function region_manpower.mod_population_through_region(self, change, factor, ser
     end
 end
 
+--v function(self: REGION_MANPOWER, change: number, mod: boolean?, factor: string?)
+function region_manpower.mod_monks(self, change, mod, factor)
+    local old = self.monk_pop
+    self.monk_pop = dev.mround(dev.clamp(self.monk_pop + change, 0, self.monk_cap), 1)
+    local real_change = self.monk_pop - old
+    if mod and factor and mod_functions.monk then
+        --# assume factor: string
+        mod_functions.monk(dev.get_region(self.key):owning_faction():name(), factor, real_change)
+    end
+end
 
+--v function(self: REGION_MANPOWER)
+function region_manpower.update_monk_cap(self)
+    local slot_list = dev.get_region(self.key):settlement():slot_list()
+    local cap = 0 --:number
+    for i = 0, slot_list:num_items() - 1 do 
+        local slot = slot_list:item_at(i)
+        if slot:has_building() then
+            local key  = slot:building():name()
+            if monastery_sizes[key] then
+                cap = cap + monastery_sizes[key]
+            end
+        end
+    end
+    self.monk_cap = cap
+end
 
 local instances = {} --:map<string, REGION_MANPOWER>
 
@@ -77,6 +106,7 @@ dev.first_tick(function (context)
         local base_pop = Gamedata.base_pop[current_region:name()] or {serf = 150, lord = 50}
         local instance = region_manpower.new(current_region:name(), base_pop.serf, base_pop.lord)
         instances[current_region:name()] = instance
+        instance:update_monk_cap()
     end
     dev.eh:add_listener(
         "ManpowerRegionChangesOwner",
@@ -88,6 +118,9 @@ dev.first_tick(function (context)
             local lost_perc = rmp:mod_loss_cap(occupation_loss)
             local old_faction = context:prev_faction()
             local new_faction = context:region():owning_faction()
+            local old_monks = rmp.monk_pop
+            rmp:update_monk_cap()
+            rmp:mod_monks(rmp.monk_pop*occupation_loss/100)
             if new_faction:is_human() then
                 if mod_functions.serf then
                     local loss = dev.mround(rmp.base_serf*lost_perc, 1)
@@ -99,6 +132,9 @@ dev.first_tick(function (context)
                     mod_functions.lord(new_faction:name(), "manpower_region_sacked_or_occupied", loss)
                     mod_functions.lord(new_faction:name(), "manpower_region_population", rmp.base_lord)
                 end
+                if mod_functions.monk then
+                    mod_functions.monk(new_faction:name(), "monk_gained_settlements", rmp.monk_pop)
+                end
             end
             if old_faction:is_human() then
                 if mod_functions.serf then
@@ -106,6 +142,9 @@ dev.first_tick(function (context)
                 end
                 if mod_functions.lord then
                     mod_functions.lord(new_faction:name(), "manpower_region_population", dev.mround(rmp.base_lord*-1*rmp.loss_cap, 1))
+                end
+                if mod_functions.monk then
+                    mod_functions.monk(new_faction:name(), "monk_lost_settlements", old_monks)
                 end
             end
         end,
@@ -117,6 +156,10 @@ dev.first_tick(function (context)
         function(context)
             local rmp = instances[context:region():name()]
             rmp:mod_loss_cap(natural_recovery_rate)
+            if context:region():owning_faction():is_human() then
+                rmp:update_monk_cap()
+                rmp:mod_monks(monk_training_rate, true, "monk_training")
+            end
         end,
         true)
     dev.eh:add_listener(
@@ -164,6 +207,8 @@ dev.first_tick(function (context)
                         mod_functions.lord(owning_faction:name(), "manpower_region_sacked_or_occupied", loss)
                     end
                 end
+                rmp:update_monk_cap()
+                rmp:mod_monks(-1*rmp.monk_pop, true, "monk_sacking")
             end
         end,
         true)
@@ -187,6 +232,11 @@ local function set_estate_size(estate, size)
     estate_sizes[estate] = size
 end
 
+--v function(monastery: string, size: number)
+local function set_monastery_size(monastery, size)
+    monastery_sizes[monastery] = size
+end
+
 --v function(region_name: string) --> REGION_MANPOWER
 local function get_region_manpower(region_name)
     return instances[region_name]
@@ -197,5 +247,6 @@ return {
     activate = add_mod_for_pop_type,
     add_settlement_pop_bonus = set_settlement_size,
     add_estate_pop_bonus = set_estate_size,
+    add_monastery_pop_cap = set_monastery_size,
     get = get_region_manpower
 }

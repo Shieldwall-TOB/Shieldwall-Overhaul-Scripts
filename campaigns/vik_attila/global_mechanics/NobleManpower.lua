@@ -96,7 +96,13 @@ end
 
 --v function(resource: FACTION_RESOURCE) --> string
 local function value_converter(resource)
-    return tostring(dev.clamp(math.ceil(resource.value/250) + 1, 1, 16))
+    if resource.value == 0 then
+        return "1"
+    elseif resource.value < dev.mround(MANPOWER_SERF[resource.owning_faction].value/10, 1) then
+        return "2"
+    else
+        return "3"
+    end
 end
 
 
