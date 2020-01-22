@@ -43,7 +43,7 @@ function region_manpower.new(key, base_serf, base_lord)
              "loss_cap", "settlement_serf_bonus", "estate_lord_bonus", "monk_pop", "monk_cap"
         }, 
     }
-    Save.attach_to_object(self)
+    dev.Save.attach_to_object(self)
     return self
 end
 

@@ -10,7 +10,7 @@ function(context)
         return false, char
     end
     --cannot trigger for viking
-    if Check.is_char_from_viking_faction(char) then
+    if dev.Check.is_char_from_viking_faction(char) then
         return false, char
     end
     --needs a valid region for check
@@ -21,7 +21,7 @@ function(context)
     for i = 0, char:region():adjacent_region_list():num_items() - 1 do
         local current = char:region():adjacent_region_list():item_at(i)
         --is the region owned by a viking we are *not* are war with?
-        if (not char:faction():at_war_with(current:owning_faction())) and Check.is_faction_viking_faction(current:owning_faction()) then
+        if (not char:faction():at_war_with(current:owning_faction())) and dev.Check.is_faction_viking_faction(current:owning_faction()) then
             return cm:random_number(100) < FLAG_CHANCE, char
         end
     end
@@ -34,7 +34,7 @@ function(context)
     local proposer = context:proposer()
     local recipient = context:recipient()
     --the proposer is a human faction who isn't viking and just made a deal with vikings.
-    if proposer:is_human() and Check.is_faction_viking_faction(recipient) and not Check.is_faction_viking_faction(proposer) then
+    if proposer:is_human() and dev.Check.is_faction_viking_faction(recipient) and not dev.Check.is_faction_viking_faction(proposer) then
         --cannot be a friend of the church
         if proposer:faction_leader():has_trait("shield_faithful_friend_of_the_church") then
             return false, nil
@@ -43,7 +43,7 @@ function(context)
         --we divide the chance by two because diplomacy events trigger twice every time they fire. 
 
     --the recpient is a human faction who isn't viking and just made a deal with vikings.
-    elseif recipient:is_human() and Check.is_faction_viking_faction(proposer) and not Check.is_faction_viking_faction(recipient) then
+    elseif recipient:is_human() and dev.Check.is_faction_viking_faction(proposer) and not dev.Check.is_faction_viking_faction(recipient) then
         --cannot be a friend of the church
         if recipient:faction_leader():has_trait("shield_faithful_friend_of_the_church") then
             return false, nil
@@ -76,7 +76,7 @@ function(context)
             end
         end
         --the recipient of the war declaration must be a viking faction.
-      return Check.is_faction_viking_faction(context:recipient()), faction
+      return dev.Check.is_faction_viking_faction(context:recipient()), faction
     end
     --otherwise, false
     return false, nil

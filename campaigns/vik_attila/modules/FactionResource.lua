@@ -27,7 +27,7 @@ function faction_resource.new(faction_name, resource_key, kind, default_value, c
         name = self.key .. self.owning_faction, 
         for_save = {"breakdown_factors", "value", "last_bundle", "cap_value"}
     }--:SAVE_SCHEMA
-    Save.attach_to_object(self)
+    dev.Save.attach_to_object(self)
     return self
 end
 

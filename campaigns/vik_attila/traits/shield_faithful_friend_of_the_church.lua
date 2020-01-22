@@ -28,7 +28,7 @@ function(context)
         return false, char
     end
     --if character is near a church
-    if Check.is_char_near_church(char) then
+    if dev.Check.is_char_near_church(char) then
         return  cm:random_number(100) < FLAG_TRAIT_CHANCE , char 
     else
         return false, char

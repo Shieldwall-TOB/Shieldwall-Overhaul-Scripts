@@ -21,7 +21,7 @@ function faction_decree_handler.new(faction_key, global_cooldown)
         name = self.owning_faction .. "_decrees",
         for_save = {"current_global", "zero_cost_turns"}
     }--:SAVE_SCHEMA
-    Save.attach_to_object(self)
+    dev.Save.attach_to_object(self)
     return self
 end
 
@@ -78,7 +78,7 @@ function decree.new(faction_name, index, event, duration, cooldown, gold_cost, c
         name = self.key,
         for_save = {"current_cooldown", "is_locked"}
     }--:SAVE_SCHEMA
-    Save.attach_to_object(self)
+    dev.Save.attach_to_object(self)
     return self 
 end
 

@@ -193,7 +193,7 @@
 --# assume CA_MODEL.world: method() --> CA_WORLD
 --# assume CA_MODEL.pending_battle: method() --> CA_PENDING_BATTLE
 --# assume CA_MODEL.is_multiplayer: method() --> boolean
---# assume CA_MODEL.turn_number: method() --> number
+--# assume CA_MODEL.turn_number: method() --> int
 --# assume CA_MODEL.is_player_turn: method() --> number
 --# assume CA_MODEL.difficulty_level: method() --> number
 --# assume CA_MODEL.campaign_ai: method() --> CA_AI

@@ -14,7 +14,7 @@ end)
 tm:add_normal_trait_trigger("CharacterCreated",
 function(context)
     local char = context:character()
-    if char:age() > 18 and char:is_male() and Check.is_char_from_viking_faction(char) then
+    if char:age() > 18 and char:is_male() and dev.Check.is_char_from_viking_faction(char) then
         --case: if the king is pagan, then invert the chance
         if (not context:character():faction():faction_leader():is_null_interface()) and context:character():faction():faction_leader():has_trait("shield_heathen_pagan") then
             if cm:random_number(100) < (100 - NEW_CHARACTER_TRAIT_CHANCE) then

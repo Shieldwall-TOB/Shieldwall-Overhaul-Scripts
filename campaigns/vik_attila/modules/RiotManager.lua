@@ -25,7 +25,7 @@ function riot_manager.new(region_key)
              "riot_in_progress", "riot_timer", "riot_event_cooldown", "last_riot_event"
         }, 
     }
-    Save.attach_to_object(self)
+    dev.Save.attach_to_object(self)
     return self
 end
 

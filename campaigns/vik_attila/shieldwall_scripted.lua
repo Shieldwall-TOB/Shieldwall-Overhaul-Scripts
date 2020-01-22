@@ -1,8 +1,10 @@
 CONST = require("core/constants")
 dev = require("core/dev")
 dev.log("Development library loaded, starting to load gameplay scripts")
-Check = require("core/checks")
-Save = require("core/save")
+dev.Save = require("core/save")
+dev.Events = require("core/Events")
+dev.Check = require("core/checks")
+
 
 --require UI Libaries
 UIScript = {}
