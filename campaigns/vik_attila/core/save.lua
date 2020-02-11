@@ -110,6 +110,19 @@ if not CONST.__do_not_save_or_load then
         log(string.format("Saving game complete: elapsed time: %.4f\n", os.clock() - x))
     end)
 end
+
+--v function(t:any, name: string)
+local function persist_table(t, name)
+    cm:register_loading_game_callback(function(context)
+        cm:load_value(name, {}, context)
+    end)
+
+    cm:register_saving_game_callback(function(context)
+        cm:save_value(name, t, context)
+    end)
+end
+
 return {
+    persist_table = persist_table,
     attach_to_object = attach
 }
