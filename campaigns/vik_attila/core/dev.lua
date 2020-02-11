@@ -696,12 +696,21 @@ local function dev_last_time_sacked(settlement)
     return last_time_settlement_sacked[settlement] or -10
 end
 
+local invasions_number = 0
+--v function() --> number
+local function dev_invasion_number()
+    invasions_number = invasions_number + 1;
+    return invasions_number - 1;
+end
+
 cm:register_loading_game_callback(function(context)
     last_time_settlement_sacked = cm:load_value("last_time_settlement_sacked", {}, context)
+    invasions_number = cm:load_value("invasions_number", 0, context)
 end)
 
 cm:register_saving_game_callback(function(context)
     cm:save_value("last_time_settlement_sacked", last_time_settlement_sacked, context)
+    cm:save_value("invasions_number", invasions_number, context)
 end)
 
 get_eh():add_listener(
@@ -730,6 +739,10 @@ local function dev_generate_force_cache_entry(character)
     end
     return cache_entry
 end
+
+
+
+
 
 return {
     log = MODLOG,
@@ -766,5 +779,6 @@ return {
     respond_to_incident = dev_respond_to_incident,
     respond_to_dilemma = dev_respond_to_dilemma,
     last_time_sacked = dev_last_time_sacked,
+    invasion_number = dev_invasion_number,
     generate_force_cache_entry = dev_generate_force_cache_entry
 }
