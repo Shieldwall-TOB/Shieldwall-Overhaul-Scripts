@@ -1,4 +1,5 @@
 local eb_roots = {} --:map<string, boolean>
+local ebs = {} --:map<string, boolean>
 
 --v function() --> CA_UIC
 local function get_global_effects_list()
@@ -15,6 +16,9 @@ local function apply_changes_to_bundle_display()
     if display then
         for i = 0, display:ChildCount() - 1 do
             local bundle = UIComponent(display:Find(i))
+            if ebs[bundle:Id()] then
+                bundle:SetVisible(false)
+            end
             local bundle_root = string.gsub(bundle:Id(), "_%d%d?", "")
             if eb_roots[bundle_root] then
                 bundle:SetVisible(false)
@@ -22,6 +26,9 @@ local function apply_changes_to_bundle_display()
         end
     end
 end
+
+
+
 
 dev.eh:add_listener(
     "BundlesPanelClosedCampaign",
@@ -38,11 +45,13 @@ local function hook_into_cm()
     cm.apply_effect_bundle = function(cm, bundle, faction, timer)
         cm.game_interface:apply_effect_bundle(bundle, faction, timer)
         apply_changes_to_bundle_display()
+        dev.log("Applied "..bundle.." to "..faction.." for ".. timer, "bundle")
     end
     local old_effect_remove = cm.remove_effect_bundle
     cm.remove_effect_bundle = function(cm, bundle, faction)
         cm.game_interface:remove_effect_bundle(bundle, faction)
         apply_changes_to_bundle_display()
+        dev.log("removed "..bundle.." from "..faction, "bundle")
     end
 end
 
@@ -66,7 +75,12 @@ end)
 local function remove_effect_bundles_with_root(root)
     eb_roots[root] = true
 end
+--v function(key:string)
+local function remove_exact_bundle(key)
+    ebs[key] = true
+end
 
 return {
-    remove_effect_bundles_with_root = remove_effect_bundles_with_root
+    remove_effect_bundles_with_root = remove_effect_bundles_with_root,
+    remove_exact_bundle = remove_exact_bundle
 }
