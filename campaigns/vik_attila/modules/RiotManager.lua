@@ -126,8 +126,9 @@ function riot_manager.find_valid_riot_event(self)
             self:log("Found valid riot event: "..incident, true)
             if event_info.is_dilemma then
                 if event_info.response then
-                    dev.respond_to_incident(incident, event_info.response)
+                    dev.respond_to_dilemma(incident, event_info.response)
                 end
+                dev.Events.trigger_turnstart_dilemma(incident, owner:name())
                 return
             end
             if event_info.response then
