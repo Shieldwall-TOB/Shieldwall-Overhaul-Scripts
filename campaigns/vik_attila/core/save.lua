@@ -111,10 +111,12 @@ if not CONST.__do_not_save_or_load then
     end)
 end
 
---v function(t:any, name: string)
-local function persist_table(t, name)
+--v [NO_CHECK] function(t:table, name: string, loadcall: function(t: WHATEVER))
+local function persist_table(t, name, loadcall)
+    log("Registered persistant table: "..name)
     cm:register_loading_game_callback(function(context)
-        cm:load_value(name, {}, context)
+        local temp = cm:load_value(name, t, context)
+        loadcall(temp)
     end)
 
     cm:register_saving_game_callback(function(context)
