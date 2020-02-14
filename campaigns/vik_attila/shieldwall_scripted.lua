@@ -26,6 +26,7 @@ local ok, err = pcall( function()
     Gamedata.general = require("game_data/general_data")
     Gamedata.base_pop = require("game_data/base_pop_values")
     Gamedata.unit_info = require("game_data/unit_info")
+    Gamedata.spawn_locations = require("game_data/spawn_locations")
 end) 
 if not ok then
     dev.log("Error loading module library")
@@ -57,9 +58,13 @@ local ok, err = pcall( function()
     require("global_mechanics/Shroud")
     require("global_mechanics/RiotEvents")
     require("global_mechanics/Bandits")
+    require("global_mechanics/CitiesLandmarks")
+    require("global_mechanics/VikingRaiders")
+    --manpower
     require("global_mechanics/PeasantManpower")
     require("global_mechanics/NobleManpower")
     require("global_mechanics/Monks")
+    require("global_mechanics/ForeignWarriors")
     --culture mechanics
     require("culture_mechanics/burghal")
 
