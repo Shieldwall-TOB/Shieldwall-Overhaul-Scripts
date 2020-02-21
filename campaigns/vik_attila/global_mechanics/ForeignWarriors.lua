@@ -27,10 +27,11 @@ local FOREIGN_WARRIORS = {
         crisis_timer = base_boiling_time,
         last_tension = 0,
         in_crisis = false,
+        crisis_level = 1,
         building_modifiers = {},
         events_triggered = {}
     }
-} --:map<string, {crisis_timer: int, last_tension: int, in_crisis: boolean, building_modifiers: map<string, number>, events_triggered: map<string, boolean>}>
+} --:map<string, {crisis_timer: int, last_tension: int, in_crisis: boolean, crisis_level: int, building_modifiers: map<string, number>, events_triggered: map<string, boolean>}>
 
 --v function(faction_key: string)
 local function add_blank_foreign_warrior_entry(faction_key)
@@ -38,6 +39,7 @@ local function add_blank_foreign_warrior_entry(faction_key)
         crisis_timer = base_boiling_time,
         last_tension = 0,
         in_crisis = false,
+        crisis_level = 1,
         building_modifiers = {},
         events_triggered = {}
     }
@@ -73,6 +75,9 @@ local function process_turn_start(faction)
         FOREIGN_WARRIORS[faction:name()].crisis_timer = FOREIGN_WARRIORS[faction:name()].crisis_timer - 1;
         if FOREIGN_WARRIORS[faction:name()].crisis_timer <= 0 then
             FOREIGN_WARRIORS[faction:name()].in_crisis = false
+            if FOREIGN_WARRIORS[faction:name()].crisis_level == 1 then
+                FOREIGN_WARRIORS[faction:name()].crisis_level = 2
+            end
         end
         --otherwise, do nothing. Events check this table for a true crisis flag to cause events.
         return
@@ -120,6 +125,10 @@ local function process_turn_start(faction)
         FOREIGN_WARRIORS[faction:name()].in_crisis = true
         FOREIGN_WARRIORS[faction:name()].crisis_timer = crisis_duration
     end
+    --see if crisis needs to escalate automatically.
+    if FOREIGN_WARRIORS[faction:name()].crisis_level < 3 and faction:region_list():num_items() > 20 then
+        FOREIGN_WARRIORS[faction:name()].crisis_level = 3
+    end
 end
 
 --v function(resource: FACTION_RESOURCE) --> string
@@ -130,9 +139,9 @@ local function value_converter(resource)
         return "6"
     elseif FOREIGN_WARRIORS[resource.owning_faction].in_crisis then
         local region_count = dev.get_faction(resource.owning_faction):region_list():num_items()
-        if region_count < 12 then
+        if FOREIGN_WARRIORS[resource.owning_faction].crisis_level <= 2 then
             return "3"
-        elseif region_count < 30 then
+        elseif FOREIGN_WARRIORS[resource.owning_faction].crisis_level <= 4 then
             return "4"
         else
             return "5"
