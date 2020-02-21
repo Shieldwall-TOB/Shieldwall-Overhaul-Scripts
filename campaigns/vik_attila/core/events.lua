@@ -6,10 +6,12 @@ game_events.turnstart_queue = {} --:vector<{faction: string, dilemma: string}>
 game_events.postbattle_events = {} --:map<int, vector<string>>
 game_events.post_occupy_or_sack_events = {} --:map<int, vector<string>>
 game_events.last_event_turn = {} --:map<string, int>
+game_events.nonrepeatable = {} --:map<string, boolean>
+game_events.already_happened = {} --:map<string, boolean>
 game_events.event_conditions = {} --:map<string, (function(context: WHATEVER) --> boolean)>
 game_events.save = {
     name = "game_event_manager",
-    for_save = {"last_event_turn", "turnstart_queue"}
+    for_save = {"last_event_turn", "turnstart_queue", "already_happened"}
 }
 
 local max_priority_levels = 4 --:int
@@ -22,6 +24,7 @@ dev.first_tick(function(context)
         true,
         function(context)
             game_events.last_event_turn[context:faction():name()] = cm:model():turn_number() 
+            game_events.already_happened[context:dilemma()] = true
         end,
         true
     )
@@ -45,7 +48,7 @@ dev.first_tick(function(context)
                 if events and turn_difference >= i then 
                     for j = 1, #events do
                         local event_key = events[j]
-                        if game_events.event_conditions[event_key] then
+                        if (not game_events.nonrepeatable[event_key]) or (not game_events.already_happened[event_key]) then
                             if game_events.event_conditions[event_key](context) then
                                 cm:trigger_dilemma(context:faction():name(), event_key, true)
                                 return
@@ -86,11 +89,14 @@ dev.first_tick(function(context)
 end)
 
 
---v function(event_key: string, condition: (function(context: WHATEVER) --> boolean), priority: int)
-local function add_turnstart_event(event_key, condition, priority)
+--v function(event_key: string, condition: (function(context: WHATEVER) --> boolean), priority: int, do_not_repeat: boolean?)
+local function add_turnstart_event(event_key, condition, priority, do_not_repeat)
     game_events.turnstart_events[priority] = game_events.turnstart_events[priority] or {}
     table.insert(game_events.turnstart_events[priority], event_key)
     game_events.event_conditions[event_key] = condition
+    if do_not_repeat then
+        game_events.nonrepeatable[event_key] = true
+    end
 end
 
 --v [NO_CHECK] function(event_key: string, faction_name: string, above_all_others: boolean?)
