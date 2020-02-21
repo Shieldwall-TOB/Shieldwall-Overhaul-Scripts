@@ -1,4 +1,5 @@
 --TODO factors!
+local recruitment_factor = "manpower_recruitment" --:string
 
 local weight_peasant = 1
 local weight_noble = -11
@@ -173,5 +174,18 @@ dev.first_tick(function(context)
         end,
         true)
     --TODO add turnstart events
+
+
+    local rec_handler = UIScript.recruitment_handler.add_resource("sw_pop_foreign", function(faction_name)
+        return PettyKingdoms.FactionResource.get("sw_pop_foreign", faction_name).value
+    end, 
+    function(faction_name, quantity)
+        PettyKingdoms.FactionResource.get("sw_pop_foreign", faction_name):change_value(quantity, recruitment_factor)
+    end, "dy_pop_foreign")
+    for k, entry in pairs(Gamedata.unit_info) do
+        --TODO make units foreign
+    end
+    rec_handler:set_resource_tooltip("Caesar send help")
+    rec_handler.image_state = "foreign"
 
 end)
