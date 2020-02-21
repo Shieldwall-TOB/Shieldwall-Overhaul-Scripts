@@ -5,13 +5,21 @@ local weight_noble = -11
 local weight_monk = 9
 local weight_foreign = 2
 
+local bad_order_turn_penalty = 6
+local riots_turn_penalty = 9
+local low_authority_turn_penalty = 6
 
-local base_boiling_time = 5 
+local base_boiling_time = 18 
 local defuse_rate = 2
 local crisis_duration = 8
 local foreign_warrior_startpos = {
 
 } --:map<string, map<string, int>>
+local foreign_warrior_trait_effects = {
+    ["shield_heathen_old_ways"] = -25
+} --:map<string, number>
+
+
 local MANPOWER_FOREIGN = {} --:map<string, FACTION_RESOURCE>
 local FOREIGN_WARRIORS = {
     ["vik_fact_west_seaxe"] = {
@@ -19,10 +27,9 @@ local FOREIGN_WARRIORS = {
         last_tension = 0,
         in_crisis = false,
         building_modifiers = {},
-        trait_modifiers = {},
         events_triggered = {}
     }
-} --:map<string, {crisis_timer: int, last_tension: int, in_crisis: boolean, building_modifiers: map<string, number>, trait_modifiers: map<string, number>, events_triggered: map<string, boolean>}>
+} --:map<string, {crisis_timer: int, last_tension: int, in_crisis: boolean, building_modifiers: map<string, number>, events_triggered: map<string, boolean>}>
 
 --v function(faction_key: string)
 local function add_blank_foreign_warrior_entry(faction_key)
@@ -31,11 +38,33 @@ local function add_blank_foreign_warrior_entry(faction_key)
         last_tension = 0,
         in_crisis = false,
         building_modifiers = {},
-        trait_modifiers = {},
         events_triggered = {}
     }
 end
 
+--v function(faction: CA_FACTION) --> number
+local function get_turn_penalty(faction)
+    local auth = faction:faction_leader():gravitas()
+    local penalty = 0
+    if auth < 5 then
+        penalty = low_authority_turn_penalty
+    end
+    local low_po = false --:boolean
+    for j = 0, faction:region_list():num_items() - 1 do
+        local region = faction:region_list():item_at(j)
+        local riot_manager = PettyKingdoms.RiotManager.get(region:name())
+        if riot_manager.riot_in_progress then
+            return penalty + riots_turn_penalty
+        elseif riot_manager:public_order() < 0 then
+            low_po = true
+        end
+    end
+    if low_po then
+        return penalty + bad_order_turn_penalty
+    else
+        return penalty
+    end
+end
 
 --v function(faction: CA_FACTION)
 local function process_turn_start(faction)
@@ -63,6 +92,13 @@ local function process_turn_start(faction)
                 province_effects[region:province_name()] =  (province_effects[region:province_name()] or 0) + (value/100)
             end
         end
+        if region:is_province_capital() and region:has_governor() then
+            for trait_key, value in pairs(foreign_warrior_trait_effects) do
+                if region:governor():has_trait(trait_key) then
+                    province_effects[region:province_name()] =  (province_effects[region:province_name()] or 0) + (value/100)
+                end
+            end
+        end
     end
     --apply building and trait effects
     local tensions = base_tensions
@@ -79,7 +115,7 @@ local function process_turn_start(faction)
         FOREIGN_WARRIORS[faction:name()].crisis_timer = dev.mround(dev.clamp(FOREIGN_WARRIORS[faction:name()].crisis_timer + defuse_rate, 0, base_boiling_time), 1)
     end
     FOREIGN_WARRIORS[faction:name()].last_tension = tensions
-    if FOREIGN_WARRIORS[faction:name()].crisis_timer == 0 then
+    if FOREIGN_WARRIORS[faction:name()].crisis_timer - get_turn_penalty(faction) <= 0 then
         FOREIGN_WARRIORS[faction:name()].in_crisis = true
         FOREIGN_WARRIORS[faction:name()].crisis_timer = crisis_duration
     end
