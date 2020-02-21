@@ -2,6 +2,7 @@
 --used to coordinate the trigger of dilemmas.
 local game_events = {}
 game_events.turnstart_events = {} --:map<int, vector<string>>
+game_events.stored_responses = {} --:map<string, function(context: WHATEVER)>
 game_events.turnstart_queue = {} --:vector<{faction: string, dilemma: string}>
 game_events.postbattle_events = {} --:map<int, vector<string>>
 game_events.post_occupy_or_sack_events = {} --:map<int, vector<string>>
@@ -50,6 +51,9 @@ dev.first_tick(function(context)
                         local event_key = events[j]
                         if (not game_events.nonrepeatable[event_key]) or (not game_events.already_happened[event_key]) then
                             if game_events.event_conditions[event_key](context) then
+                                if game_events.stored_responses[event_key] then
+                                    dev.respond_to_dilemma(event_key, game_events.stored_responses[event_key])
+                                end
                                 cm:trigger_dilemma(context:faction():name(), event_key, true)
                                 return
                             end
@@ -89,8 +93,8 @@ dev.first_tick(function(context)
 end)
 
 
---v function(event_key: string, condition: (function(context: WHATEVER) --> boolean), priority: int, do_not_repeat: boolean?)
-local function add_turnstart_event(event_key, condition, priority, do_not_repeat)
+--v function(event_key: string, condition: (function(context: WHATEVER) --> boolean), priority: int, do_not_repeat: boolean?, response_function: (function(context: WHATEVER))?)
+local function add_turnstart_event(event_key, condition, priority, do_not_repeat, response_function)
     game_events.turnstart_events[priority] = game_events.turnstart_events[priority] or {}
     table.insert(game_events.turnstart_events[priority], event_key)
     game_events.event_conditions[event_key] = condition
