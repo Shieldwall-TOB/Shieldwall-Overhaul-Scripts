@@ -172,6 +172,9 @@
 --technology
 --# assume CM.lock_technology: method(faction: string, technology: string)
 --# assume CM.unlock_technology: method(faction: string, technology: string)
+--event restrictions
+--# assume CM.add_restricted_building_level_record_for_faction: method(faction_key: string, building_key: string)
+--# assume CM.remove_restricted_building_level_record_for_faction: method(faction_key: string, building_key: string)
 --ai
 --# assume CM.force_change_cai_faction_personality: method(key: string, personality: string)
 --battles
