@@ -16,9 +16,19 @@ local crisis_duration = 8
 local foreign_warrior_startpos = {
 
 } --:map<string, map<string, int>>
+
 local foreign_warrior_trait_effects = {
     ["shield_heathen_old_ways"] = -25
 } --:map<string, number>
+
+local HEREKING_EFFECTS = {
+    [1] = 15,
+    [2] = 0,
+    [3] = -25,
+    [4] = -25,
+    [5] = 0,
+    [6] = 15
+}--:map<number, number>
 
 
 local MANPOWER_FOREIGN = {} --:map<string, FACTION_RESOURCE>
@@ -110,6 +120,10 @@ local function process_turn_start(faction)
     local tensions = base_tensions
     for province, effect in pairs(province_effects) do
         tensions = dev.mround(tensions - ( base_tensions * effect * (province_weights[province]/faction:region_list():num_items()) ), 1)
+    end
+    --if the faction is from the Great Viking Army, add Here King.
+    if faction:subculture() == "vik_sub_cult_anglo_viking" then
+        --TODO get here king value
     end
     --apply reduction from nobles
     local noble_pressure = weight_noble * PettyKingdoms.FactionResource.get("sw_pop_noble", faction:name()).value 
