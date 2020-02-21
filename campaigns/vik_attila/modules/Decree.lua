@@ -86,8 +86,17 @@ local currency_cost_applicators = {
     ["influence"] = function(decree) --:DECREE
         --influence costs are incurred using decree events themselves.
         --do nothing.
+    end,
+    ["fyrd"] = function(decree) --:DECREE
+        --fyrd is mierce hoards.
+        local faction = decree.owning_faction
+        local resource = PettyKingdoms.FactionResource.get(faction, "sw_hoards")
+        if resource then
+            resource:change_value(decree.currency_cost)
+        end
     end
 } --:map<string, function(decree: DECREE)>
+
 local currency_cost_checkers = {
     ["influence"] = function(faction_name) --:string
         local faction = dev.get_faction(faction_name)
@@ -95,6 +104,14 @@ local currency_cost_checkers = {
             return 0
         end
         return faction:faction_leader():gravitas()
+    end,
+    ["fyrd"] = function(faction_name) --:string
+        --fyrd is mierce hoards
+        local resource = PettyKingdoms.FactionResource.get(faction_name, "sw_hoards")
+        if not resource then
+            return 0
+        end
+        return resource.value
     end
 } --:map<string, (function(faction_name: string) --> number)>
 
