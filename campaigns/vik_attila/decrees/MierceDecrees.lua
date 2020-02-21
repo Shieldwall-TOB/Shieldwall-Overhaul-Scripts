@@ -37,14 +37,14 @@ local decrees = {
 
 local decree_conditions = {
 
-}--:map<int, vector<{event: string, conditional: (function(context: WHATEVER) --> (boolean, boolean?))}>>
+}--:map<int, vector<{event: string, conditional: (function(context: WHATEVER) --> (boolean))}>>
 
 local decrees_can_relock = {
-    [1] = false,
-    [2] = false,
-    [3] = false,
-    [4] = false
-} --:map<int, boolean>
+    [1] = {false},
+    [2] = {false},
+    [3] = {false},
+    [4] = {false}
+} --:map<int, vector<boolean>>
 
 dev.first_tick(function(context)
     if dev.get_faction(faction_key):is_human() then
@@ -60,7 +60,7 @@ dev.first_tick(function(context)
                 local can_relock = decrees_can_relock[i]
                 for j = 1, #unlock do
                     local condition = unlock[j]
-                    entry:add_unlock_condition(condition.event, condition.conditional, can_relock)
+                    entry:add_unlock_condition(condition.event, condition.conditional, not not can_relock[j])
                 end
             else
                 entry.is_locked = false;

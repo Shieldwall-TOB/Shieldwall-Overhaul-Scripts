@@ -41,12 +41,12 @@ local decrees = {
 local decree_conditions = {
     [1] = {
         {event = "FactionTurnStart", conditional = function(context) --:WHATEVER
-            return context:faction():name() == faction_key and  cm:model():season() < 2, true
+            return context:faction():name() == faction_key and  cm:model():season() < 2
         end}
     },
     [2] = {
         {event = "FactionTurnStart", conditional = function(context) --:WHATEVER
-                return context:faction():name() == faction_key and cm:model():season() < 2, true
+                return context:faction():name() == faction_key and cm:model():season() < 2
         end}
     },
     [3] = {
@@ -56,17 +56,17 @@ local decree_conditions = {
     },
     [4] = {
         {event = "FactionTurnStart", conditional = function(context) --:WHATEVER
-            return context:faction():name() == faction_key and not context:faction():has_effect_bundle("vik_english_peasant_negative"), true
+            return context:faction():name() == faction_key and not context:faction():has_effect_bundle("vik_english_peasant_negative")
         end}
     }
-}--:map<int, vector<{event: string, conditional: (function(context: WHATEVER) --> (boolean, boolean?))}>>
+}--:map<int, vector<{event: string, conditional: (function(context: WHATEVER) --> (boolean))}>>
 
 local decrees_can_relock = {
-    [1] = true,
-    [2] = true,
-    [3] = false,
-    [4] = true
-} --:map<int, boolean>
+    [1] = {true},
+    [2] = {true},
+    [3] = {false},
+    [4] = {true}
+} --:map<int, vector<boolean>>
 
 dev.first_tick(function(context)
     if dev.get_faction(faction_key):is_human() then
@@ -82,7 +82,7 @@ dev.first_tick(function(context)
                 local can_relock = decrees_can_relock[i]
                 for j = 1, #unlock do
                     local condition = unlock[j]
-                    entry:add_unlock_condition(condition.event, condition.conditional, can_relock)
+                    entry:add_unlock_condition(condition.event, condition.conditional, not not can_relock[j])
                 end
             else
                 entry.is_locked = false;
