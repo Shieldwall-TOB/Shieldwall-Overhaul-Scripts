@@ -84,6 +84,8 @@ dev.first_tick(function(context)
                     local condition = unlock[j]
                     entry:add_unlock_condition(condition.event, condition.conditional, can_relock)
                 end
+            else
+                entry.is_locked = false;
             end
         end
     end
