@@ -52,6 +52,8 @@ dev.first_tick(function(context)
                 cm:add_restricted_building_level_record_for_faction(faction:name(), hof_key)
                 hofs[faction:name()] = 999
                 return
+            elseif hofs[faction:name()] == 999 then --they are pagan, unlock the building
+                cm:remove_restricted_building_level_record_for_faction(faction:name(), hof_key)
             end
             local count = count_hofs(region_list)
             if count == 0 then
