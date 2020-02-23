@@ -55,6 +55,7 @@ end
 --require mechanics scripts
 local ok, err = pcall( function()
     --global mechanics; 
+    require("global_mechanics/CampaignVictories")
     require("global_mechanics/Shroud")
     require("global_mechanics/RiotEvents")
     require("global_mechanics/Bandits")
@@ -72,6 +73,8 @@ local ok, err = pcall( function()
     require("faction_mechanics/mierce_hoards")
     --decrees
     require("decrees/WestSeaxeDecrees")
+    require("decrees/MierceDecrees")
+    require("decrees/NorthleodeDecrees")
 end) 
 if not ok then
     dev.log("Error loading mechanics scripts!")
