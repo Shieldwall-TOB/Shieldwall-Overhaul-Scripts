@@ -124,6 +124,7 @@
 --# assume CM.random_number: method(range: number, min: number?) --> int
 --saving
 --# assume CM.is_new_game: method() --> boolean
+--# assume CM.is_multiplayer: method() --> boolean
 --# assume CM.set_saved_value: method(valueKey: string, value: any)
 --# assume CM.get_saved_value: method(valueKey: string) --> WHATEVER
 --# assume CM.register_loading_game_callback: method(function(context: WHATEVER))
@@ -151,10 +152,12 @@
 --# assume CM.get_human_factions: method() --> vector<string>
 --# assume CM.treasury_mod: method(faction_key: string, quantity: number)
 --# assume CM.transfer_region_to_faction: method(region: string, faction: string)
+--# assume CM.set_faction_name_override: method(faction_key: string, loc_key: string)
 --events
 --# assume CM.trigger_incident: method(factionName: string, incidentKey: string, fireImmediately: boolean)
 --# assume CM.trigger_dilemma: method(faction_key: string, dilemma_key: string, trigger_immediately: boolean)
 --# assume CM.override_mission_succeeded_status: method(faction_key: string, mission_key: string, success: boolean)
+--# assume CM.register_instant_movie: method(movie_key: string)
 --diplomacy
 --# assume CM.force_make_vassal: method(master: string, vassal: string)
 --# assume CM.force_diplomacy:  method(faction: string, other_faction: string, record: string, offer: boolean, accept: boolean)
@@ -172,6 +175,9 @@
 --technology
 --# assume CM.lock_technology: method(faction: string, technology: string)
 --# assume CM.unlock_technology: method(faction: string, technology: string)
+--event restrictions
+--# assume CM.add_restricted_building_level_record_for_faction: method(faction_key: string, building_key: string)
+--# assume CM.remove_restricted_building_level_record_for_faction: method(faction_key: string, building_key: string)
 --ai
 --# assume CM.force_change_cai_faction_personality: method(key: string, personality: string)
 --battles

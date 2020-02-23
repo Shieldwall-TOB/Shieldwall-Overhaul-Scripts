@@ -1,71 +1,75 @@
-local faction_key = "vik_fact_west_seaxe"
+local faction_key = "vik_fact_northleode"
 local global_cooldown = 0
 local decrees = {
     [1] = {
-        ["event"] = "sw_decree_wessex_ad_hoc_levy",
-        ["duration"] = 6,
-        ["gold_cost"] = -1500,
-        ["currency"] = "influence",
-        ["currency_cost"] = -1,
-        ["cooldown"] = 20
-    },
-    [2] = {
-        ["event"] = "sw_decree_wessex_fyrd",
-        ["duration"] = 6,
-        ["gold_cost"] = -1200,
-        ["currency"] = "influence",
-        ["currency_cost"] = -1,
-        ["cooldown"] = 20
-    },
-    [3] = {
-        ["event"] = "sw_decree_wessex_scholarship",
+        ["event"] = "sw_decree_northleode_eoferwic",
         ["duration"] = 6,
         ["gold_cost"] = -1000,
         ["currency"] = "influence",
-        ["currency_cost"] = -1,
+        ["currency_cost"] = 0,
+        ["cooldown"] = 20
+    },
+    [2] = {
+        ["event"] = "sw_decree_northleode_tamworthige",
+        ["duration"] = 6,
+        ["gold_cost"] = -1500,
+        ["currency"] = "influence",
+        ["currency_cost"] = 0,
+        ["cooldown"] = 20,
+        ["callback"] = function(decree) --:DECREE
+            --TODO confederations for northleode decree
+        end
+    },
+    [3] = {
+        ["event"] = "sw_decree_northleode_dun_foither",
+        ["duration"] = 6,
+        ["gold_cost"] = -1200,
+        ["currency"] = "influence",
+        ["currency_cost"] = 0,
         ["cooldown"] = 20
     },
     [4] = {
-        ["event"] = "sw_decree_wessex_witan",
+        ["event"] = "sw_decree_northleode_bebbanburg",
         ["duration"] = 6,
-        ["gold_cost"] = -250,
+        ["gold_cost"] = -750,
         ["currency"] = "influence",
-        ["currency_cost"] = -2,
-        ["cooldown"] = 20,
-        ["callback"] = function(decree) --:DECREE
-            decree.handler.zero_cost_turns = 10
-        end
+        ["currency_cost"] = 0,
+        ["cooldown"] = 20
     }
 } --:map<int, {event: string, duration: number, gold_cost: number, currency: string, currency_cost: number, cooldown: number, is_dilemma: boolean?, callback: (function(decree: DECREE))?}>
 
 local decree_conditions = {
     [1] = {
-        {event = "FactionTurnStart", conditional = function(context) --:WHATEVER
-            return context:faction():name() == faction_key and  cm:model():season() < 2
+        {event = "RegionTurnStart", conditional = function(context) --:WHATEVER
+            return context:region():name() == "vik_reg_eoferwic" and context:region():owning_faction():name() == faction_key
+        end},
+        {event = "RegionChangesOwnership", conditional = function(context) --:WHATEVER
+            return  context:region():name() == "vik_reg_eoferwic" and context:region():owning_faction():name() == faction_key
         end}
     },
     [2] = {
-        {event = "FactionTurnStart", conditional = function(context) --:WHATEVER
-                return context:faction():name() == faction_key and cm:model():season() < 2
+        {event = "RegionTurnStart", conditional = function(context) --:WHATEVER
+            return context:region():name() == "vik_reg_tamworthige" and context:region():owning_faction():name() == faction_key
+        end},
+        {event = "RegionChangesOwnership", conditional = function(context) --:WHATEVER
+            return  context:region():name() == "vik_reg_tamworthige" and context:region():owning_faction():name() == faction_key
         end}
     },
     [3] = {
         {event = "RegionTurnStart", conditional = function(context) --:WHATEVER
-            return context:region():owning_faction():name() == faction_key and context:region():building_exists("vik_court_school_3")
-        end}
-    },
-    [4] = {
-        {event = "FactionTurnStart", conditional = function(context) --:WHATEVER
-            return context:faction():name() == faction_key and not context:faction():has_effect_bundle("vik_english_peasant_negative")
+            return context:region():name() == "vik_reg_dun_foither" and context:region():owning_faction():name() == faction_key
+        end},
+        {event = "RegionChangesOwnership", conditional = function(context) --:WHATEVER
+            return  context:region():name() == "vik_reg_dun_foither" and context:region():owning_faction():name() == faction_key
         end}
     }
 }--:map<int, vector<{event: string, conditional: (function(context: WHATEVER) --> (boolean))}>>
 
 local decrees_can_relock = {
-    [1] = {true},
-    [2] = {true},
-    [3] = {false},
-    [4] = {true}
+    [1] = {true, false},
+    [2] = {true, false},
+    [3] = {true, false},
+    [4] = {}
 } --:map<int, vector<boolean>>
 
 dev.first_tick(function(context)

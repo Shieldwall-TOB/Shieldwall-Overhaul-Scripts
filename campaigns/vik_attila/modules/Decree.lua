@@ -59,7 +59,6 @@ function decree.new(faction_name, index, event, duration, cooldown, gold_cost, c
     self.owning_faction = faction_name
     self.handler = handler_instances[self.owning_faction] or new_decree_handler(self.owning_faction, 0)
     self.is_locked = true --:boolean
-    self.can_ever_relock = false --:boolean
     self.callback = function(decree) end --:function(decree: DECREE)
     self.gold_cost = gold_cost
     self.currency = currency or "none" --:string
@@ -86,8 +85,17 @@ local currency_cost_applicators = {
     ["influence"] = function(decree) --:DECREE
         --influence costs are incurred using decree events themselves.
         --do nothing.
+    end,
+    ["fyrd"] = function(decree) --:DECREE
+        --fyrd is mierce hoards.
+        local faction = decree.owning_faction
+        local resource = PettyKingdoms.FactionResource.get(faction, "sw_hoards")
+        if resource then
+            resource:change_value(decree.currency_cost)
+        end
     end
 } --:map<string, function(decree: DECREE)>
+
 local currency_cost_checkers = {
     ["influence"] = function(faction_name) --:string
         local faction = dev.get_faction(faction_name)
@@ -95,26 +103,31 @@ local currency_cost_checkers = {
             return 0
         end
         return faction:faction_leader():gravitas()
+    end,
+    ["fyrd"] = function(faction_name) --:string
+        --fyrd is mierce hoards
+        local resource = PettyKingdoms.FactionResource.get(faction_name, "sw_hoards")
+        if not resource then
+            return 0
+        end
+        return resource.value
     end
 } --:map<string, (function(faction_name: string) --> number)>
 
 
---v function(self: DECREE, script_event: string, conditional: function(context: WHATEVER) --> (boolean, boolean?), set_can_relock: boolean?)
-function decree.add_unlock_condition(self, script_event, conditional, set_can_relock)
-    if set_can_relock ~= nil then
-        self.can_ever_relock = not not set_can_relock
-    end
+--v function(self: DECREE, script_event: string, conditional: function(context: WHATEVER) --> boolean, condition_can_lock: boolean)
+function decree.add_unlock_condition(self, script_event, conditional, condition_can_lock)
     dev.eh:add_listener(
         self.key.."_unlocks",
         script_event,
         function(context)
-            return self.is_locked or self.can_ever_relock
+            return self.is_locked or condition_can_lock
         end,
         function(context)
-            local unlock, relock = conditional(context)
+            local unlock = conditional(context)
             if unlock == true then 
                 self.is_locked = false
-            elseif not not relock and self.can_ever_relock then
+            elseif condition_can_lock then
                 self.is_locked = true
             end
         end,
