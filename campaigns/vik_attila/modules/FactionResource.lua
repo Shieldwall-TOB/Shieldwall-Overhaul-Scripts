@@ -135,7 +135,11 @@ function faction_resource.change_value(self, change_value, factor)
         --# assume factor: string!
         self.breakdown_factors[factor] =( self.breakdown_factors[factor] or 0) + dev.mround(change_value, 1)
     end
-    self:set_new_value(new_value)
+    if self.kind == "capacity_fill" then
+        self:set_new_value(new_value, self.cap_value)
+    else
+        self:set_new_value(new_value)
+    end
 end
 
 --this function DOES NOT reapply any bundles or make proper changes. It expects you to call *either* reapply or a change value.
@@ -184,8 +188,16 @@ local function new_instance(faction_name, resource_key, kind, default_value, cap
     return instances[resource_key][faction_name]
 end
 
---v function(resource_key: string, faction_name: string) --> FACTION_RESOURCE
-local function get_faction_resource(resource_key, faction_name)
+--v function(resource_key: string, faction: CA_FACTION | string) --> FACTION_RESOURCE
+local function get_faction_resource(resource_key, faction)
+    local faction_name = ""
+    if is_string(faction) then
+        --# assume faction: string
+        faction_name = faction 
+    else
+        --# assume faction: CA_FACTION
+        faction_name = faction:name()
+    end
     instances[resource_key] = instances[resource_key] or {}
     if not instances[resource_key][faction_name] then
         faction_resource:log("Asked for resource ["..resource_key.."] for faction ["..faction_name.."] which doesn't exist.")
