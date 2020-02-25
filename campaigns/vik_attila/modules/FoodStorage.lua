@@ -213,28 +213,31 @@ dev.pre_first_tick(function(context)
                     if not not TooltipComponent then
                         local DescriptionWindow = dev.get_uic(TooltipComponent, "description_window")
                         local BuildingTitle = dev.get_uic(TooltipComponent, "title_frame", "dy_building_title")
-                        local faction = dev.get_faction(cm:get_local_faction(true))
-                        local fm = instances[faction:name()]
-                        local stores = fm:food_in_storage()
-                        local stores_drawn = fm:food_being_drawn()
-                        local before_stores = faction:total_food() - stores_drawn
-                        --storesDetail = "Your stores will increase by "..tostring(food_storage_percentage*100).." percent of your surplus food each turn"
-                        local col = "green"
-                        if before_stores < 0 then
-                            col = "red"
-                        end
-                        BuildingTitle:SetStateText("[[col:"..col.."]]"..before_stores.."[[/col]] Net Food This Turn")
-                        --oldText = DescriptionWindow:GetStateText()
-        
-                        if before_stores >= stores_drawn then
-                            local raw_change = (before_stores*food_storage_percentage)
-                            local cap = fm:food_store_cap()
-                            local increase_val = fm:calculate_potential_food_change(stores, cap, raw_change)
-                            DescriptionWindow:SetStateText("You have "..stores.."/"..cap.." Food Stores. Your stores will increase by [[col:green]]"..increase_val.."[[/col]] next turn.")
-                        else
-                            local cap = fm:food_store_cap()
-                            local decrease_val = stores_drawn
-                            DescriptionWindow:SetStateText("You have "..stores.."/"..cap.." Food Stores. Your Stores will decrease by [[col:red]]"..decrease_val.."[[/col]] next turn.")
+                        if BuildingTitle and DescriptionWindow then
+                            local faction = dev.get_faction(cm:get_local_faction(true))
+                            local fm = instances[faction:name()]
+                            local stores = fm:food_in_storage()
+                            local stores_drawn = fm:food_being_drawn()
+                            local before_stores = faction:total_food() - stores_drawn
+                            --storesDetail = "Your stores will increase by "..tostring(food_storage_percentage*100).." percent of your surplus food each turn"
+                            local col = "green"
+                            if before_stores < 0 then
+                                col = "red"
+                            end
+                        
+                            BuildingTitle:SetStateText("[[col:"..col.."]]"..before_stores.."[[/col]] Net Food This Turn")
+                            --oldText = DescriptionWindow:GetStateText()
+            
+                            if before_stores >= stores_drawn then
+                                local raw_change = (before_stores*food_storage_percentage)
+                                local cap = fm:food_store_cap()
+                                local increase_val = fm:calculate_potential_food_change(stores, cap, raw_change)
+                                DescriptionWindow:SetStateText("You have "..stores.."/"..cap.." Food Stores. Your stores will increase by [[col:green]]"..increase_val.."[[/col]] next turn.")
+                            else
+                                local cap = fm:food_store_cap()
+                                local decrease_val = stores_drawn
+                                DescriptionWindow:SetStateText("You have "..stores.."/"..cap.." Food Stores. Your Stores will decrease by [[col:red]]"..decrease_val.."[[/col]] next turn.")
+                            end
                         end
                     end
                 end, 0.1)
