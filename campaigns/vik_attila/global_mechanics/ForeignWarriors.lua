@@ -65,11 +65,13 @@ local function get_turn_penalty(faction)
     local low_po = false --:boolean
     for j = 0, faction:region_list():num_items() - 1 do
         local region = faction:region_list():item_at(j)
-        local riot_manager = PettyKingdoms.RiotManager.get(region:name())
-        if riot_manager.riot_in_progress then
-            return penalty + riots_turn_penalty
-        elseif riot_manager:public_order() < 0 then
-            low_po = true
+        if region:is_province_capital() then
+            local riot_manager = PettyKingdoms.RiotManager.get(region:name())
+            if riot_manager.riot_in_progress then
+                return penalty + riots_turn_penalty
+            elseif riot_manager:public_order() < 0 then
+                low_po = true
+            end
         end
     end
     if low_po then
@@ -93,8 +95,8 @@ local function process_turn_start(faction)
         return
     end
     --find base tension
-    local peasant_pressure = weight_peasant * PettyKingdoms.FactionResource.get("sw_pop_serf", faction:name()).value 
-    local monk_pressure = weight_monk * PettyKingdoms.FactionResource.get("sw_pop_monk", faction:name()).value 
+    local peasant_pressure = weight_peasant * PettyKingdoms.FactionResource.get("sw_pop_serf", faction).value 
+    local monk_pressure = weight_monk * PettyKingdoms.FactionResource.get("sw_pop_monk", faction).value 
     local foreigner_pressure = weight_foreign * MANPOWER_FOREIGN[faction:name()].value 
     local base_tensions = peasant_pressure + foreigner_pressure + monk_pressure
     --find building and trait effects.
@@ -126,7 +128,7 @@ local function process_turn_start(faction)
         --TODO get here king value
     end
     --apply reduction from nobles
-    local noble_pressure = weight_noble * PettyKingdoms.FactionResource.get("sw_pop_noble", faction:name()).value 
+    local noble_pressure = weight_noble * PettyKingdoms.FactionResource.get("sw_pop_noble", faction).value 
     tensions = tensions + noble_pressure
     --apply tensions
     if tensions > 0 then
@@ -200,10 +202,10 @@ dev.first_tick(function(context)
 
 
     local rec_handler = UIScript.recruitment_handler.add_resource("sw_pop_foreign", function(faction_name)
-        return PettyKingdoms.FactionResource.get("sw_pop_foreign", faction_name).value
+        return PettyKingdoms.FactionResource.get("sw_pop_foreign", dev.get_faction(faction_name)).value
     end, 
     function(faction_name, quantity)
-        PettyKingdoms.FactionResource.get("sw_pop_foreign", faction_name):change_value(quantity, recruitment_factor)
+        PettyKingdoms.FactionResource.get("sw_pop_foreign", dev.get_faction(faction_name)):change_value(quantity, recruitment_factor)
     end, "dy_pop_foreign")
     for k, entry in pairs(Gamedata.unit_info) do
         --TODO make units foreign
