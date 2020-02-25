@@ -88,8 +88,8 @@ local currency_cost_applicators = {
     end,
     ["fyrd"] = function(decree) --:DECREE
         --fyrd is mierce hoards.
-        local faction = decree.owning_faction
-        local resource = PettyKingdoms.FactionResource.get(faction, "sw_hoards")
+        local faction = dev.get_faction(decree.owning_faction)
+        local resource = PettyKingdoms.FactionResource.get("sw_hoards", faction)
         if resource then
             resource:change_value(decree.currency_cost)
         end
@@ -106,7 +106,7 @@ local currency_cost_checkers = {
     end,
     ["fyrd"] = function(faction_name) --:string
         --fyrd is mierce hoards
-        local resource = PettyKingdoms.FactionResource.get(faction_name, "sw_hoards")
+        local resource = PettyKingdoms.FactionResource.get("sw_hoards", dev.get_faction(faction_name))
         if not resource then
             return 0
         end
@@ -146,6 +146,7 @@ end
 
 --v function(self: DECREE)
 function decree.apply_costs(self)
+    log("Applying costs from "..self.key)
     local gold_cost = self:get_effective_gold_cost()
     if gold_cost ~= 0 and self.handler.zero_cost_turns == 0 then
         cm:treasury_mod(self.owning_faction, gold_cost)
@@ -163,14 +164,18 @@ end
 --v function(self: DECREE, effective_gold_cost: number) --> boolean
 function decree.can_owner_afford(self, effective_gold_cost)
     local faction = dev.get_faction(self.owning_faction)
-    if faction:treasury() > effective_gold_cost then
+    local can_afford = false --:boolean
+    if faction:treasury() > -1*effective_gold_cost then
         --we can afford gold
         if self.currency_cost == 0 then
+            log(self.owning_faction .. "can afford "..self.event)
             can_afford = true
         elseif currency_cost_checkers[self.currency] and currency_cost_checkers[self.currency](faction:name()) > self.currency_cost then
+            log(self.owning_faction .. "can afford "..self.event)
             can_afford = true
         end
     end
+    log(self.owning_faction .. " cannot afford "..self.event)
     return can_afford
 end
 
@@ -213,11 +218,14 @@ local function new_decree(faction_name, index, event, duration, cooldown, gold_c
                     instance.handler.current_global = instance.handler.global_cooldown
                 end
                 instance.current_cooldown = instance.cooldown
+                instance:apply_costs()
+                if instance.callback then
                 dev.respond_to_dilemma(instance.event, function(context)
-                    if instance.callback then
+
                         instance.callback(instance)
-                    end
-                end)
+                        
+                    end)
+                end
             end,
             true
         );
@@ -233,11 +241,11 @@ local function new_decree(faction_name, index, event, duration, cooldown, gold_c
                     instance.handler.current_global = instance.handler.global_cooldown
                 end
                 instance.current_cooldown = instance.cooldown
-                dev.respond_to_incident(instance.event, function(context)
-                    if instance.callback then
-                        instance.callback(instance)
-                    end
-                end)
+                instance:apply_costs()
+                if instance.callback then
+                    instance.callback(instance)
+                end
+
             end,
             true
         );
