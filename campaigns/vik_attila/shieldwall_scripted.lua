@@ -44,6 +44,7 @@ local ok, err = pcall( function()
     PettyKingdoms.FoodStorage = require("modules/FoodStorage")
     PettyKingdoms.Decree = require("modules/Decree")
     PettyKingdoms.RegionManpower = require("modules/RegionManpower")
+    PettyKingdoms.CharacterPolitics = require("modules/CharacterPolitics")
 end) 
 if not ok then
     dev.log("Error loading module library")
@@ -83,7 +84,15 @@ if not ok then
 end
 
 --require traits
+
+--v [NO_CHECK]function(list:table)
+local function require_traits(list)
+    for i = 1, #list do
+        require("traits/"..list[i])
+    end
+end
 traits_manager = require("traits/helpers/trait_manager")
+require_traits(require("traits/TraitTriggers"))
 
 --require episodic scripting
 

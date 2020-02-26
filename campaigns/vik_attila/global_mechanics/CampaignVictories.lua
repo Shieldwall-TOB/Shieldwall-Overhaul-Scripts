@@ -54,10 +54,10 @@ local victory_cutscenes = {
 
 local victories = {
 
-} --:map<string, {bool, bool}>
+} --:map<string, {bool, bool, string, string}>
 
---v function(faction: CA_FACTION, kingdom: string, long_victory: boolean)
-function KingdomSetFounderFaction(faction, kingdom, long_victory)
+--v function(faction: CA_FACTION, kingdom: string, long_victory: boolean, no_message:boolean?)
+function KingdomSetFounderFaction(faction, kingdom, long_victory, no_message)
     cm:set_faction_name_override(faction:name(), "vik_fact_kingdom_"..kingdom);
 	local founder = "ai";
     local faction_string = string.gsub(faction:name(), "vik_fact_", "")
@@ -77,13 +77,16 @@ function KingdomSetFounderFaction(faction, kingdom, long_victory)
         end
 	end
 	
-	--Fire the incident
+    --Fire the incident
+
 	local incident = "vik_incident_kingdom_formed_"..kingdom.."_"..founder;
 	if long_victory == true then
 		incident = "vik_incident_kingdom_formed_"..kingdom.."_player_long_victory";
     end
     dev.eh:trigger_event("FactionFormsKingdom", faction, kingdom)
-    cm:trigger_incident(faction:name(), incident, true)
+    if not no_message then
+        cm:trigger_incident(faction:name(), incident, true)
+    end
 end
 
 --v function(faction: CA_FACTION, mission: string)
@@ -92,6 +95,7 @@ local function apply_victory_mission(faction, mission)
         --short victory
         if mission == "vik_vc_kingdom_1" then
             KingdomSetFounderFaction(faction, formable_kingdoms[faction:name()], false)
+            victories[faction:name()][3] = formable_kingdoms[faction:name()]
         end
         if victories[faction:name()][1] == false and victory_cutscenes[mission] then
             cm:register_instant_movie(victory_cutscenes[mission])
@@ -104,7 +108,8 @@ local function apply_victory_mission(faction, mission)
     elseif not not string.find(mission, "_2") then
         --long victory
         if mission == "vik_vc_kingdom_2" then
-            KingdomSetFounderFaction(faction, formable_kingdoms[faction:name()], not victories[faction:name()][2])
+            KingdomSetFounderFaction(faction, nations[faction:name()], not victories[faction:name()][2])
+            victories[faction:name()][3] = nations[faction:name()]
         end
         if victories[faction:name()][2] == false then
             victories[faction:name()][2] = true
@@ -125,7 +130,17 @@ dev.first_tick(function(context)
 
     if cm:is_multiplayer() == false then
         if dev.is_new_game() then
-            victories[cm:get_local_faction(true)] = {false, false}
+            victories[cm:get_local_faction(true)] = {false, false, "", ""}
+        end
+        local faction = dev.get_faction(cm:get_local_faction(true))
+        if victories[cm:get_local_faction(true)] then
+            --set names after loading
+            if victories[cm:get_local_faction(true)][3] ~= "" and formable_kingdoms[faction:name()] then
+                KingdomSetFounderFaction(faction, formable_kingdoms[faction:name()], false, true)
+            end
+            if victories[cm:get_local_faction(true)][4] ~= "" then
+                KingdomSetFounderFaction(faction,nations[faction:name()], false, true)
+            end 
         end
         if victories[cm:get_local_faction(true)][1] == false then
             cm:lock_technology(cm:get_local_faction(true), "vik_mil_cap_1")
@@ -145,3 +160,6 @@ dev.first_tick(function(context)
 		);
     end
 end )
+
+
+--dev.Save.persist_table(victories, "victory_cnd", function(t) victories = t end)

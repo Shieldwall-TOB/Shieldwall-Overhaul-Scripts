@@ -84,16 +84,6 @@ end)
 
 tm:set_start_pos_characters(
     --northanhymbre viking sympathizer
-    "faction:vik_fact_northleode,forename:2147363531",
-    --dyflin and sudreyar pagans
-    "faction:vik_fact_sudreyar,forename:2147365942",
-    "faction:vik_fact_sudreyar,forename:2147366135",
-    "faction:vik_fact_sudreyar,forename:2147365979",
-    "faction:vik_fact_sudreyar,forename:2147365995",
-    "faction:vik_fact_sudreyar,forename:2147366152",
-    "faction:vik_fact_dyflin,forename:2147365881",
-    "faction:vik_fact_dyflin,forename:2147366107",
-    "faction:vik_fact_dyflin,forename:2147366232",
-    "faction:vik_fact_dyflin,forename:2147366227"
+    "faction:vik_fact_northleode,forename:2147363531"
 )
 

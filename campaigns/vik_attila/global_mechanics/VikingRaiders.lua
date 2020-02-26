@@ -216,6 +216,8 @@ local function invasions_turn_start(faction_key)
         else
             create_invasion_force(faction_key, location_key, x, y, (h < 3*f)) --only show a message when the human's distance is less than 3x the distance to the target.
         end
+    else
+        create_invasion_force(faction_key, location_key, x, y, false)
     end
 end
 

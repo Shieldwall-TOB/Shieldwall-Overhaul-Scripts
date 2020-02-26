@@ -261,8 +261,7 @@ end
 
 --v function(self: TRAIT_MANAGER, other_trait: string, effect: number)
 function trait_manager.set_cross_loyalty(self, other_trait, effect)
-    --TODO: Restore cross loyalty
-    --cd.add_trait_cross_loyalty_to_trait(self.key, other_trait, 1)
+    PettyKingdoms.CharacterPolitics.add_trait_cross_loyalty_to_trait(self.key, other_trait, dev.mround(effect, 1))
 end
 
 --v function(self: TRAIT_MANAGER, event: string, conditional_function: (function(context:WHATEVER) --> (boolean, CA_FACTION)))
