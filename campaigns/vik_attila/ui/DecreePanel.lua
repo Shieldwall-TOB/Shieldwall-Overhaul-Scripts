@@ -33,6 +33,7 @@ end
 
 --v function(index: number)
 local function trigger_decree_mp_safe(index)
+    log("Firing decree of index "..tostring(index))
     if local_faction_decree_dilemma[index] then
         get_decree_panel():InterfaceFunction("TriggerDilemma", local_faction_decrees[index])
     else
@@ -106,8 +107,9 @@ end
 
 
 --Kailua doesn't like handing the result of string.match to "tonumber" 
---v [NO_CHECK] function(index: number, event: string, is_dilemma: boolean)
+--v function(index: number, event: string, is_dilemma: boolean)
 local function add_decree_to_ui(index, event, is_dilemma)
+    log("Added decree "..index.." "..event.." to ui.")
     local_faction_decrees[index] = event
     if is_dilemma then
         local_faction_decree_dilemma[index] = true
@@ -115,9 +117,20 @@ local function add_decree_to_ui(index, event, is_dilemma)
     dev.eh:add_listener(
         "ComponentLClickUpDecree"..index,
         "ComponentLClickUp", 
-		function(context) return context.string == "button_enact" and tonumber( string.match(UIComponent(UIComponent(context.component):Parent()):Id(), "%d+") ) == index end,
+        function(context) 
+            local is_enact = (context.string == "button_enact")
+            if is_enact then
+                local parent = UIComponent(context.component):Parent() --:CA_Component
+                local id = string.match(UIComponent(parent):Id(), "%d+")
+                return tonumber(id) == index 
+
+            else
+                return false
+            end
+        end,
 		function(context) 
-			local index = tonumber(string.match(UIComponent(UIComponent(context.component):Parent()):Id(), "%d+"))
+            local parent = UIComponent(context.component):Parent() --:CA_Component
+            local id = string.match(UIComponent(parent):Id(), "%d+")
 			trigger_decree_mp_safe(index)
 		end, 
 		true
