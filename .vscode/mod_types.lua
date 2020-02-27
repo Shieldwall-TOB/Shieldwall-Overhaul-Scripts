@@ -17,3 +17,4 @@
 --# assume global class RIOT_MANAGER
 --# assume global class CHARACTER_POLITICS
 --# assume global class FOOD_MANAGER
+--# assume global class RIVAL

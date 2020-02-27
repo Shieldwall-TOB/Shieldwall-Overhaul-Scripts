@@ -144,10 +144,13 @@ function trait_manager.add_dilemma_flag_listener(self, event, conditional_functi
             end,
             function(context)
                 local flag = self.key .."_flag"
-                self:log("Evaluating trait validity ".. self.key)
                 local valid, char = conditional_function(context)
-                --exclude case, no character returned
                 --# assume char: CA_CHAR
+                if char and char:faction():is_human() then
+                    self:log("Evaluating trait validity ".. self.key)
+                end
+                --exclude case, no character returned
+
                 if (not char) or char:is_null_interface() then
                     return 
                 end

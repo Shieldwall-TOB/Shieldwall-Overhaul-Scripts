@@ -1,6 +1,6 @@
 --TODO factors!
 local recruitment_factor = "manpower_recruitment" --:string
-
+local unit_size_mode_scalar = CONST.__unit_size_scalar
 local weight_peasant = 1
 local weight_noble = -11
 local weight_monk = 9
@@ -207,10 +207,12 @@ dev.first_tick(function(context)
     function(faction_name, quantity)
         PettyKingdoms.FactionResource.get("sw_pop_foreign", dev.get_faction(faction_name)):change_value(quantity, recruitment_factor)
     end, "dy_pop_foreign")
-    for k, entry in pairs(Gamedata.unit_info) do
-        --TODO make units foreign
+    for k, entry in pairs(Gamedata.unit_info.main_unit_size_caste_info) do
+        if Gamedata.unit_info.mercenary_units[k] then
+            rec_handler:set_cost_of_unit(entry.unit_key, dev.mround(entry.num_men*unit_size_mode_scalar, 1))
+        end
     end
     rec_handler:set_resource_tooltip("Caesar send help")
-    rec_handler.image_state = "foreign"
+    rec_handler.image_state = "foreigner"
 
 end)

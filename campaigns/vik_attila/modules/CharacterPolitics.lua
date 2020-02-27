@@ -98,11 +98,11 @@ function character_politics.turn_start(self)
         self:log("Checking faction leader trait")
         local trait_key = basic_king_title
         local changed_trait = false --:boolean
+        if PettyKingdoms.VassalTracking.is_faction_vassal(character:faction():name()) then
+            trait_key = basic_vassal_title
+        end
         if factions_with_trait_overrides[character:faction():name()] then
             trait_key = "shield_leader_titles_"..character:faction():name().."_"..self.king_level
-        end
-        if PettyKingdoms.VassalTracking.is_faction_vassal(character:faction():name()) then
-            trait_key = basic_king_title
         end
         if self.last_title ~= trait_key and character:has_trait(self.last_title) then
             self:log("Removing old King trait "..self.last_title)

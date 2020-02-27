@@ -171,8 +171,8 @@ dev.first_tick(function(context)
     function(faction_name, quantity)
         PettyKingdoms.FactionResource.get("sw_pop_noble", dev.get_faction(faction_name)):change_value(quantity, recruitment_factor)
     end, "dy_pop_lord")
-    for k, entry in pairs(Gamedata.unit_info) do
-        if noble_castes[entry.caste] then
+    for k, entry in pairs(Gamedata.unit_info.main_unit_size_caste_info) do
+        if noble_castes[entry.caste] and not Gamedata.unit_info.mercenary_units[k] then
             rec_handler:set_cost_of_unit(entry.unit_key, dev.mround(entry.num_men*unit_size_mode_scalar, 1))
         end
     end

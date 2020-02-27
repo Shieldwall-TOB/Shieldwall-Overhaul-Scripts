@@ -740,9 +740,36 @@ local function dev_generate_force_cache_entry(character)
     return cache_entry
 end
 
-
-
-
+--v function(unit_table: map<string, map<string, {int, int, int}>>, region_intensity: number, army_type: string) --> string
+function dev_create_army(unit_table, region_intensity, army_type)
+    local force_vector = {} --:vector<string>
+    local size = 5
+    local turn_increment = math.ceil(cm:model():turn_number()/20)
+    local size = size + (cm:model():difficulty_level()*-1) + (region_intensity)
+    local army_record = unit_table[army_type]
+    for unit_key, settings in pairs(army_record) do
+        local min_level, recharge_rate, chance = settings[1], settings[2], settings[3]
+        if size > min_level then
+            if cm:random_number(100) < chance then
+                force_vector[#force_vector+1] = unit_key
+            end
+            local bonus_units = math.floor((size-min_level)/recharge_rate)
+            if bonus_units >= 1 then
+                for i = 1, bonus_units do
+                    if cm:random_number(100) < chance then
+                        force_vector[#force_vector+1] = unit_key
+                    end
+                end
+            end
+        end
+    end
+    local force_key = force_vector[1]
+    for i = 2, #force_vector do
+        --# assume i: int
+        force_key = force_key .. "," .. force_vector[i]
+    end
+    return force_key
+end
 
 return {
     log = MODLOG,
@@ -780,5 +807,6 @@ return {
     respond_to_dilemma = dev_respond_to_dilemma,
     last_time_sacked = dev_last_time_sacked,
     invasion_number = dev_invasion_number,
-    generate_force_cache_entry = dev_generate_force_cache_entry
+    generate_force_cache_entry = dev_generate_force_cache_entry,
+    create_army = dev_create_army
 }

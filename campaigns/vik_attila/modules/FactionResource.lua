@@ -190,13 +190,16 @@ end
 
 --v function(resource_key: string, faction: CA_FACTION | string) --> FACTION_RESOURCE
 local function get_faction_resource(resource_key, faction)
+    --# assume is_faction: function(faction: any) --> boolean
     local faction_name = ""
     if is_string(faction) then
         --# assume faction: string
         faction_name = faction 
-    else
+    elseif is_faction(faction) then
         --# assume faction: CA_FACTION
         faction_name = faction:name()
+    else
+        return nil
     end
     instances[resource_key] = instances[resource_key] or {}
     if not instances[resource_key][faction_name] then

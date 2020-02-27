@@ -247,5 +247,42 @@ local main_unit_size_caste_info = {
 	["wel_war_hounds"] = { ["unit_key"] = "wel_war_hounds", ["caste"] = "heavy", ["num_men"] = 24 }
 } --:map<string, {unit_key: string, caste: string, num_men: number}>
 
+local mercenary_units = {
+	--Sea Kings: sailors, longaxes rekkar, vikingar, Bogadrengir and berserkir are foreigners
+	["est_marauders"] = true,
+	["est_norse_hersir"] = true,
+	["est_shield_biters"] = true,
+	["est_spear_hirdmen"] = true,
+	["est_long_axes"] = true,
+	["est_axe_warriors"] = true,
+	["vik_mailed_archers"] = true,
+	--Great Viking Army: sailors, huscarls, rekkar, Sverdani, berserkir, and Vikingar are foreigners.
+	["dan_anglian_raiders"] = true,
+	["dan_huscarls"] = true,
+	["dan_berserkers"] = true,
+	["dan_mailed_swordsmen"] = true,
+	--Anglo Saxons: Butsecarl and huscarl are foreigners
+	["eng_long_axemen"] = true, 
+	["eng_royal_huscarles"] = true,
+	--Gealic: Foreign Warriors
+	["iri_foreign_warriors"] = true, 
+	["dan_mailed_horsemen"] = true,
+	["dan_anglian_marauders"] = true,
+	["dan_northumbrian_mailed_thegns"] = true,
+	["eng_mailed_thegns"] = true,
+	["vik_jomsvikings"] = true,
+	["dan_jarls_huscarls"] = true,
+	["wel_mailed_axemen"] = true,
+	["vik_thrall_axemen"] = true
+}--:map<string, boolean>
 
-return main_unit_size_caste_info
+local slave_units = {
+	["est_warband"]  = true,
+	["est_raiders"] = true
+} --:map<string, boolean>
+
+
+return {
+	main_unit_size_caste_info = main_unit_size_caste_info,
+	mercenary_units = mercenary_units
+}

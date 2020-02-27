@@ -124,7 +124,20 @@ local function persist_table(t, name, loadcall)
     end)
 end
 
+--v function(name: string, item: any, loadcall: function(t: WHATEVER))
+function save_value(name, item, loadcall)
+    cm:register_loading_game_callback(function(context)
+        local temp = cm:load_value(name, item, context)
+        loadcall(temp)
+    end)
+
+    cm:register_saving_game_callback(function(context)
+        cm:save_value(name, item, context)
+    end)
+end
+
 return {
     persist_table = persist_table,
-    attach_to_object = attach
+    attach_to_object = attach,
+    save_value = save_value
 }
