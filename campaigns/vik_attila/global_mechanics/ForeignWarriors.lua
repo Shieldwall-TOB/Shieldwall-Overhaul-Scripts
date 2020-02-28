@@ -213,6 +213,6 @@ dev.first_tick(function(context)
         end
     end
     rec_handler:set_resource_tooltip("Caesar send help")
-    rec_handler.image_state = "foreigner"
+    rec_handler.image_state = "foreigners"
 
 end)

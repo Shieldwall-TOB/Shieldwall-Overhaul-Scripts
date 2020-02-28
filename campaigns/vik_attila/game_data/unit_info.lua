@@ -284,5 +284,6 @@ local slave_units = {
 
 return {
 	main_unit_size_caste_info = main_unit_size_caste_info,
-	mercenary_units = mercenary_units
+	mercenary_units = mercenary_units,
+	slave_units  = slave_units
 }

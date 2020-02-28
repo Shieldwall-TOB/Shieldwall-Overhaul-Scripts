@@ -103,7 +103,7 @@ dev.first_tick(function (context)
     local region_list = dev.region_list()
     for i = 0, region_list:num_items() - 1 do
         local current_region = region_list:item_at(i)
-        local base_pop = Gamedata.base_pop[current_region:name()] or {serf = 150, lord = 50}
+        local base_pop = Gamedata.base_pop.region_values[current_region:name()] or {serf = 150, lord = 50}
         local instance = region_manpower.new(current_region:name(), base_pop.serf, base_pop.lord)
         instances[current_region:name()] = instance
         instance:update_monk_cap()
@@ -138,13 +138,16 @@ dev.first_tick(function (context)
             end
             if old_faction:is_human() then
                 if mod_functions.serf then
-                    mod_functions.serf(new_faction:name(), "manpower_region_population", dev.mround(rmp.base_serf*-1*rmp.loss_cap, 1))
+                    mod_functions.serf(old_faction:name(), "manpower_region_population", dev.mround(rmp.base_serf*-1*rmp.loss_cap, 1))
                 end
                 if mod_functions.lord then
-                    mod_functions.lord(new_faction:name(), "manpower_region_population", dev.mround(rmp.base_lord*-1*rmp.loss_cap, 1))
+                    mod_functions.lord(old_faction:name(), "manpower_region_population", dev.mround(rmp.base_lord*-1*rmp.loss_cap, 1))
                 end
                 if mod_functions.monk then
-                    mod_functions.monk(new_faction:name(), "monk_lost_settlements", old_monks)
+                    mod_functions.monk(old_faction:name(), "monk_lost_settlements", old_monks)
+                end
+                if Gamedata.base_pop.slaves_factions[old_faction:name()] then
+                    --TODO slaves
                 end
             end
         end,
@@ -159,6 +162,9 @@ dev.first_tick(function (context)
             if context:region():owning_faction():is_human() then
                 rmp:update_monk_cap()
                 rmp:mod_monks(monk_training_rate, true, "monk_training")
+            end
+            if Gamedata.base_pop.slaves_factions[context:region():owning_faction():name()] then
+                --TODO slaves
             end
         end,
         true)
@@ -182,6 +188,10 @@ dev.first_tick(function (context)
                 if mod_functions.lord then
                     local loss = dev.mround(rmp.base_lord*lost_perc*lord_effect_reduction, 1)
                     mod_functions.lord(owning_faction:name(), "manpower_region_raided", loss)
+                end
+                --TODO add monks here
+                if Gamedata.base_pop.slaves_factions[owning_faction:name()] then
+                    --TODO slaves
                 end
             end
         end,
@@ -209,6 +219,9 @@ dev.first_tick(function (context)
                 end
                 rmp:update_monk_cap()
                 rmp:mod_monks(-1*rmp.monk_pop, true, "monk_sacking")
+            end
+            if context:character():faction():is_human() and Gamedata.base_pop.slaves_factions[context:character():faction():name()] then
+                    --TODO slaves
             end
         end,
         true)

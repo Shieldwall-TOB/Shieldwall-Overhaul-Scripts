@@ -268,4 +268,12 @@ local base_pop =  {
 	["vik_reg_lann_padarn"] = {serf = 50, lord = 5}
 } --:map<string, {serf: number, lord: number}>
 
-return base_pop
+local slaves_factions = {
+	[ "vik_fact_dyflin"] = 320
+ }--:map<string, number>
+
+
+return {
+	region_values = base_pop,
+	slaves_factions = slaves_factions
+}
