@@ -65,6 +65,7 @@ local ok, err = pcall( function()
     require("global_mechanics/Bandits")
     require("global_mechanics/CitiesLandmarks")
     require("global_mechanics/VikingRaiders")
+    require("global_mechanics/building_effects")
     --manpower
     require("global_mechanics/PeasantManpower")
     require("global_mechanics/NobleManpower")
