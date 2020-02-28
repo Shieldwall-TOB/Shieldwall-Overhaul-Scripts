@@ -124,6 +124,21 @@ local function add_decree_to_ui(index, event, is_dilemma)
 	);
 end
 
+dev.post_first_tick(function(context)
+    if local_faction_decrees[1] == nil then
+        dev.eh:add_listener(
+            "PanelOpenedCampaignDecrees",
+            "PanelOpenedCampaign",
+            function(context) return context.string == "decrees_panel" end,
+            function(context) 
+                --TODO hide decrees
+            end,
+            true)
+    end
+end)
+
+
+
 return {
     add_decree = add_decree_to_ui,
     update_panel = update_decree_panel,
