@@ -218,17 +218,8 @@ dev.new_game(function(context)
     end
 end)
 
+dev.Save.save_value("BANDIT_ID", BANDIT_ID, function(t) BANDIT_ID = t end)
+dev.Save.persist_table(BANDITS, "BANDITS" , function(t) BANDITS = t end)
 
-cm:register_loading_game_callback(
-    function(context)
-		BANDITS = cm:load_value("BANDITS", {}, context);
-	end
-);
-
-cm:register_saving_game_callback(
-	function(context)
-        cm:save_value("BANDITS", BANDITS, context);
-	end
-);
 
 

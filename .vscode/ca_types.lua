@@ -156,6 +156,7 @@
 --events
 --# assume CM.trigger_incident: method(factionName: string, incidentKey: string, fireImmediately: boolean)
 --# assume CM.trigger_dilemma: method(faction_key: string, dilemma_key: string, trigger_immediately: boolean)
+--# assume CM.trigger_mission: method(faction_key: string, mission_key: string, fire_immediately: boolean)
 --# assume CM.override_mission_succeeded_status: method(faction_key: string, mission_key: string, success: boolean)
 --# assume CM.register_instant_movie: method(movie_key: string)
 --diplomacy

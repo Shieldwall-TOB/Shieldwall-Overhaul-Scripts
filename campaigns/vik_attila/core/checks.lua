@@ -124,6 +124,19 @@ local function check_does_char_have_household_guard(character)
 	return false
 end
 
+--v function(faction: CA_FACTION) --> boolean
+local function check_is_faction_player_ally(faction)
+    local players = cm:get_human_factions()
+    local result = false;
+    for i,value in pairs(players) do
+        if (result == false) and (dev.get_faction(value):allied_with(faction)==true) then
+            result = true;
+        end
+    end
+    
+    return result;
+end
+
 
 
 return {
@@ -131,6 +144,7 @@ return {
     --faction
     is_faction_human = check_is_faction_human,
     is_faction_viking_faction = check_is_faction_viking_faction,
+    is_faction_player_ally = check_is_faction_player_ally,
     --region
     is_region_low_public_order = check_is_region_low_public_order,
     --characters

@@ -126,35 +126,12 @@ local function create_invasion_force(faction_key, location_key, x, y, should_fir
     dev.log("Creating invasion force for ["..faction_key.."] from location ["..location_key.."]", "RAIDER")
     local army_type = invaders[faction_key].army
     local force_vector = {} --:vector<string>
-    local size = 5
     local turn_increment = math.ceil(cm:model():turn_number()/20)
     if not region_intensities[faction_key][turn_increment] then
         dev.log("No intensity value found at the current turn increment, aborting!")
         return
     end
-    local size = size + (cm:model():difficulty_level()*-1) + (region_intensities[faction_key][turn_increment] or 0)
-    local army_record = armies[army_type]
-    for unit_key, settings in pairs(army_record) do
-        local min_level, recharge_rate, chance = settings[1], settings[2], settings[3]
-        if size > min_level then
-            if cm:random_number(100) < chance then
-                force_vector[#force_vector+1] = unit_key
-            end
-            local bonus_units = math.floor((size-min_level)/recharge_rate)
-            if bonus_units >= 1 then
-                for i = 1, bonus_units do
-                    if cm:random_number(100) < chance then
-                        force_vector[#force_vector+1] = unit_key
-                    end
-                end
-            end
-        end
-    end
-    local force_key = force_vector[1]
-    for i = 2, #force_vector do
-        --# assume i: int
-        force_key = force_key .. "," .. force_vector[i]
-    end
+    local force_key = dev.create_army(armies, region_intensities[faction_key][turn_increment], army_type)
     local temp_region = cm:model():world():region_manager():region_list():item_at(0):name();
     dev.log("Spawning Viking Raid!: \nForce key is: "..force_key .. "\nLocation is: "..temp_region.."("..x..","..y..")\nfaction_key:"..faction_key)
     cm:create_force(faction_key, force_key, temp_region, x, y, "sw_raiders_"..dev.invasion_number(), true)
@@ -216,6 +193,8 @@ local function invasions_turn_start(faction_key)
         else
             create_invasion_force(faction_key, location_key, x, y, (h < 3*f)) --only show a message when the human's distance is less than 3x the distance to the target.
         end
+    else
+        create_invasion_force(faction_key, location_key, x, y, false)
     end
 end
 

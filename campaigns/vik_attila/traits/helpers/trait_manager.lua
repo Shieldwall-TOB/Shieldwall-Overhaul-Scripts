@@ -144,10 +144,13 @@ function trait_manager.add_dilemma_flag_listener(self, event, conditional_functi
             end,
             function(context)
                 local flag = self.key .."_flag"
-                self:log("Evaluating trait validity ".. self.key)
                 local valid, char = conditional_function(context)
-                --exclude case, no character returned
                 --# assume char: CA_CHAR
+                if char and char:faction():is_human() then
+                    self:log("Evaluating trait validity ".. self.key)
+                end
+                --exclude case, no character returned
+
                 if (not char) or char:is_null_interface() then
                     return 
                 end
@@ -261,8 +264,7 @@ end
 
 --v function(self: TRAIT_MANAGER, other_trait: string, effect: number)
 function trait_manager.set_cross_loyalty(self, other_trait, effect)
-    --TODO: Restore cross loyalty
-    --cd.add_trait_cross_loyalty_to_trait(self.key, other_trait, 1)
+    PettyKingdoms.CharacterPolitics.add_trait_cross_loyalty_to_trait(self.key, other_trait, dev.mround(effect, 1))
 end
 
 --v function(self: TRAIT_MANAGER, event: string, conditional_function: (function(context:WHATEVER) --> (boolean, CA_FACTION)))

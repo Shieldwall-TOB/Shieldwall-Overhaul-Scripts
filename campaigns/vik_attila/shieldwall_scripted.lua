@@ -24,8 +24,11 @@ end
 Gamedata = {}
 local ok, err = pcall( function()
     Gamedata.general = require("game_data/general_data")
+    Gamedata.regions = require("game_data/regions")
     Gamedata.base_pop = require("game_data/base_pop_values")
     Gamedata.unit_info = require("game_data/unit_info")
+    Gamedata.spawn_locations = require("game_data/spawn_locations")
+    Gamedata.kingdoms = require("game_data/kingdoms")
 end) 
 if not ok then
     dev.log("Error loading module library")
@@ -42,7 +45,9 @@ local ok, err = pcall( function()
     PettyKingdoms.RiotManager = require("modules/RiotManager")
     PettyKingdoms.FoodStorage = require("modules/FoodStorage")
     PettyKingdoms.Decree = require("modules/Decree")
+    PettyKingdoms.Rivals = require("modules/RivalFactions")
     PettyKingdoms.RegionManpower = require("modules/RegionManpower")
+    PettyKingdoms.CharacterPolitics = require("modules/CharacterPolitics")
 end) 
 if not ok then
     dev.log("Error loading module library")
@@ -54,12 +59,17 @@ end
 --require mechanics scripts
 local ok, err = pcall( function()
     --global mechanics; 
+    require("global_mechanics/CampaignVictories")
     require("global_mechanics/Shroud")
     require("global_mechanics/RiotEvents")
     require("global_mechanics/Bandits")
+    require("global_mechanics/CitiesLandmarks")
+    require("global_mechanics/VikingRaiders")
+    --manpower
     require("global_mechanics/PeasantManpower")
     require("global_mechanics/NobleManpower")
     require("global_mechanics/Monks")
+    require("global_mechanics/ForeignWarriors")
     --culture mechanics
     require("culture_mechanics/burghal")
 
@@ -67,6 +77,8 @@ local ok, err = pcall( function()
     require("faction_mechanics/mierce_hoards")
     --decrees
     require("decrees/WestSeaxeDecrees")
+    require("decrees/MierceDecrees")
+    require("decrees/NorthleodeDecrees")
 end) 
 if not ok then
     dev.log("Error loading mechanics scripts!")
@@ -75,9 +87,25 @@ if not ok then
 end
 
 --require traits
+
+--v [NO_CHECK]function(list:table)
+local function require_traits(list)
+    for i = 1, #list do
+        require("traits/"..list[i])
+    end
+end
 traits_manager = require("traits/helpers/trait_manager")
+require_traits(require("traits/TraitTriggers"))
 
 --require episodic scripting
+local ok, err = pcall( function()
+    require("episodic_scripting/vik_fact_northleode")
+end) 
+if not ok then
+    dev.log("Error loading episodic scripts!")
+    dev.log(tostring(err))
+    dev.log(debug.traceback())
+end
 
 
 --[[ old vanilla shit

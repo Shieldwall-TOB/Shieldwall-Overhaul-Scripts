@@ -108,7 +108,7 @@ dev.first_tick(function(context)
     end
 
     PettyKingdoms.RegionManpower.activate("monk", function(faction_key, factor_key, change)
-        local pop = PettyKingdoms.FactionResource.get("sw_pop_monk", faction_key)
+        local pop = PettyKingdoms.FactionResource.get("sw_pop_monk", dev.get_faction(faction_key))
         if pop then
             pop:change_value(change, factor_key)
         end

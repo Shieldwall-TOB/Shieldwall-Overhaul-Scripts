@@ -53,3 +53,23 @@ local function create_region_dilemma(name, region_list, filter, num_choices, pay
         end
     end
 end
+
+local dilemmas_to_create = {
+    --rioting: use household guard to prevent a governor from dying?
+    {name = "sw_rebellion_rioting_household_guard_", filter = function(region) --:CA_REGION
+        return region:is_provincial_capital()
+    end, num_choices = 2, payloads = {
+        [1] = {"sheild_rebellion_chaos\tDURATION[1];GLOBAL", "TARGET\tEVENT"},
+        [2] = {"TEXT_DISPLAY\tLOOKUP[population_lost]"}
+    }, ui_image = "vik_event_rebellion"}
+
+
+}--:vector<{name: string,  filter: (function(region: CA_REGION) --> boolean), num_choices: int,  payloads: map<int, vector<string>>, ui_image: string}>
+
+dev.pre_first_tick(function(context)
+    get_files()
+    for a = 1, #dilemmas_to_create do
+        local dilemma = dilemmas_to_create[a]
+        create_region_dilemma(dilemma.name, dev.region_list(), dilemma.filter, dilemma.num_choices, dilemma.payloads, dilemma.ui_image)
+    end
+end)
