@@ -1,4 +1,7 @@
 local faction_key = "vik_fact_northleode"
+--Lategame Invasion: Norse Invade and they aren't very friendly.
+--Lategame Invasion: Normans
+
 --v function(t: any)
 local function log(t) dev.log(tostring(t), faction_key) end
 local rivals = {
