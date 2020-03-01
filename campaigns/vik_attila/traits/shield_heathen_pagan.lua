@@ -25,10 +25,8 @@ function(context)
         end
     end
     return false, char
-end, "shield_heathen_old_ways")
+end)
 
-tm:register_faction_leader_remove_trait_dilemma("vik_sea_king_convert_religion_", 1)
-tm:register_faction_leader_remove_trait_dilemma("vik_sea_king_convert_religion_", 2)
 
 tm:set_start_pos_characters(
     "faction:vik_fact_sudreyar,forename:2147365942",

@@ -115,9 +115,11 @@ dev.first_tick(function (context)
         function(context)
             --when a region changes ownership, add its base pop and also some occupation loss. Remove the base pop from whoever is losing the region.
             local rmp = instances[context:region():name()]
+            local old_loss_cap_perc = rmp.loss_cap/100
             local lost_perc = rmp:mod_loss_cap(occupation_loss)
             local old_faction = context:prev_faction()
             local new_faction = context:region():owning_faction()
+            local current_region = context:region() --:CA_REGION
             local old_monks = rmp.monk_pop
             rmp:update_monk_cap()
             rmp:mod_monks(rmp.monk_pop*occupation_loss/100)
@@ -130,7 +132,15 @@ dev.first_tick(function (context)
                 if mod_functions.lord then
                     local loss = dev.mround(rmp.base_lord*lost_perc*lord_effect_reduction, 1)
                     mod_functions.lord(new_faction:name(), "manpower_region_sacked_or_occupied", loss)
+                    local lord_region_factor = rmp.base_lord 
+                    local lord_allegiance_factor = 0 --:number
+                    if current_region:majority_religion() == new_faction:state_religion() then
+                        lord_allegiance_factor = lord_allegiance_factor + (current_region:majority_religion_percentage()/100)*rmp.base_lord
+                    else
+                        lord_allegiance_factor = lord_allegiance_factor - dev.mround(rmp.base_lord/2, 1)
+                    end
                     mod_functions.lord(new_faction:name(), "manpower_region_population", rmp.base_lord)
+                    mod_functions.lord(new_faction:name(), "manpower_region_allegiance", lord_allegiance_factor)
                 end
                 if mod_functions.monk then
                     mod_functions.monk(new_faction:name(), "monk_gained_settlements", rmp.monk_pop)
@@ -138,10 +148,19 @@ dev.first_tick(function (context)
             end
             if old_faction:is_human() then
                 if mod_functions.serf then
-                    mod_functions.serf(old_faction:name(), "manpower_region_population", dev.mround(rmp.base_serf*-1*rmp.loss_cap, 1))
+                    mod_functions.serf(old_faction:name(), "manpower_region_population", dev.mround(rmp.base_serf*-1*old_loss_cap_perc, 1))
                 end
                 if mod_functions.lord then
-                    mod_functions.lord(old_faction:name(), "manpower_region_population", dev.mround(rmp.base_lord*-1*rmp.loss_cap, 1))
+                    --loss the regions manpower
+                    mod_functions.lord(old_faction:name(), "manpower_region_population", dev.mround(rmp.base_lord*-1*old_loss_cap_perc, 1))
+                    local lord_allegiance_factor = 0 --:number
+                    if current_region:majority_religion() == old_faction:state_religion() then
+                        lord_allegiance_factor = lord_allegiance_factor + (current_region:majority_religion_percentage()/100)*rmp.base_lord
+                    else
+                        lord_allegiance_factor = lord_allegiance_factor - dev.mround(rmp.base_lord/2, 1)
+                    end
+                    --loss all allegiance from this region
+                    mod_functions.lord(old_faction:name(), "manpower_region_allegiance", -1*lord_allegiance_factor)
                 end
                 if mod_functions.monk then
                     mod_functions.monk(old_faction:name(), "monk_lost_settlements", old_monks)
