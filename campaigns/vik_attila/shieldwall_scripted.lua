@@ -1,4 +1,7 @@
 CONST = require("core/constants")
+--require game data
+Gamedata = {}
+Gamedata.unit_info = require("game_data/unit_info")
 dev = require("core/dev")
 dev.log("Development library loaded, starting to load gameplay scripts")
 dev.Save = require("core/save")
@@ -20,13 +23,12 @@ if not ok then
     dev.log(debug.traceback())
 end
 
---require game data
-Gamedata = {}
+
 local ok, err = pcall( function()
     Gamedata.general = require("game_data/general_data")
     Gamedata.regions = require("game_data/regions")
     Gamedata.base_pop = require("game_data/base_pop_values")
-    Gamedata.unit_info = require("game_data/unit_info")
+
     Gamedata.spawn_locations = require("game_data/spawn_locations")
     Gamedata.kingdoms = require("game_data/kingdoms")
 end) 
@@ -74,7 +76,8 @@ local ok, err = pcall( function()
     require("global_mechanics/ForeignWarriors")
     --culture mechanics
     require("culture_mechanics/burghal")
-
+    require("culture_mechanics/hof")
+    require("culture_mechanics/slaves")
     --faction mechanics
     require("faction_mechanics/mierce_hoards")
     --decrees
@@ -101,7 +104,11 @@ require_traits(require("traits/TraitTriggers"))
 
 --require episodic scripting
 local ok, err = pcall( function()
-    require("episodic_scripting/vik_fact_northleode")
+    --faction events
+    ---require("episodic_scripting/vik_fact_northleode")
+
+    --geopols
+    --require("episodic_scripting/geopolitics_south_england")
 end) 
 if not ok then
     dev.log("Error loading episodic scripts!")
