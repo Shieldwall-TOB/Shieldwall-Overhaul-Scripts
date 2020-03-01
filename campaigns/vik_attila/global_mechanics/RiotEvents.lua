@@ -73,7 +73,7 @@ local riot_events = {
             return retval
         end,
         response = function(context) --:WHATEVER
-            local region_key = string.gsub(context:dilemma(), "sw_rebellion_lost_clergy_", "")
+            local region_key = string.gsub(context:dilemma(), "sw_rebellion_lost_nobles_", "")
             local region = PettyKingdoms.RegionManpower.get(region_key)
             region:mod_population_through_region(-20, "manpower_riots", false, true)
         end,
@@ -92,7 +92,7 @@ local riot_events = {
             local region_key = string.gsub(context:dilemma(), "shield_rebellion_corruption_", "")
             local region = dev.get_region(region_key)
             if not region:governor():has_trait("shield_brute_corrupt")  then
-                cm:force_add_trait(dev.lookup(region:governor()), "sheild_brute_corrupt", true)
+                dev.add_trait(region:governor(), "sheild_brute_corrupt", true)
             end
         end,
         is_dilemma = false
@@ -101,13 +101,30 @@ local riot_events = {
         name = "shield_rebellion_become_berserker_",
         condition = function(riot_manager) --:RIOT_MANAGER
             local region = dev.get_region(riot_manager.key)
-            return PettyKingdoms.FoodStorage.get(region:owning_faction():name()):does_region_have_food_storage(region)
+            local governor_elible = region:has_governor() and region:governor():has_trait("shield_heathen_pagan")
+            local chance = 25
+            if governor_elible and region:governor():has_trait("shield_warrior_champion") or region:governor():has_trait("shield_warrior_proven_warrior") then
+                chance = chance + 25
+            end
+            if governor_elible and region:governor():has_trait("shield_heathen_beast_slayer") then
+                chance = chance + 15
+            end
+            if governor_elible and region:governor():has_trait("shield_brute_bloodythirsty") then
+                chance = chance + 15
+            end
+            return governor_elible and cm:random_number(100) <= chance
         end,
         response = function(context) --:WHATEVER
             cm:set_saved_value(context:dilemma(), cm:model():turn_number())
-            local region_key = string.gsub(context:dilemma(), "sw_rebellion_food_stores_", "")
+            local region_key = string.gsub(context:dilemma(), "shield_rebellion_become_berserker_", "")
             local region = dev.get_region(region_key)
-            PettyKingdoms.FoodStorage.get(region:owning_faction():name()):lose_food_from_region(region)
+            local trait = "shield_heathen_legendary_wolfskin"
+            if region:owning_faction():subculture() == "vik_sub_cult_anglo_viking" then
+                trait = "shield_heathen_legendary_bearskin"
+            end
+            if not region:governor():has_trait(trait)  then
+                dev.add_trait(region:governor(), trait, true)
+            end
         end,
         is_dilemma = false
     }

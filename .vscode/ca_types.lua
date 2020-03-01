@@ -164,6 +164,7 @@
 --# assume CM.force_diplomacy:  method(faction: string, other_faction: string, record: string, offer: boolean, accept: boolean)
 --# assume CM.force_declare_war: method(declarer: string, declaree: string)
 --# assume CM.force_make_peace: method(faction: string, other_faction: string)
+--# assume CM.force_break_alliance: method(faction: string, other_faction: string)
 --# assume CM.grant_faction_handover: method(absorber: string, absorbed: string, first_turn: number, last_turn: number, context: WHATEVER)
 --# assume CM.force_make_trade_agreement: method(declarer: string, declaree: string)
 --characters
@@ -421,6 +422,7 @@
 --# assume CA_UNIT.force_commander: method() --> CA_CHAR
 --# assume CA_UNIT.military_force: method() --> CA_FORCE
 --# assume CA_UNIT.percentage_proportion_of_full_strength: method() --> number
+--# assume CA_UNIT.upkeep: method() -->number
 
 --CA UNIT LIST
 --# assume CA_UNIT_LIST.num_items: method() --> number
