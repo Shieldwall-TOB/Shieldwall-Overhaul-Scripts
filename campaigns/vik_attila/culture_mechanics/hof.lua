@@ -1,5 +1,5 @@
-local hof_key = ""
-local hof_dilemma = ""
+local hof_key = "vik_hof"
+local hof_dilemma = "sw_hof_"
 local sc_key = "vik_sub_cult_viking_gael"
 
 local cooldowns = {
@@ -22,7 +22,7 @@ end
 local function count_hofs(region_list)
     local count = 0
     for i = 0, region_list:num_items() - 1 do
-        if region_list:item_at(i):building_exists(hof_key) then
+        if region_list:item_at(i):building_superchain_exists(hof_key) then
             count = count + 1;
         end
     end
@@ -67,15 +67,17 @@ dev.first_tick(function(context)
         end,
         true
     )
-
-    dev.Events.add_turnstart_event(hof_dilemma, function(context)
-        local faction = context:faction()
-        return hofs[faction:name()] == 0 
-    end, 4, false, function(context)
-        local faction = context:faction()
-        local cd = get_cooldown(count_hofs(faction:region_list()))
-        hofs[faction:name()] = cd 
-    end)
+    for i = 1, 4 do
+        --TODO hof trigger
+        dev.Events.add_regional_event(hof_dilemma .. "_" .. i .."_" , true, false, true, function(context)
+            local faction = context:region():owning_faction()
+            return hofs[faction:name()] == 0 
+        end, 4, false, function(context)
+            local faction = context:faction()
+            local cd = get_cooldown(count_hofs(faction:region_list()))
+            hofs[faction:name()] = cd 
+        end)
+    end
 end)
 
 
