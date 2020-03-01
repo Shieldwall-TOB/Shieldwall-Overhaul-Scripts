@@ -10,6 +10,7 @@ function vassal_faction.new(key)
     self.key = key
     self.is_vassal = false --:boolean
     self.vassals = {} --:map<string, boolean>
+    self.allies = {} --:map<string, boolean>
     self.liege = "" --:string
 
     return self
@@ -29,6 +30,10 @@ local function refresh_vassal_list()
                     instances[other_faction:name()].is_vassal = true
                     instances[other_faction:name()].liege = this_instance.key
                     this_instance.vassals[other_faction:name()] = true
+                end
+                if other_faction:allied_with(faction) then
+                    instances[other_faction:name()].allies[this_instance.key] = true
+                    instances[this_instance.key].allies[other_faction:name()] = true
                 end
             end
         end
@@ -79,6 +84,13 @@ local function get_faction_liege(faction_key)
 end
 
 --v function(faction_key: string) --> vector<string>
+local function get_faction_allies(faction_key)
+    local ret = {} for i, v in pairs(instances[faction_key].allies) do
+        table.insert(ret, v)
+    end
+    return ret
+end
+--v function(faction_key: string) --> vector<string>
 local function get_faction_vassals(faction_key) 
     local vassals = {} --:vector<string>
     for k,v in pairs(instances[faction_key].vassals) do
@@ -88,6 +100,7 @@ local function get_faction_vassals(faction_key)
 end
 
 return {
+    get_faction_allies = get_faction_allies,
     is_faction_vassal = is_faction_vassal,
     get_faction_liege = get_faction_liege,
     get_faction_vassals = get_faction_vassals

@@ -502,6 +502,12 @@ local function dev_is_char_normal_general(character)
     return character:character_type("general") and character:has_military_force() and character:military_force():is_army() and (not character:military_force():is_armed_citizenry()) 
 end
 
+--v function(ax: number, ay: number, bx: number, by: number) --> number
+local function dev_distance_2D(ax, ay, bx, by)
+    return (((bx - ax) ^ 2 + (by - ay) ^ 2) ^ 0.5);
+end;
+
+
 --v function(character: CA_CHAR) --> string
 local function dev_closest_settlement_to_char(character)
     local region_list = cm:model():world():region_manager():region_list();
@@ -520,7 +526,35 @@ local function dev_closest_settlement_to_char(character)
 	return region_key;
 end
 
+--v function(settlement: CA_SETTLEMENT) --> (CA_CQI, number)
+local function dev_closest_char_to_own_settlement(settlement)
+    local character_list = settlement:region():owning_faction():character_list()
+	local target_distance = 0 --:number
+	local cqi = -1 --# assume cqi: CA_CQI
+	for i = 0, character_list:num_items() - 1 do
+		local character = character_list:item_at(i);
+		local lx = character:logical_position_x() - settlement:logical_position_x()
+		local ly = character:logical_position_y() - settlement:logical_position_y()
+		local character_distance = ((lx * lx) + (ly * ly))
+		if cqi == -1 or character_distance < target_distance then
+			cqi = character:command_queue_index()
+			target_distance = character_distance;
+		end
+	end
+	return cqi, target_distance
+end
 
+
+--v function(character: CA_CHAR, region: CA_REGION, x: int) --> boolean
+local function dev_is_character_near_region(character, region, x)
+    local result = false;
+    local force_general = character
+    local radius = x;
+    local distance = dev_distance_2D(force_general:logical_position_x(), force_general:logical_position_y(), region:settlement():logical_position_x(), region:settlement():logical_position_y());
+    result = (distance < radius);
+    return result;
+
+end
 
 --v function(faction: CA_FACTION?) --> CA_REGION_LIST
 local function dev_region_list(faction)
@@ -725,8 +759,17 @@ get_eh():add_listener(
     end,
     true
 )
---v function(character: CA_CHAR) --> map<string, number>
-local function dev_generate_force_cache_entry(character)
+
+local caste_strengths = {
+    very_light = 0.7,
+    medium = 0.9,
+    light = 0.8,
+    very_heavy = 1.8,
+    heavy = 1.5
+} --:map<string, number>
+
+--v function(character: CA_CHAR, use_value: boolean?) --> map<string, number>
+local function dev_generate_force_cache_entry(character, use_value)
     if not dev_is_char_normal_general(character) then
         return {}
     end
@@ -735,13 +778,18 @@ local function dev_generate_force_cache_entry(character)
     for i=0,force:unit_list():num_items()-1 do
         local unit_key = force:unit_list():item_at(i):unit_key()
         cache_entry[unit_key] = cache_entry[unit_key] or 0
-        cache_entry[unit_key] = cache_entry[unit_key] + force:unit_list():item_at(i):percentage_proportion_of_full_strength()
+        if not use_value then
+            cache_entry[unit_key] = cache_entry[unit_key] + force:unit_list():item_at(i):percentage_proportion_of_full_strength()
+        else
+            local data = Gamedata.unit_info.main_unit_size_caste_info[unit_key]
+            cache_entry[unit_key] = cache_entry[unit_key] + (data.num_men * force:unit_list():item_at(i):percentage_proportion_of_full_strength() * caste_strengths[data.caste])
+        end
     end
     return cache_entry
 end
 
 --v function(unit_table: map<string, map<string, {int, int, int}>>, region_intensity: number, army_type: string) --> string
-function dev_create_army(unit_table, region_intensity, army_type)
+local function dev_create_army(unit_table, region_intensity, army_type)
     local force_vector = {} --:vector<string>
     local size = 5
     local turn_increment = math.ceil(cm:model():turn_number()/20)
@@ -771,10 +819,31 @@ function dev_create_army(unit_table, region_intensity, army_type)
     return force_key
 end
 
+--v function(character_lookup: CA_CQI | CA_CHAR, trait_key: string, show_message: boolean)
+local function dev_add_trait(character_lookup, trait_key, show_message)
+    local character = nil --:CA_CHAR
+    if type(character_lookup) == "number" then
+        --# assume character_lookup: CA_CQI
+        character = dev_get_character(character_lookup)
+    else
+        --# assume character_lookup: CA_CHAR
+        character = character_lookup
+    end
+    if not type(trait_key) == "string"  then
+        MODLOG("Add trait called with badly typed args", "dev")
+        debug.traceback(1)
+    end
+    if not character:has_trait(trait_key) then
+        cm:force_add_trait(char_lookup_str(character), trait_key, not not show_message)
+        get_eh():trigger_event("CharacterGainsTrait", trait_key, character)
+    end
+end
+
 return {
     log = MODLOG,
     export = RAWPRINT,
     callback = dev_callback,
+    add_trait = dev_add_trait,
     eh = get_eh(),
     out_children = dev_print_all_uicomponent_children,
     out_details_for_children = dev_print_all_uicomponent_details,
@@ -787,6 +856,7 @@ return {
     get_force = dev_get_force,
     lookup = char_lookup_str,
     closest_settlement_to_char = dev_closest_settlement_to_char,
+    closest_char_to_own_settlement = dev_closest_char_to_own_settlement,
     region_list = dev_region_list,
     faction_list = dev_faction_list,
     clamp = dev_clamp,
@@ -808,5 +878,7 @@ return {
     last_time_sacked = dev_last_time_sacked,
     invasion_number = dev_invasion_number,
     generate_force_cache_entry = dev_generate_force_cache_entry,
-    create_army = dev_create_army
+    create_army = dev_create_army,
+    distance = dev_distance_2D,
+    is_character_near_region = dev_is_character_near_region
 }

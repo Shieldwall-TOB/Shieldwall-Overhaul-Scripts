@@ -23,10 +23,6 @@ local secondary_factions = {
 } --:map<string, boolean>
 
 
---v function(ax: number, ay: number, bx: number, by: number) --> number
-local function distance_2D(ax, ay, bx, by)
-    return (((bx - ax) ^ 2 + (by - ay) ^ 2) ^ 0.5);
-end;
 
 --v function(players: vector<string>, force: CA_FORCE) --> boolean
 local function CheckIfPlayerIsNearFaction(players, force)
@@ -41,7 +37,7 @@ local function CheckIfPlayerIsNearFaction(players, force)
         local j = 0;
         while (result == false) and (j < player_force_list:num_items()) do
             local player_character = player_force_list:item_at(j):general_character();
-            local distance = distance_2D(force_general:logical_position_x(), force_general:logical_position_y(), player_character:logical_position_x(), player_character:logical_position_y());
+            local distance = dev.distance(force_general:logical_position_x(), force_general:logical_position_y(), player_character:logical_position_x(), player_character:logical_position_y());
             result = (distance < radius);
             j = j + 1;
         end
@@ -175,10 +171,10 @@ function rival.get_battle_info(self, context)
     --if both are major, we're in our territory, but we're attacking, abort
     if attacker_territory and defender_is_major then
         return false, false
-    --if we're in our territory and they aren't major, win.
+    --if we're in attacker territory and they aren't major, win.
     elseif attacker_territory then
         return true, false
-    --if they're in our territory and aren't major, we win.
+    --if they're in defender territory and attacker is major, defender wins win.
     elseif defender_territory and not attacker_is_major then
         return false, true
     end
@@ -210,26 +206,6 @@ end
 local function make_rival_faction(faction_key, kingdom, region_list, nation, region_list_national)
     local new_rival = rival.new(faction_key, kingdom, region_list, nation, region_list_national)
     instances[faction_key] = new_rival
-    dev.eh:add_listener(
-        "GuarenteedEmpires"..faction_key,
-        "PendingBattle",
-        function(context)
-            local attacking_faction = context:pending_battle():attacker():faction() --:CA_FACTION
-            local defending_faction = context:pending_battle():defender():faction() --:CA_FACTION
-            return attacking_faction:name() == faction_key or defending_faction:name() == faction_key
-        end,
-        function(context)
-            local attacking_faction = context:pending_battle():attacker():faction() --:CA_FACTION
-            local defending_faction = context:pending_battle():defender():faction() --:CA_FACTION
-            local buff_attacker, buff_defender = new_rival:get_battle_info(context)
-            if buff_attacker and (attacking_faction:name() == faction_key) then
-                new_rival:autowin(false)
-            elseif buff_defender and (defending_faction:name() == faction_key) then
-                new_rival:autowin(true)
-            end
-        end,
-        true
-    )
 
     return new_rival
 end
@@ -238,6 +214,41 @@ end
 local function is_rival(key)
     return not not instances[key]
 end
+
+dev.first_tick(function(context)
+    dev.eh:add_listener(
+        "GuarenteedEmpiresCore",
+        "PendingBattle",
+        function(context)
+            return is_rival(context:pending_battle():attacker():faction():name())
+        end,
+        function(context)
+            local attacking_faction = context:pending_battle():attacker():faction() --:CA_FACTION
+            local defending_faction = context:pending_battle():defender():faction() --:CA_FACTION
+            local attacker_rival = instances[attacking_faction:name()]
+            local buff_attacker, buff_defender = attacker_rival:get_battle_info(context)
+            if buff_attacker then
+                attacker_rival:autowin(false)
+            end
+        end,
+        true)
+    dev.eh:add_listener(
+        "GuarenteedEmpiresCore",
+        "PendingBattle",
+        function(context)
+            return is_rival(context:pending_battle():defender():faction():name())
+        end,
+        function(context)
+            local attacking_faction = context:pending_battle():attacker():faction() --:CA_FACTION
+            local defending_faction = context:pending_battle():defender():faction() --:CA_FACTION
+            local defender_rival = instances[attacking_faction:name()]
+            local buff_attacker, buff_defender = defender_rival:get_battle_info(context)
+            if buff_defender then
+                defender_rival:autowin(true)
+            end
+        end,
+        true)
+end)
 
 return {
     is_rival = is_rival,

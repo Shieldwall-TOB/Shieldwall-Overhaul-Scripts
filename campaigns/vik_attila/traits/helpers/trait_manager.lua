@@ -109,12 +109,12 @@ end
 local function apply_trait_dilemma_for_character(self, char)
     if (not char:faction():is_human()) then
         if cm:random_number(100) > 50 then
-            cm:force_add_trait(dev.lookup(char) ,self.key, false)
+            dev.add_trait(char ,self.key, false)
         end
         return 
     end
     if (not char:is_faction_leader()) and (not char:has_trait(self.key)) and (not char:has_trait(self.key.."_flag")) then
-        cm:force_add_trait(dev.lookup(char) ,self.key.."_flag", false)
+        dev.add_trait(char ,self.key.."_flag", false)
         dev.log("Added trait trigger ["..self.key.."] to character ["..tostring(char:command_queue_index()).."] from faction ["..char:faction():name().."] ")
         self.out_for_trigger = true
         self.flagged_cqi = char:command_queue_index()
@@ -235,12 +235,12 @@ function trait_manager.add_normal_trait_trigger(self, event, conditional_functio
                 if valid and char then
                     --# assume char: CA_CHAR
                     if not char:has_trait(self.key) then
-                        cm:force_add_trait(dev.lookup(char), self.key, true)
+                        dev.add_trait(char, self.key, true)
                     end
                     
                     for i = 1, arg.n do
                         if not char:has_trait(arg[i]) then
-                            cm:force_add_trait(dev.lookup(char), arg[i], true)
+                            dev.add_trait(char, arg[i], true)
                         end
                     end
                 end
@@ -258,6 +258,7 @@ function trait_manager.set_start_pos_characters(self, ...)
             for i = 1, arg.n do
                 cm:force_add_trait(arg[i], self.key, false)
             end
+            dev.eh:trigger_event("StartPosTraitAdded", self.key)
         end
     end)
 end
@@ -284,7 +285,7 @@ function trait_manager.set_loyalty_event_condition(self, event, conditional_func
                 for i = 0, chars:num_items() - 1 do
                     local char = chars:item_at(i)
                     if not char:is_faction_leader() and char:has_trait(self.key) then
-                        cm:force_add_trait(dev.lookup(char), self.key.."_loyalty_event_flag", false)
+                        dev.add_trait(char, self.key.."_loyalty_event_flag", false)
                     end
                 end
                 cm:set_saved_value("tm_"..self.key.."_remove_loyalty_event", cm:model():turn_number() + 3)
@@ -361,7 +362,7 @@ function trait_manager.add_faction_leader_dilemma(self, event, conditional_funct
                 local dilemma = context:dilemma()
                 local choice = context:choice()
                 if choices[choice] == true then
-                    cm:force_add_trait(dev.lookup(character), self.key, true)
+                    dev.add_trait(character, self.key, true)
                 end
             end, true)
 end
@@ -395,7 +396,7 @@ function trait_manager.add_faction_leader_trait_mission(self, event, completion_
             if self.mission_counter >= num_to_complete and faction then
                 self:log("Completing mission for trait ["..self.key.."]")
                 cm:override_mission_succeeded_status(faction:name(), self.key.."_king_mission", true)
-                cm:force_add_trait(dev.lookup(faction:faction_leader()), self.key, true)
+                dev.add_trait(faction:faction_leader(), self.key, true)
                 self.mission_counter = 0
                 self.mission_active = false
             end
