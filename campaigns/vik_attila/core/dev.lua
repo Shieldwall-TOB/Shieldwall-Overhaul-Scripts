@@ -839,11 +839,32 @@ local function dev_add_trait(character_lookup, trait_key, show_message)
     end
 end
 
+--v function(character_lookup: CA_CQI | CA_CHAR, trait_key: string)
+local function dev_remove_trait(character_lookup, trait_key)
+    local character = nil --:CA_CHAR
+    if type(character_lookup) == "number" then
+        --# assume character_lookup: CA_CQI
+        character = dev_get_character(character_lookup)
+    else
+        --# assume character_lookup: CA_CHAR
+        character = character_lookup
+    end
+    if not type(trait_key) == "string"  then
+        MODLOG("remove trait called with badly typed args", "dev")
+        debug.traceback(1)
+    end
+    if character:has_trait(trait_key) then
+        cm:force_remove_trait(char_lookup_str(character), trait_key)
+        get_eh():trigger_event("CharacterLostTrait", trait_key, character)
+    end
+end
+
 return {
     log = MODLOG,
     export = RAWPRINT,
     callback = dev_callback,
     add_trait = dev_add_trait,
+    remove_trait = dev_remove_trait,
     eh = get_eh(),
     out_children = dev_print_all_uicomponent_children,
     out_details_for_children = dev_print_all_uicomponent_details,
