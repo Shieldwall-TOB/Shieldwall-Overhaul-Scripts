@@ -80,6 +80,7 @@ local ok, err = pcall( function()
     require("culture_mechanics/slaves")
     --faction mechanics
     require("faction_mechanics/mierce_hoards")
+    require("faction_mechanics/dyflin_puppet_kings")
     --decrees
     require("decrees/WestSeaxeDecrees")
     require("decrees/MierceDecrees")
