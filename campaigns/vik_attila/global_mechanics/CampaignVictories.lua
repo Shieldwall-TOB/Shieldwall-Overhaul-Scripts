@@ -115,7 +115,7 @@ dev.first_tick(function(context)
                 KingdomSetFounderFaction(faction,Gamedata.kingdoms.faction_nations[faction:name()], false, true)
             end 
         end
-        if victories[cm:get_local_faction(true)][1] == false then
+        if (not victories[cm:get_local_faction(true)]) or victories[cm:get_local_faction(true)][1] == false then
             cm:lock_technology(cm:get_local_faction(true), "vik_mil_cap_1")
         end
         dev.eh:add_listener(
