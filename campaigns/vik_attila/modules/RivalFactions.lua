@@ -72,6 +72,7 @@ function rival.new(faction_key, kingdom, region_list, nation, region_list_nation
 end
 --v function(self: RIVAL, is_defender: boolean)
 function rival.autowin(self, is_defender)
+    self:log("Rival: "..self.faction_name.." is autowinning a battle!")
     if is_defender then
         cm:win_next_autoresolve_battle(self.faction_name);
         cm:modify_next_autoresolve_battle(1, 0, 1, 20, true);
@@ -88,9 +89,10 @@ end
 
 --v function(self: RIVAL, context: WHATEVER) --> (boolean, boolean)
 function rival.get_battle_info(self, context) 
+    self:log("Rival "..self.faction_name.." is getting info about a battle!")
     local attacking_faction = context:pending_battle():attacker():faction() --:CA_FACTION
     local defending_faction = context:pending_battle():defender():faction() --:CA_FACTION
-    local location = context:pending_battle():attacker():region()
+    local location = context:pending_battle():attacker():region() --:CA_REGION
     local attacker_territory = false --:boolean
     local defender_territory = false --:boolean
     if not location:is_null_interface() then
@@ -206,7 +208,7 @@ end
 local function make_rival_faction(faction_key, kingdom, region_list, nation, region_list_national)
     local new_rival = rival.new(faction_key, kingdom, region_list, nation, region_list_national)
     instances[faction_key] = new_rival
-
+    new_rival:log("Created rival! "..faction_key.. " with kingdom  "..kingdom)
     return new_rival
 end
 
@@ -216,6 +218,7 @@ local function is_rival(key)
 end
 
 dev.first_tick(function(context)
+    dev.log("Rivals module adding listeners", "RIVAL")
     dev.eh:add_listener(
         "GuarenteedEmpiresCore",
         "PendingBattle",
