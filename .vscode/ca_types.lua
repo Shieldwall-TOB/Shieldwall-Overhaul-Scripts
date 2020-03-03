@@ -180,6 +180,8 @@
 --event restrictions
 --# assume CM.add_restricted_building_level_record_for_faction: method(faction_key: string, building_key: string)
 --# assume CM.remove_restricted_building_level_record_for_faction: method(faction_key: string, building_key: string)
+--# assume CM.add_event_restricted_unit_record_for_faction: method(unit: string, faction_key: string)
+--# assume CM.remove_event_restricted_unit_record_for_faction: method(unit: string, faction_key: string)
 --ai
 --# assume CM.force_change_cai_faction_personality: method(key: string, personality: string)
 --battles
@@ -478,6 +480,7 @@
 --# assume global is_function: function(arg: any) --> boolean
 --# assume global is_boolean: function(arg: any) --> boolean
 --# assume global add_callback: function(callback: function(), timer: number?, name: string?)
+--# assume global remove_callback: function(name: string)
 --# assume global char_lookup_str: function(CA_CHAR | CA_CQI) --> string
 
 -- GLOBAL VARIABLES

@@ -863,6 +863,7 @@ return {
     log = MODLOG,
     export = RAWPRINT,
     callback = dev_callback,
+    remove_callback = remove_callback,
     add_trait = dev_add_trait,
     remove_trait = dev_remove_trait,
     eh = get_eh(),
