@@ -11,8 +11,16 @@ local lord_cap_proportion = 0.5
 local natural_recovery_rate = 4
 local occupation_loss = -30
 local sack_loss = -60
-local raid_loss = -10
-local monk_training_rate = 1
+local raid_loss = -10  
+
+local monk_training_rate = 2
+local mod_monk_training_rate_by_faction = {
+    ["vik_fact_east_engle"] = 0.5,
+    ["vik_fact_northymbria"] = 0.5,
+    ["vik_fact_hellirborg"] = 0.5,
+    ["vik_fact_northleode"] = 1.5
+}--:map<string, number>
+
 
 local estate_sizes = {} --:map<string, number>
 local settlement_sizes = {} --:map<string, number>
@@ -82,7 +90,7 @@ function region_manpower.mod_monks(self, change, mod, factor)
 end
 
 --v function(self: REGION_MANPOWER)
-function region_manpower.update_monk_cap(self)
+function region_manpower.uodate_pop_caps(self)
     local slot_list = dev.get_region(self.key):settlement():slot_list()
     local cap = 0 --:number
     for i = 0, slot_list:num_items() - 1 do 
@@ -92,21 +100,38 @@ function region_manpower.update_monk_cap(self)
             if monastery_sizes[key] then
                 cap = cap + monastery_sizes[key]
             end
+            if estate_sizes[key] then
+                self.estate_lord_bonus = self.estate_lord_bonus + estate_sizes[key]
+            end
+            if settlement_sizes[key] then
+                self.settlement_serf_bonus = self.settlement_serf_bonus + settlement_sizes[key]
+            end
         end
     end
     self.monk_cap = cap
 end
 
+--v function(self: REGION_MANPOWER, turns: number)
+function region_manpower.set_default_monk_train_turns(self, turns)
+
+    if not dev.is_new_game() then
+        return
+    end
+    local real_training_rate = dev.mround(monk_training_rate * (mod_monk_training_rate_by_faction[dev.get_region(self.key):owning_faction():name()] or 0), 1)
+    self:mod_monks(real_training_rate*turns, true, "monk_training") 
+end
+
+
 local instances = {} --:map<string, REGION_MANPOWER>
 
-dev.first_tick(function (context)
+dev.pre_first_tick(function (context)
     local region_list = dev.region_list()
     for i = 0, region_list:num_items() - 1 do
         local current_region = region_list:item_at(i)
         local base_pop = Gamedata.base_pop.region_values[current_region:name()] or {serf = 150, lord = 50}
         local instance = region_manpower.new(current_region:name(), base_pop.serf, base_pop.lord)
         instances[current_region:name()] = instance
-        instance:update_monk_cap()
+        instance:uodate_pop_caps()
     end
     dev.eh:add_listener(
         "ManpowerRegionChangesOwner",
@@ -121,7 +146,7 @@ dev.first_tick(function (context)
             local new_faction = context:region():owning_faction()
             local current_region = context:region() --:CA_REGION
             local old_monks = rmp.monk_pop
-            rmp:update_monk_cap()
+            rmp:uodate_pop_caps()
             rmp:mod_monks(rmp.monk_pop*occupation_loss/100)
             if new_faction:is_human() then
                 if mod_functions.serf then
@@ -178,11 +203,13 @@ dev.first_tick(function (context)
         function(context)
             local rmp = instances[context:region():name()]
             rmp:mod_loss_cap(natural_recovery_rate)
-            if context:region():owning_faction():is_human() then
-                rmp:update_monk_cap()
-                rmp:mod_monks(monk_training_rate, true, "monk_training")
+            local region = context:region()
+            if region:owning_faction():is_human() then
+                rmp:uodate_pop_caps()
+                local real_training_rate = dev.mround(monk_training_rate * (mod_monk_training_rate_by_faction[region:owning_faction():name()] or 0), 1)
+                rmp:mod_monks(real_training_rate, true, "monk_training")
             end
-            if Gamedata.base_pop.slaves_factions[context:region():owning_faction():name()] then
+            if Gamedata.base_pop.slaves_factions[region:owning_faction():name()] then
                 --TODO slaves
             end
         end,
@@ -236,7 +263,7 @@ dev.first_tick(function (context)
                         mod_functions.lord(owning_faction:name(), "manpower_region_sacked_or_occupied", loss)
                     end
                 end
-                rmp:update_monk_cap()
+                rmp:uodate_pop_caps()
                 rmp:mod_monks(-1*rmp.monk_pop, true, "monk_sacking")
             end
             if context:character():faction():is_human() and Gamedata.base_pop.slaves_factions[context:character():faction():name()] then

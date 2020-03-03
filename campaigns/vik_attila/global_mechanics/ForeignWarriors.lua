@@ -13,9 +13,7 @@ local low_authority_turn_penalty = 6
 local base_boiling_time = 18 
 local defuse_rate = 2
 local crisis_duration = 8
-local foreign_warrior_startpos = {
-
-} --:map<string, map<string, int>>
+local foreign_warrior_startpos = Gamedata.base_pop.foreign_warrior_startpos
 
 local foreign_warrior_trait_effects = {
     ["shield_heathen_old_ways"] = -25
@@ -149,6 +147,9 @@ end
 
 --v function(resource: FACTION_RESOURCE) --> string
 local function value_converter(resource)
+    if not FOREIGN_WARRIORS[resource.owning_faction] then
+        add_blank_foreign_warrior_entry(resource.owning_faction)
+    end
     if resource.value == 0 then
         return "0"
     elseif dev.get_faction(resource.owning_faction):subculture() == "vik_sub_cult_viking_gael" then
@@ -173,17 +174,13 @@ dev.first_tick(function(context)
     local human_factions = cm:get_human_factions()
 
     for i = 1, #human_factions do
-        MANPOWER_FOREIGN[human_factions[i]] = PettyKingdoms.FactionResource.new(human_factions[i], "sw_pop_foreign", "population", 0, 30000, {}, value_converter)
+        MANPOWER_FOREIGN[human_factions[i]] = PettyKingdoms.FactionResource.new(human_factions[i], "sw_pop_foreign", "population", foreign_warrior_startpos[human_factions[i]] or 0, 30000, {}, value_converter)
         local foreign = MANPOWER_FOREIGN[human_factions[i]]
         foreign.uic_override = {"layout", "top_center_holder", "resources_bar2", "culture_mechanics"} 
         if not FOREIGN_WARRIORS[human_factions[i]] then
             add_blank_foreign_warrior_entry(human_factions[i])
         end
-        if dev.is_new_game() and foreign_warrior_startpos[human_factions[i]] then
-            for factor, value in pairs(foreign_warrior_startpos[human_factions[i]]) do
-                foreign:set_factor(factor, value)
-            end
-        end
+
         foreign:reapply()
     end
 
@@ -212,7 +209,53 @@ dev.first_tick(function(context)
             rec_handler:set_cost_of_unit(entry.unit_key, dev.mround(entry.num_men*unit_size_mode_scalar, 1))
         end
     end
-    rec_handler:set_resource_tooltip("Caesar send help")
-    rec_handler.image_state = "foreigners"
+    rec_handler:set_resource_tooltip("Foreign Mercenary and Vikingar units require Foreigner population to recruit")
+    rec_handler.image_state = "foreigner"
 
 end)
+
+local events_regional = {
+    sw_foreign_warriors_trial_fair_ = {false, true, false},
+    sw_foreign_warriors_trial_unfair_ = {false, true, false},
+    sw_foreign_settlers_conquest_ = {false, true, false},
+    sw_foreign_settlers_drive_out_ = {true, true, false},
+    sw_foreign_settlers_drive_out_here_king_ = {true, true, false},
+    sw_foreign_dead_wife_ = {false, false, true},
+    sw_foreign_grumpy_neighbours_ = {false, false, true},
+    sw_foreign_drunk_brawl_ = {false, true, false},
+    sw_foreign_priest_assaulted_ = {false, true, false},
+    sw_foreign_sheep_ = {false, false, true},
+    sw_foreign_fields_ = {false, false, true},
+    sw_foreign_cows_ = {false, false, false},
+    sw_foreign_bees_ = {false, true, false},
+    sw_foreign_esc_vandalism_ = {false, true, false},
+    sw_foreign_esc_tar_and_feather_ = {false, false, true},
+    sw_foreign_esc_gothi_ = {false, false, true},
+    sw_foreign_church_crafts_ = {false, true, false},
+    sw_foreign_mine_ = {false, false, true},
+    sw_foreign_soldiers_ = {false, true, false},
+    sw_foreign_food_stores_ = {false, true, false},
+    sw_foreign_banditry_ = {false, false, true},
+    sw_foreign_settlement_ = {false, true, false},
+    sw_foreign_spies_ = {false, true, false},
+    sw_foreign_plot_governor_ = {true, true, false},
+    sw_foreign_displacement_ = {true, true, false},
+    sw_foreign_army_ = {false, false, true},
+    sw_foreign_oaths_ = {true, true, false},
+    sw_foreign_ports_ = {false, true, false}
+} --:map<string, {boolean, boolean, boolean}>
+
+local regional_event_conditions = {
+
+}--:map<string, (function(context: WHATEVER) --> boolean)>
+
+
+
+
+local events_characters = {
+
+}
+
+local events_generic = {
+
+}

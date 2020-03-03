@@ -22,6 +22,7 @@ function recruitment_resource_handler.new(resource, resource_getter, resource_mo
     self.get = resource_getter
     self.mod = resource_mod
     self.uic_name = uic_name
+    self.selected_character = -1 --:int
 
     self.tooltip = " " --:string
     self.image_state = "" --:string
@@ -54,6 +55,27 @@ function recruitment_resource_handler.add_faction_to_whitelist(self, faction_nam
     self.faction_whitelist[faction_name] = true
 end
 
+--v function(self: RECRUITMENT_HANDLER, unit_card: CA_UIC, apply: boolean, cost: number)
+function recruitment_resource_handler.restrict_unit_card(self, unit_card, apply, cost)
+    local restriction_uic = dev.get_uic(unit_card, "disabled_script")
+    local icon_uic = dev.get_uic(unit_card, "unit_clip", "unit_icon")
+    if apply then
+        icon_uic:SetState("inactive")
+        --icon_uic:ShaderTechniqueSet("set_grayscale_t0")
+        --icon_uic:ShaderVarsSet(1, 1, 1, 0)
+    elseif not dev.get_uic(unit_card, "tech_required_icon"):Visible() then
+        icon_uic:SetState("active")
+    end
+    unit_card:SetInteractive(not apply)
+    restriction_uic:SetInteractive(true)
+    restriction_uic:SetVisible(apply) 
+    --TODO image states for this
+    local total_available = self.get(self.faction_key)
+    local cost_string = tostring(total_available).."/"..tostring(cost)
+    restriction_uic:SetTooltipText("[[col:red]]You do not have the manpower required to recruit this unit (".. cost_string..")[[/col]]\n\n"..self.tooltip)
+end
+
+
 --v function(self: RECRUITMENT_HANDLER)
 function recruitment_resource_handler.update_restrictions(self)
     if not self.panel then
@@ -66,9 +88,10 @@ function recruitment_resource_handler.update_restrictions(self)
             local unit_card = dev.get_uic(self.panel, "recuitment_list", "listview", "list_clip", "list_box", category, "units_box", unit_key.. "_mercenary")
             if unit_card then
                 if self.unit_costs[unit_key] > total_available then 
-                    unit_card:SetInteractive(false)
+                    log("Unit key: " .. unit_key .. " restricted from recruitment.")
+                    self:restrict_unit_card(unit_card, true, self.unit_costs[unit_key])
                 else
-                    unit_card:SetInteractive(true)
+                    self:restrict_unit_card(unit_card, false, self.unit_costs[unit_key])
                 end
             end
         end
@@ -104,6 +127,7 @@ end
 function recruitment_resource_handler.add_unit_to_queue(self, unit_name)
     cm:steal_user_input(true)
     table.insert(self.queued_units, unit_name)
+    log(self.key .." recruit resource tracker added "..unit_name.. "to its queue @"..tostring(#self.queued_units))
     if self.unit_costs[unit_name] then
         self:update_cost_uic()
         self:update_restrictions()
@@ -116,15 +140,69 @@ function recruitment_resource_handler.remove_unit_from_queue(self, queue_positio
     cm:steal_user_input(true)
     local unit = self.queued_units[queue_position]
     if not unit then
-        log("Warning: asked to remove a unit which doesn't exist?")
+        log("Warning: asked to remove a unit which doesn't exist at queue "..tostring(queue_position).."?")
+        cm:steal_user_input(false)
         return
     end
+    log("Removing "..self.queued_units[queue_position].." from character Queue")
     table.remove(self.queued_units, queue_position)
     if self.unit_costs[unit] then
         self:update_cost_uic()
         self:update_restrictions()
     end
     cm:steal_user_input(false)
+end
+
+--v function (self: RECRUITMENT_HANDLER, suspected_key: string)
+function recruitment_resource_handler.long_check_for_new_unit(self, suspected_key)
+    log("performing long refresh of unit queues")
+    cm:steal_user_input(true)
+    for i = 1, #self.queued_units do
+        local uic = dev.get_uic(cm:ui_root(), "units_panel","main_units_panel", "units", "temp_merc_"..tostring(i-1))
+        if not uic then
+            log("Non-matching unit found in queue "..self.queued_units[i])
+            for j = i, #self.queued_units do
+                self:remove_unit_from_queue(j)
+            end
+            cm:steal_user_input(false)
+            return
+        end
+    end
+    local uic = dev.get_uic(cm:ui_root(), "units_panel","main_units_panel", "units", "temp_merc_"..tostring(#self.queued_units))
+    if uic then
+        self:add_unit_to_queue(suspected_key)
+        cm:steal_user_input(false)
+    else
+        log("No unit found!")
+        cm:steal_user_input(false)
+    end
+end
+
+--v [NO_CHECK] function(self: RECRUITMENT_HANDLER, cqi: (CA_CQI|int)?)
+function recruitment_resource_handler.clear_queue(self, cqi)
+    log("Clearing Queue")
+    if cqi then
+        --# assume cqi: CA_CQI
+        if cqi == self.selected_character then
+            log("CQI matches selected char")
+            for i = 1, #self.queued_units do
+                local uic = dev.get_uic(cm:ui_root(), "units_panel","main_units_panel", "units", "temp_merc_"..tostring(i-1))
+                if not uic then
+                    log("Non-matching unit found in queue "..self.queued_units[i])
+                    for j = i, #self.queued_units do
+                        self:remove_unit_from_queue(j)
+                    end
+                    return
+                end
+            end
+            return
+        end
+    end
+    dev.remove_callback("LongCheckRec")
+    self.available_units = {}
+    self.queued_units = {}
+    self.pending_cost = 0
+    self.selected_character = cqi or -1
 end
 
 local instances = {} --:map<string, RECRUITMENT_HANDLER>
@@ -141,6 +219,7 @@ local function add_recruitment_resource(resource, resource_getter, resource_mod,
         end,
         function(context)
             log("Recruitment Panel Opened!")
+            instance:clear_queue(instance.selected_character)
             instance.panel = UIComponent(context.component)
             local list_box = dev.get_uic(instance.panel, "recuitment_list", "listview", "list_clip", "list_box")
             if list_box then
@@ -169,9 +248,7 @@ local function add_recruitment_resource(resource, resource_getter, resource_mod,
         function(context)
             log("Recruitment Panel Closed")
             instance.panel = nil
-            instance.available_units = {}
-            instance.queued_units = {}
-            instance.pending_cost = 0
+            instance:clear_queue()
         end, true)
     dev.eh:add_listener(
         "RecHandlerComponentLClickUp",
@@ -195,10 +272,15 @@ local function add_recruitment_resource(resource, resource_getter, resource_mod,
         function(context)
             local unit_component_ID = tostring(UIComponent(context.component):Id())
             --is our clicked component a unit?
-            if string.find(unit_component_ID, "_mercenary") and UIComponent(context.component):CurrentState() == "active" and (not UIComponent(context.component):GetTooltipText():find("col:red")) then
+            if string.find(unit_component_ID, "_mercenary") then
                 local unitID = string.gsub(unit_component_ID, "_mercenary", "")
-                log(unitID.. " added to queue")
-                instance:add_unit_to_queue(unitID)
+                if UIComponent(context.component):CurrentState() == "active" and (not UIComponent(context.component):GetTooltipText():find("col:red")) then
+                    instance:add_unit_to_queue(unitID)
+                else
+                    dev.callback(function()
+                        instance:long_check_for_new_unit(unitID)
+                    end, 0.1, "LongCheckRec")
+                end
             end
         end, true)
     dev.eh:add_listener(
@@ -219,6 +301,24 @@ local function add_recruitment_resource(resource, resource_getter, resource_mod,
         end,
         true
     )
+    dev.eh:add_listener(
+        "RecHandlerCharacterSelected",
+        "CharacterSelected",
+        true,
+        function(context)
+            instance:clear_queue(context:character():command_queue_index())
+        end,
+        true
+    )
+    dev.eh:add_listener(
+        "RecHandlerSettlementSelected",
+        "SettlementSelected",
+        true,
+        function(context)
+            instance:clear_queue()
+        end,
+        true
+    )
 
     --gameplay impacting listeners
     dev.eh:add_listener(
@@ -233,9 +333,7 @@ local function add_recruitment_resource(resource, resource_getter, resource_mod,
                 instance.mod(context:unit():faction():name(), instance.unit_costs[unit_key]*-1)
             end
             if context:unit():faction():name() == cm:get_local_faction(true) then
-                instance.available_units = {}
-                instance.queued_units = {}
-                instance.pending_cost = 0
+                instance:clear_queue()
             end
         end,
         true)
@@ -260,12 +358,24 @@ local function add_recruitment_resource(resource, resource_getter, resource_mod,
     return instance
 end
 
-
-
-
-
-
+--v function(faction: string, icon_name: string)
+local function disable_recruitment_cost_type_for_faction(faction, icon_name)
+    dev.eh:add_listener(
+        "RecHandlerPanelOpenedCampaign",
+        "PanelOpenedCampaign",
+        function(context)
+            return context.string == "recruitment"
+        end,
+        function(context)
+            local costUIC = dev.get_uic(UIComponent(context.component), "recuitment_list", "costs_list", icon_name)
+            if costUIC then
+                costUIC:SetVisible(false)
+            end
+        end,
+        true)
+end
 
 return {
-    add_resource = add_recruitment_resource
+    add_resource = add_recruitment_resource,
+    disable_recruitment_cost_type_for_faction = disable_recruitment_cost_type_for_faction
 }

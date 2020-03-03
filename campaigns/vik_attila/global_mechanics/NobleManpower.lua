@@ -176,6 +176,6 @@ dev.first_tick(function(context)
             rec_handler:set_cost_of_unit(entry.unit_key, dev.mround(entry.num_men*unit_size_mode_scalar, 1))
         end
     end
-    rec_handler:set_resource_tooltip("Caesar send help")
+    rec_handler:set_resource_tooltip("Noble units, including Household units, require Noble population to recruit.")
     rec_handler.image_state = "noble"
 end)

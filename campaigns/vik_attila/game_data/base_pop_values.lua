@@ -266,14 +266,27 @@ local base_pop =  {
 	["vik_reg_moige_bile"] = {serf = 100, lord = 10},
 	["vik_reg_cenannas"] = {serf = 200, lord = 20},
 	["vik_reg_lann_padarn"] = {serf = 50, lord = 5}
-} --:map<string, {serf: number, lord: number}>
+} --:map<string, {serf: int, lord: int}>
 
 local slaves_factions = {
 	[ "vik_fact_dyflin"] = 320
- }--:map<string, number>
+ }--:map<string, int>
 
+local foreign_warrior_startpos = {
+	["vik_fact_west_seaxe"] = 350,
+	["vik_fact_mierce"] = 600,
+	["vik_fact_northleode"] = 700,
+	["vik_fact_gwined"] = 100,
+	["vik_fact_strat_clut"] = 50,
+	["vik_fact_circenn"] = 150,
+	["vik_fact_mide"] = 650,
+	["vik_fact_east_engle"] = 1000,
+	["vik_fact_dyflin"] = 500,
+	["vik_fact_sudreyar"] = 500
+}--:map<string, int>
 
 return {
 	region_values = base_pop,
-	slaves_factions = slaves_factions
+	slaves_factions = slaves_factions,
+	foreign_warrior_startpos = foreign_warrior_startpos
 }

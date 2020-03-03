@@ -7,7 +7,7 @@ local function value_converter(resource)
     if god_damn_pagan_idolatry then
         offset = 16
     end
-    return tostring(dev.clamp(math.ceil(resource.value/45)+1+offset, 1+offset, 16+offset))
+    return tostring(dev.clamp(math.ceil(resource.value/30)+1+offset, 1+offset, 16+offset))
 end
 
 local sizes = {
@@ -119,10 +119,8 @@ dev.first_tick(function(context)
 			for j = 0, region_list:num_items() - 1 do
 				local current_region = region_list:item_at(j)     
 				local manpower_obj = PettyKingdoms.RegionManpower.get(current_region:name())
-				manpower_obj:update_monk_cap()
 				if manpower_obj.monk_cap > 0 then
-					manpower_obj:mod_monks(manpower_obj.monk_cap/4, true, "monk_training") 
-					--TODO figure out why this isn't working
+					manpower_obj:set_default_monk_train_turns(9)
 				end
 			end
 		end
