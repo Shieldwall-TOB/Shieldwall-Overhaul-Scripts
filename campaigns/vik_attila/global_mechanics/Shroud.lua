@@ -2,7 +2,7 @@
 -------------------- AUTOMATIC TRADE AND SHROUD REMOVAL------------------------
 -------------------------------------------------------------------------------
 -------------------- Created by Craig: 11/04/2017 -----------------------------
--------------------- Last Updated: 05/05/2017 Craig ---------------------------
+------ Modified Slightly by Drunk Flamingo for inclusion in Shieldwall---------
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 
@@ -17,9 +17,8 @@ local function output(t)
     dev.log(tostring(t), "Shroud")
 end
 
---v function(context: CA_CONTEXT)
-function FactionTurnStart_Trade(context)
-    local current_faction = context:faction() --:CA_FACTION
+--v function(current_faction: CA_FACTION)
+function FactionTurnStart_Trade(current_faction)
     if current_faction:is_null_interface() == false then
         if current_faction:has_home_region() == true then
             local faction_list = cm:model():world():faction_list();
@@ -53,13 +52,15 @@ function DisableShroud()
                 local region_list = cm:model():world():region_manager():region_list();
                 for i = 0, region_list:num_items() - 1 do
                     local region = region_list:item_at(i);
-                        cm:make_region_seen_in_shroud(current_faction:name(), region:name());
+                   -- output("Making "..region:name() .. " visible.")
+                    cm:make_region_seen_in_shroud(current_faction:name(), region:name());
                 end 
             end
         end
     end
     local sea_regions = Gamedata.general.sea_regions
     for i = 1, #sea_regions do
+      --  output("Making "..sea_regions[i] .. " visible.")
         cm:make_sea_region_seen_in_shroud(sea_regions[i]);
     end
 end
@@ -69,16 +70,16 @@ function Update_Fog()
     cm:make_neighbouring_regions_visible_in_shroud();
 end
 
-dev.first_tick(function(context)
+dev.post_first_tick(function(context)
     output("#### Adding Shroud Listeners ####")
-    cm:add_listener(
+    dev.eh:add_listener(
         "GarrisonOccupiedEvent_Shroud",
         "GarrisonOccupiedEvent",
         true,
         function(context) Update_Fog() end,
         true
     )
-    cm:add_listener(
+    dev.eh:add_listener(
         "FactionTurnStart_Shroud",
         "FactionTurnStart",
         true,
@@ -86,11 +87,16 @@ dev.first_tick(function(context)
         true
     )
     output("#### Adding Trade Listeners ####")
-    cm:add_listener(
+    dev.eh:add_listener(
         "FactionTurnStart_Trade",
         "FactionTurnStart",
         true,
-        function(context) FactionTurnStart_Trade(context) end,
+        function(context) FactionTurnStart_Trade(context:faction()) end,
         true
     )
+    if dev.is_new_game() then
+        FactionTurnStart_Trade(cm:model():world():whose_turn_is_it())
+    end
+    Update_Fog()
+    DisableShroud()
 end)

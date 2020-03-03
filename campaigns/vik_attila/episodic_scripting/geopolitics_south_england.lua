@@ -13,6 +13,7 @@ local boroughs = {
 
 
 dev.first_tick(function(context)
+    dev.log("Geopolitics eng_south starting")
     local south_england = PettyKingdoms.Geopolitics.new("eng_south")
     local factions_to_add = {
         ["vik_fact_west_seaxe"] = function(faction) --:CA_FACTION 
@@ -48,7 +49,7 @@ dev.first_tick(function(context)
             for i = 1, #boroughs do
                 local region_list = faction:region_list()
                 for j = 0, region_list:num_items() - 1 do 
-                    retval[#retval+1] = region_list:item_at(i):name()
+                    retval[#retval+1] = region_list:item_at(j):name()
                 end
             end
             return retval
@@ -58,7 +59,7 @@ dev.first_tick(function(context)
             for i = 1, #boroughs do
                 local region_list = faction:region_list()
                 for j = 0, region_list:num_items() - 1 do 
-                    retval[#retval+1] = region_list:item_at(i):name()
+                    retval[#retval+1] = region_list:item_at(j):name()
                 end
             end return retval
         end,
@@ -67,7 +68,7 @@ dev.first_tick(function(context)
             for i = 1, #boroughs do
                 local region_list = faction:region_list()
                 for j = 0, region_list:num_items() - 1 do 
-                    retval[#retval+1] = region_list:item_at(i):name()
+                    retval[#retval+1] = region_list:item_at(j):name()
                 end
             end return retval
         end,
@@ -76,7 +77,7 @@ dev.first_tick(function(context)
             for i = 1, #boroughs do
                 local region_list = faction:region_list()
                 for j = 0, region_list:num_items() - 1 do 
-                    retval[#retval+1] = region_list:item_at(i):name()
+                    retval[#retval+1] = region_list:item_at(j):name()
                 end
             end return retval
         end,
@@ -85,7 +86,7 @@ dev.first_tick(function(context)
             for i = 1, #boroughs do
                 local region_list = faction:region_list()
                 for j = 0, region_list:num_items() - 1 do 
-                    retval[#retval+1] = region_list:item_at(i):name()
+                    retval[#retval+1] = region_list:item_at(j):name()
                 end
             end return retval
         end

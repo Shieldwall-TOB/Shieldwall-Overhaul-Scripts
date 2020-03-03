@@ -244,10 +244,17 @@ local main_unit_size_caste_info = {
 	["wel_valley_armoured_spearmen"] = { ["unit_key"] = "wel_valley_armoured_spearmen", ["caste"] = "medium", ["num_men"] = 160 },
 	["wel_valley_mailed_spearmen"] = { ["unit_key"] = "wel_valley_mailed_spearmen", ["caste"] = "medium", ["num_men"] = 160 },
 	["wel_valley_spearmen"] = { ["unit_key"] = "wel_valley_spearmen", ["caste"] = "very_light", ["num_men"] = 160 },
-	["wel_war_hounds"] = { ["unit_key"] = "wel_war_hounds", ["caste"] = "heavy", ["num_men"] = 24 }
+	["wel_war_hounds"] = { ["unit_key"] = "wel_war_hounds", ["caste"] = "heavy", ["num_men"] = 24 },
+	["eng_north_horsemen"] = { ["unit_key"] = "eng_north_horsemen", ["caste"] = "heavy", ["num_men"] = 56},
+	["eng_north_hunters"] = { ["unit_key"] = "eng_north_hunters", ["caste"] = "light", ["num_men"] = 32},
+	["eng_north_spearmen"] = { ["unit_key"] = "eng_north_spearmen", ["caste"] = "light", ["num_men"] = 160},
+	["eng_north_javelinmen"] = { ["unit_key"] = "eng_north_javelinmen", ["caste"] ="light", ["num_men"] = 60},
+	["eng_north_champion"] = { ["unit_key"] = "eng_north_champion", ["caste"] =  "heavy", ["num_men"] = 40}
 } --:map<string, {unit_key: string, caste: string, num_men: number}>
 
 local mercenary_units = {
+	--testing value.
+	--["eng_ceorl_javelinmen"] = true, 
 	--Sea Kings: sailors, longaxes rekkar, vikingar, Bogadrengir and berserkir are foreigners
 	["est_marauders"] = true,
 	["est_norse_hersir"] = true,
