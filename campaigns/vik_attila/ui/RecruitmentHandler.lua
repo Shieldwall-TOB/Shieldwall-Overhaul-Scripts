@@ -68,6 +68,9 @@ function recruitment_resource_handler.restrict_unit_card(self, unit_card, apply,
     end
     unit_card:SetInteractive(not apply)
     restriction_uic:SetInteractive(true)
+    if self.image_state then
+        restriction_uic:SetState(self.image_state)
+    end
     restriction_uic:SetVisible(apply) 
     --TODO image states for this
     local total_available = self.get(self.faction_key)

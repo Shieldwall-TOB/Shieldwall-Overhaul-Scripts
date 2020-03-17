@@ -21,6 +21,17 @@ local mod_monk_training_rate_by_faction = {
     ["vik_fact_northleode"] = 1.5
 }--:map<string, number>
 
+local slave_taking_rate = 0.25 --:number
+local slave_market_decay = 0.95
+
+local difficulty_level_base_pop_mods = {
+    [1] = 1.05,
+    [0] = 1,
+    [-1] = 0.95,
+    [-2] = 0.90,
+    [-3] = 0.85
+}--:map<int, number>
+
 
 local estate_sizes = {} --:map<string, number>
 local settlement_sizes = {} --:map<string, number>
@@ -33,14 +44,19 @@ function region_manpower.new(key, base_serf, base_lord)
         __index = region_manpower
     }) --# assume self: REGION_MANPOWER
     self.key = key
+    self.settlement_serf_bonus = 0 --:number
+    self.estate_lord_bonus = 0 --:number
 
-    self.base_serf = base_serf 
-    self.base_lord = dev.mround(base_lord*lord_cap_proportion, 1) --:number
+    self.base_serf = function()
+        return dev.mround(base_serf + self.settlement_serf_bonus, 1)
+    end
+    self.base_lord = function()
+        return dev.mround((base_lord+self.estate_lord_bonus)*lord_cap_proportion, 1) 
+    end
     self.loss_cap = 100 --:number
     
 
-    self.settlement_serf_bonus = 0 --:number
-    self.estate_lord_bonus = 0 --:number
+
 
     self.monk_pop = 0 --:number
     self.monk_cap = 0 --:number
@@ -68,11 +84,11 @@ function region_manpower.mod_population_through_region(self, change, factor, ser
     local owning_faction = dev.get_region(self.key):owning_faction()
     if owning_faction:is_human() then
         if mod_functions.serf and serfs then
-            local loss = dev.mround(self.base_serf*loss_percent, 1)
+            local loss = dev.mround(self.base_serf()*loss_percent, 1)
             mod_functions.serf(owning_faction:name(), factor, loss)
         end
         if mod_functions.lord and lords then
-            local loss = dev.mround(self.base_lord*loss_percent*lord_effect_reduction, 1)
+            local loss = dev.mround(self.base_lord()*loss_percent*lord_effect_reduction, 1)
             mod_functions.lord(owning_faction:name(), factor, loss)
         end
     end
@@ -90,9 +106,11 @@ function region_manpower.mod_monks(self, change, mod, factor)
 end
 
 --v function(self: REGION_MANPOWER)
-function region_manpower.uodate_pop_caps(self)
+function region_manpower.update_pop_caps(self)
     local slot_list = dev.get_region(self.key):settlement():slot_list()
     local cap = 0 --:number
+    self.settlement_serf_bonus = 0
+    self.estate_lord_bonus = 0
     for i = 0, slot_list:num_items() - 1 do 
         local slot = slot_list:item_at(i)
         if slot:has_building() then
@@ -113,11 +131,10 @@ end
 
 --v function(self: REGION_MANPOWER, turns: number)
 function region_manpower.set_default_monk_train_turns(self, turns)
-
     if not dev.is_new_game() then
         return
     end
-    local real_training_rate = dev.mround(monk_training_rate * (mod_monk_training_rate_by_faction[dev.get_region(self.key):owning_faction():name()] or 0), 1)
+    local real_training_rate = dev.mround(monk_training_rate * (mod_monk_training_rate_by_faction[dev.get_region(self.key):owning_faction():name()] or 1), 1)
     self:mod_monks(real_training_rate*turns, true, "monk_training") 
 end
 
@@ -125,13 +142,15 @@ end
 local instances = {} --:map<string, REGION_MANPOWER>
 
 dev.pre_first_tick(function (context)
+    local difficulty = cm:model():difficulty_level();
+
     local region_list = dev.region_list()
     for i = 0, region_list:num_items() - 1 do
         local current_region = region_list:item_at(i)
         local base_pop = Gamedata.base_pop.region_values[current_region:name()] or {serf = 150, lord = 50}
-        local instance = region_manpower.new(current_region:name(), base_pop.serf, base_pop.lord)
+        local instance = region_manpower.new(current_region:name(), dev.mround(base_pop.serf*difficulty_level_base_pop_mods[difficulty],1), dev.mround(base_pop.lord*difficulty_level_base_pop_mods[difficulty],1) )
         instances[current_region:name()] = instance
-        instance:uodate_pop_caps()
+        instance:update_pop_caps()
     end
     dev.eh:add_listener(
         "ManpowerRegionChangesOwner",
@@ -146,25 +165,25 @@ dev.pre_first_tick(function (context)
             local new_faction = context:region():owning_faction()
             local current_region = context:region() --:CA_REGION
             local old_monks = rmp.monk_pop
-            rmp:uodate_pop_caps()
+            rmp:update_pop_caps()
             rmp:mod_monks(rmp.monk_pop*occupation_loss/100)
             if new_faction:is_human() then
                 if mod_functions.serf then
-                    local loss = dev.mround(rmp.base_serf*lost_perc, 1)
+                    local loss = dev.mround(rmp.base_serf()*lost_perc, 1)
                     mod_functions.serf(new_faction:name(), "manpower_region_sacked_or_occupied", loss)
-                    mod_functions.serf(new_faction:name(), "manpower_region_population", rmp.base_serf)
+                    mod_functions.serf(new_faction:name(), "manpower_region_population", rmp.base_serf())
                 end
                 if mod_functions.lord then
-                    local loss = dev.mround(rmp.base_lord*lost_perc*lord_effect_reduction, 1)
+                    local loss = dev.mround(rmp.base_lord()*lost_perc*lord_effect_reduction, 1)
                     mod_functions.lord(new_faction:name(), "manpower_region_sacked_or_occupied", loss)
                     local lord_region_factor = rmp.base_lord 
                     local lord_allegiance_factor = 0 --:number
                     if current_region:majority_religion() == new_faction:state_religion() then
-                        lord_allegiance_factor = lord_allegiance_factor + (current_region:majority_religion_percentage()/100)*rmp.base_lord
+                        lord_allegiance_factor = lord_allegiance_factor + (current_region:majority_religion_percentage()/100)*rmp.base_lord()
                     else
-                        lord_allegiance_factor = lord_allegiance_factor - dev.mround(rmp.base_lord/2, 1)
+                        lord_allegiance_factor = lord_allegiance_factor - dev.mround(rmp.base_lord()/2, 1)
                     end
-                    mod_functions.lord(new_faction:name(), "manpower_region_population", rmp.base_lord)
+                    mod_functions.lord(new_faction:name(), "manpower_region_population", rmp.base_lord())
                     mod_functions.lord(new_faction:name(), "manpower_region_allegiance", lord_allegiance_factor)
                 end
                 if mod_functions.monk then
@@ -173,16 +192,16 @@ dev.pre_first_tick(function (context)
             end
             if old_faction:is_human() then
                 if mod_functions.serf then
-                    mod_functions.serf(old_faction:name(), "manpower_region_population", dev.mround(rmp.base_serf*-1*old_loss_cap_perc, 1))
+                    mod_functions.serf(old_faction:name(), "manpower_region_population", dev.mround(rmp.base_serf()*-1*old_loss_cap_perc, 1))
                 end
                 if mod_functions.lord then
                     --loss the regions manpower
-                    mod_functions.lord(old_faction:name(), "manpower_region_population", dev.mround(rmp.base_lord*-1*old_loss_cap_perc, 1))
+                    mod_functions.lord(old_faction:name(), "manpower_region_population", dev.mround(rmp.base_lord()*-1*old_loss_cap_perc, 1))
                     local lord_allegiance_factor = 0 --:number
                     if current_region:majority_religion() == old_faction:state_religion() then
-                        lord_allegiance_factor = lord_allegiance_factor + (current_region:majority_religion_percentage()/100)*rmp.base_lord
+                        lord_allegiance_factor = lord_allegiance_factor + (current_region:majority_religion_percentage()/100)*rmp.base_lord()
                     else
-                        lord_allegiance_factor = lord_allegiance_factor - dev.mround(rmp.base_lord/2, 1)
+                        lord_allegiance_factor = lord_allegiance_factor - dev.mround(rmp.base_lord()/2, 1)
                     end
                     --loss all allegiance from this region
                     mod_functions.lord(old_faction:name(), "manpower_region_allegiance", -1*lord_allegiance_factor)
@@ -190,8 +209,11 @@ dev.pre_first_tick(function (context)
                 if mod_functions.monk then
                     mod_functions.monk(old_faction:name(), "monk_lost_settlements", old_monks)
                 end
-                if Gamedata.base_pop.slaves_factions[old_faction:name()] then
-                    --TODO slaves
+                if Gamedata.base_pop.slaves_factions[old_faction:name()] and mod_functions.slave then
+                    if current_region:is_province_capital() then
+                        local slaves_lost = dev.mround(dev.clamp(rmp.base_serf()/2, 0, PettyKingdoms.FactionResource.get("vik_dyflin_slaves", old_faction).value/3), 1)
+                        mod_functions.slave(old_faction:name(), "monk_lost_settlements", slaves_lost*-1)
+                    end
                 end
             end
         end,
@@ -205,8 +227,8 @@ dev.pre_first_tick(function (context)
             rmp:mod_loss_cap(natural_recovery_rate)
             local region = context:region()
             if region:owning_faction():is_human() then
-                rmp:uodate_pop_caps()
-                local real_training_rate = dev.mround(monk_training_rate * (mod_monk_training_rate_by_faction[region:owning_faction():name()] or 0), 1)
+                rmp:update_pop_caps()
+                local real_training_rate = dev.mround(monk_training_rate * (mod_monk_training_rate_by_faction[region:owning_faction():name()] or 1), 1)
                 rmp:mod_monks(real_training_rate, true, "monk_training")
             end
             if Gamedata.base_pop.slaves_factions[region:owning_faction():name()] then
@@ -228,17 +250,27 @@ dev.pre_first_tick(function (context)
             local owning_faction = context:character():region():owning_faction()
             if owning_faction:is_human() then
                 if mod_functions.serf then
-                    local loss = dev.mround(rmp.base_serf*lost_perc, 1)
+                    local loss = dev.mround(rmp.base_serf()*lost_perc, 1)
                     mod_functions.serf(owning_faction:name(), "manpower_region_raided", loss)
+                    if context:character():faction():is_human() and Gamedata.base_pop.slaves_factions[context:character():faction():name()] and mod_functions.slave then
+                        mod_functions.slave(context:chracter():faction(), "monk_sacking", loss*-1*slave_taking_rate)
+                    end
                 end
                 if mod_functions.lord then
-                    local loss = dev.mround(rmp.base_lord*lost_perc*lord_effect_reduction, 1)
+                    local loss = dev.mround(rmp.base_lord()*lost_perc*lord_effect_reduction, 1)
                     mod_functions.lord(owning_faction:name(), "manpower_region_raided", loss)
                 end
-                --TODO add monks here
-                if Gamedata.base_pop.slaves_factions[owning_faction:name()] then
-                    --TODO slaves
+                if mod_functions.monk then
+                    rmp:mod_monks(-1*rmp.monk_cap/5, true, "manpower_region_raided")
                 end
+                if Gamedata.base_pop.slaves_factions[owning_faction:name()] and mod_functions.slave then
+                    if context:character():region():is_province_capital() then
+                        local slaves_lost = dev.mround(dev.clamp(rmp.base_serf()/10, 0, PettyKingdoms.FactionResource.get("vik_dyflin_slaves", context:character():faction()).value/3), 1)
+                        mod_functions.slave(owning_faction:name(), "monk_lost_settlements", slaves_lost*-1)
+                    end
+                end
+            elseif context:character():faction():is_human() and Gamedata.base_pop.slaves_factions[context:character():faction():name()] and mod_functions.slave then
+                mod_functions.slave(context:chracter():faction(), "monk_sacking", dev.mround(rmp.base_serf()*lost_perc, 1)*-1*slave_taking_rate)
             end
         end,
         true
@@ -255,20 +287,21 @@ dev.pre_first_tick(function (context)
                 local lost_perc = rmp:mod_loss_cap(sack_loss)
                 if owning_faction:is_human() then
                     if mod_functions.serf then
-                        local loss = dev.mround(rmp.base_serf*lost_perc, 1)
+                        local loss = dev.mround(rmp.base_serf()*lost_perc, 1)
                         mod_functions.serf(owning_faction:name(), "manpower_region_sacked_or_occupied", loss)
+                        if context:character():faction():is_human() and Gamedata.base_pop.slaves_factions[context:character():faction():name()] and mod_functions.slave then
+                            mod_functions.slave(context:chracter():faction(), "monk_sacking", loss*-1*slave_taking_rate)
+                        end
                     end
                     if mod_functions.lord then
-                        local loss = dev.mround(rmp.base_lord*lost_perc*lord_effect_reduction, 1)
+                        local loss = dev.mround(rmp.base_lord()*lost_perc*lord_effect_reduction, 1)
                         mod_functions.lord(owning_faction:name(), "manpower_region_sacked_or_occupied", loss)
                     end
                 end
-                rmp:uodate_pop_caps()
+                rmp:update_pop_caps()
                 rmp:mod_monks(-1*rmp.monk_pop, true, "monk_sacking")
             end
-            if context:character():faction():is_human() and Gamedata.base_pop.slaves_factions[context:character():faction():name()] then
-                    --TODO slaves
-            end
+
         end,
         true)
 end)

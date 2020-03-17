@@ -1,6 +1,5 @@
 local riot_manager = {} --# assume riot_manager:RIOT_MANAGER
 
-local riot_events = {} --:map<string, {condition: (function(rioting_region: RIOT_MANAGER) --> boolean), response: function(context: WHATEVER), is_dilemma: boolean}>
 
 local riot_begins_event = "sw_rebellion_rioting_starts_" --:string
 local riot_ends_event = "sw_rebellion_subsides_" --:string
@@ -72,7 +71,9 @@ end
 --v function(self: RIOT_MANAGER, public_order: number) --> boolean
 function riot_manager.should_riot_start(self, public_order)
     local faction = dev.get_region(self.key):owning_faction()
-
+    if CONST.__testcases.__test_riots and cm:model():turn_number() < 5 then
+        return true
+    end
     local is_human = faction:is_human()
     local roll = cm:random_number(100)
 	self:log("Checking if region can rebel with a -PO ["..public_order.."]. They rolled ["..roll.."] ", is_human)
@@ -104,8 +105,10 @@ end
 function riot_manager.start_riot(self, owning_faction)
     self.riot_in_progress = true
     self.riot_timer = riot_duration
-    local faction_name = owning_faction:name()
-    cm:trigger_incident(faction_name, riot_begins_event..self.key, true)
+    self.riot_event_cooldown = 2
+    if owning_faction:is_human() then
+        dev.Events.trigger_event(riot_begins_event, owning_faction, self.key)
+    end
 end
 
 --v function(self: RIOT_MANAGER, owning_faction: CA_FACTION)
@@ -113,46 +116,15 @@ function riot_manager.end_riot(self, owning_faction)
     self.riot_in_progress = false
     self.riot_event_cooldown = 0
     self.riot_timer = 0
-    local faction_name = owning_faction:name()
-    cm:trigger_incident(faction_name, riot_ends_event..self.key, true)
+    if owning_faction:is_human() then
+        dev.Events.trigger_event(riot_ends_event, owning_faction, self.key)
+    end
 end
 
---@testable_behaviour
---v function(self: RIOT_MANAGER)
-function riot_manager.find_valid_riot_event(self)
-    local owner = dev.get_region(self.key):owning_faction()
-    if not owner:is_human() and dev.get_region(self.key):is_province_capital() then
-        return
-    end
-    for prefix, event_info in pairs(riot_events) do
-        local ok = event_info.condition(self)
-        local is_last_event = prefix == self.last_riot_event
-        if not is_last_event and (ok or CONST.__testcases.__test_riots) then
-            if CONST.__testcases.__test_riots then
-                test_log("Testing variable is enabled. Event was valid: "..tostring(not not ok))
-                test_log("Continuing with event regardless")
-            end
-            local incident = prefix..self.key
-            self:log("Found valid riot event: "..incident, true)
-            if event_info.is_dilemma then
-                if event_info.response then
-                    dev.respond_to_dilemma(incident, event_info.response)
-                end
-                dev.Events.trigger_turnstart_dilemma(incident, owner:name())
-                self.last_riot_event = incident
-                return
-            end
-            if event_info.response then
-                dev.respond_to_incident(incident, event_info.response)
-            end
-            self.last_riot_event = incident
-            cm:trigger_incident(owner:name(), incident, true)
-        end
-    end
-end
+
 
 --@testable
---v function(self: RIOT_MANAGER) --> boolean
+--v function(self: RIOT_MANAGER)
 function riot_manager.new_turn(self)
     local region = self:get_region()
     local region_name = region:name()
@@ -166,10 +138,7 @@ function riot_manager.new_turn(self)
        ( CONST.__testcases.__test_riots and cm:model():turn_number() > 5)  then
 
             self:end_riot(owning_faction)
-        elseif self.riot_event_cooldown <= 0 then
-            --riot should continue with an event
-            self:find_valid_riot_event()
-        else
+       elseif self.riot_event_cooldown > 1 then
             --riot should reduce cooldowns and continue with no event.
             self.riot_event_cooldown = self.riot_event_cooldown - 1
         end
@@ -178,16 +147,6 @@ function riot_manager.new_turn(self)
         self:start_riot(owning_faction)
     end
     local is_faction_capital = owning_faction:home_region():name() == self.key
-    if not CONST.__testcases.__test_riots then
-        return true --don't run the test
-    elseif not is_faction_capital then
-        return true --only run the test in the faction capital.
-    end
-    if not self.riot_in_progress then
-        self:start_riot(owning_faction)
-        return true
-    else self:find_valid_riot_event() return true end
-    return true
 end
 
 local instances = {} --:map<string, RIOT_MANAGER>
@@ -213,36 +172,18 @@ dev.pre_first_tick(function(context)
             detail.riot_timer = 0
         end,
         true)
-
-        --v [NO_CHECK] function()
-        local function test_case_listener()
-            dev.eh:add_listener(
-                "RiotManagerRegionTurnStart",
-                "RegionTurnStart",
-                function(context)
-                    return not not instances[context:region():name()]
-                end,
-                function(context)
-                    test_log("******************TEST RIOTS VARIABLE IS ENABLED******************")
-                    local ok = instances[context:region():name()]:new_turn()
-                    if not ok then test_log("RIOTS TEST FAILED!!!") end
-                   
-                end,
-                true)
-        end
-
-    if CONST.__testcases.__test_riots then test_case_listener() else
-        dev.eh:add_listener(
-            "RiotManagerRegionTurnStart",
-            "RegionTurnStart",
-            function(context)
-                return not not instances[context:region():name()]
-            end,
-            function(context)
-                instances[context:region():name()]:new_turn()
-            end,
-            true)
-    end
+    dev.eh:add_listener(
+        "RiotManagerRegionTurnStart",
+        "RegionTurnStart",
+        function(context)
+            return not not instances[context:region():name()]
+        end,
+        function(context)
+            instances[context:region():name()]:new_turn()
+        end,
+        true)
+    dev.Events.add_regional_event(riot_begins_event, true, false, false, function(context) return false end, 1, 1)
+    dev.Events.add_regional_event(riot_ends_event, true, false, false, function(context) return false end, 1, 1)
 end)
 
 --v function(key: string) --> RIOT_MANAGER
@@ -252,7 +193,16 @@ end
 
 --v function(event_prefix: string, conditional: (function(rioting_region: RIOT_MANAGER) --> boolean), response_func: (function(context: WHATEVER)), is_dilemma: boolean?) 
 local function add_riot_event(event_prefix, conditional, response_func, is_dilemma)
-    riot_events[event_prefix] = {condition = conditional, response = response_func, is_dilemma = not not is_dilemma}
+    dev.Events.add_regional_event(event_prefix, true, false, not not is_dilemma, function(context)
+        local rm = instances[context:region():name()]
+        local is_rioting = rm.riot_in_progress
+        local is_off_cd = rm.riot_event_cooldown == 0
+        if CONST.__testcases.__test_riots then
+            local conditional_response = conditional(rm)
+            log("During riot testing, event: "..event_prefix.." returned: "..conditional_response)
+        end
+        return is_rioting and is_off_cd and (CONST.__testcases.__test_riots or conditional(rm))
+    end, 1, 3, response_func)
 end
 
 

@@ -84,9 +84,20 @@ local function value_converter(resource)
     return tostring(dev.clamp(math.ceil(resource.value/500) + 1, 1, 16))
 end
 
+local peasant_manpower_effects = {
+	["vik_market_2"] = { ["building"] = "vik_market_2", ["effect"] = "shield_scripted_pop_cap_serf", ["effect_scope"] = "region_to_region_own", ["value"] = 125, ["value_damaged"] = 60, ["value_ruined"] = 0 },
+	["vik_market_3"] = { ["building"] = "vik_market_3", ["effect"] = "shield_scripted_pop_cap_serf", ["effect_scope"] = "region_to_region_own", ["value"] = 250, ["value_damaged"] = 80, ["value_ruined"] = 0 },
+	["vik_market_4"] = { ["building"] = "vik_market_4", ["effect"] = "shield_scripted_pop_cap_serf", ["effect_scope"] = "region_to_region_own", ["value"] = 375, ["value_damaged"] = 100, ["value_ruined"] = 0 },
+	["vik_market_5"] = { ["building"] = "vik_market_5", ["effect"] = "shield_scripted_pop_cap_serf", ["effect_scope"] = "region_to_region_own", ["value"] = 500, ["value_damaged"] = 120, ["value_ruined"] = 0 },
+	["vik_guildhall_1"] = { ["building"] = "vik_guildhall_1", ["effect"] = "shield_scripted_pop_cap_serf", ["effect_scope"] = "region_to_region_own", ["value"] = 125, ["value_damaged"] = 125, ["value_ruined"] = 0 },
+	["vik_guildhall_2"] = { ["building"] = "vik_guildhall_2", ["effect"] = "shield_scripted_pop_cap_serf", ["effect_scope"] = "region_to_region_own", ["value"] = 250, ["value_damaged"] = 250, ["value_ruined"] = 0 },
+	["vik_guildhall_3"] = { ["building"] = "vik_guildhall_3", ["effect"] = "shield_scripted_pop_cap_serf", ["effect_scope"] = "region_to_region_own", ["value"] = 375, ["value_damaged"] = 375, ["value_ruined"] = 0 }
+} --:map<string, {building: string, effect: string, effect_scope: string, value: number, value_damaged:number, value_ruined: number}>
+
 dev.first_tick(function(context) 
 
     local human_factions = cm:get_human_factions()
+
     for i = 1, #human_factions do
         MANPOWER_SERF[human_factions[i]] = PettyKingdoms.FactionResource.new(human_factions[i], "sw_pop_serf", "population", 0, 30000, {}, value_converter)
         local serfs = MANPOWER_SERF[human_factions[i]]
@@ -96,7 +107,7 @@ dev.first_tick(function(context)
         for j = 0, region_list:num_items() - 1 do
             local current_region = region_list:item_at(j)     
             local manpower_obj = PettyKingdoms.RegionManpower.get(current_region:name())
-            region_base_pop = region_base_pop + manpower_obj.base_serf
+            region_base_pop = region_base_pop + manpower_obj.base_serf()
         end
         serfs:set_factor(region_factor, dev.mround(region_base_pop, 1))
         serfs:reapply()
@@ -107,7 +118,9 @@ dev.first_tick(function(context)
             pop:change_value(change, factor_key)
         end
     end)
-
+    for k, v in pairs(peasant_manpower_effects) do
+        PettyKingdoms.RegionManpower.add_settlement_pop_bonus(k, v.value)
+    end
     dev.eh:add_listener(
         "SerfsFactionBeginTurnPhaseNormal",
         "FactionBeginTurnPhaseNormal",
@@ -139,7 +152,7 @@ dev.first_tick(function(context)
         PettyKingdoms.FactionResource.get("sw_pop_serf", dev.get_faction(faction_name)):change_value(quantity, recruitment_factor)
     end, "dy_pop_peasant")
     for k, entry in pairs(Gamedata.unit_info.main_unit_size_caste_info) do
-        if peasant_castes[entry.caste] and not Gamedata.unit_info.mercenary_units[k] then
+        if peasant_castes[entry.caste] and (not Gamedata.unit_info.mercenary_units[k]) and (not Gamedata.unit_info.slave_units[k]) then
             rec_handler:set_cost_of_unit(entry.unit_key, dev.mround(entry.num_men*unit_size_mode_scalar, 1))
         end
     end

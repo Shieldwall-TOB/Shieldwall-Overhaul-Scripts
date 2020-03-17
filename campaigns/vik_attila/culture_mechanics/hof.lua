@@ -72,7 +72,7 @@ dev.first_tick(function(context)
         dev.Events.add_regional_event(hof_dilemma .. "_" .. i .."_" , true, false, true, function(context)
             local faction = context:region():owning_faction()
             return hofs[faction:name()] == 0 
-        end, 4, false, function(context)
+        end, 4, 10, function(context)
             local faction = context:faction()
             local cd = get_cooldown(count_hofs(faction:region_list()))
             hofs[faction:name()] = cd 

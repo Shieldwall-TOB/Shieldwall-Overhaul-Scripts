@@ -40,6 +40,36 @@ local function get_food_effect(total_food)
     return 0.5, "Food Surplus"
 end
 
+local estate_pop_effects = {
+	["vik_apple_ash_1"] = { ["building"] = "vik_apple_ash_1", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 40, ["value_damaged"] = 40, ["value_ruined"] = 0 },
+	["vik_apple_ash_2"] = { ["building"] = "vik_apple_ash_2", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 80, ["value_damaged"] = 80, ["value_ruined"] = 0 },
+	["vik_apple_ash_3"] = { ["building"] = "vik_apple_ash_3", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 120, ["value_damaged"] = 120, ["value_ruined"] = 0 },
+	["vik_estate_1"] = { ["building"] = "vik_estate_1", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 40, ["value_damaged"] = 40, ["value_ruined"] = 0 },
+	["vik_estate_2"] = { ["building"] = "vik_estate_2", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 80, ["value_damaged"] = 80, ["value_ruined"] = 0 },
+	["vik_estate_3"] = { ["building"] = "vik_estate_3", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 120, ["value_damaged"] = 120, ["value_ruined"] = 0 },
+	["vik_farm_b_2"] = { ["building"] = "vik_farm_b_2", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 40, ["value_damaged"] = 40, ["value_ruined"] = 0 },
+	["vik_farm_b_3"] = { ["building"] = "vik_farm_b_3", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 60, ["value_damaged"] = 60, ["value_ruined"] = 0 },
+	["vik_hunting_b_2"] = { ["building"] = "vik_hunting_b_2", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 20, ["value_damaged"] = 20, ["value_ruined"] = 0 },
+	["vik_hunting_b_3"] = { ["building"] = "vik_hunting_b_3", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 40, ["value_damaged"] = 40, ["value_ruined"] = 0 },
+	["vik_orchard_b_2"] = { ["building"] = "vik_orchard_b_2", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 20, ["value_damaged"] = 20, ["value_ruined"] = 0 },
+	["vik_orchard_b_3"] = { ["building"] = "vik_orchard_b_3", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 40, ["value_damaged"] = 40, ["value_ruined"] = 0 },
+	["vik_pasture_b_2"] = { ["building"] = "vik_pasture_b_2", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 20, ["value_damaged"] = 20, ["value_ruined"] = 0 },
+	["vik_pasture_b_3"] = { ["building"] = "vik_pasture_b_3", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 40, ["value_damaged"] = 40, ["value_ruined"] = 0 },
+	["vik_great_hall_4"] = { ["building"] = "vik_great_hall_4", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 80, ["value_damaged"] = 80, ["value_ruined"] = 0 },
+	["vik_great_hall_5"] = { ["building"] = "vik_great_hall_5", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 120, ["value_damaged"] = 120, ["value_ruined"] = 0 },
+	["vik_offas_hall_1"] = { ["building"] = "vik_offas_hall_1", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 40, ["value_damaged"] = 40, ["value_ruined"] = 0 },
+	["vik_offas_hall_2"] = { ["building"] = "vik_offas_hall_2", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 80, ["value_damaged"] = 80, ["value_ruined"] = 0 },
+	["vik_offas_hall_3"] = { ["building"] = "vik_offas_hall_3", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 120, ["value_damaged"] = 120, ["value_ruined"] = 0 },
+	["vik_offas_hall_4"] = { ["building"] = "vik_offas_hall_4", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 160, ["value_damaged"] = 160, ["value_ruined"] = 0 },
+	["vik_offas_hall_5"] = { ["building"] = "vik_offas_hall_5", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 200, ["value_damaged"] = 200, ["value_ruined"] = 0 },
+	["vik_rock_caisil_1"] = { ["building"] = "vik_rock_caisil_1", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 40, ["value_damaged"] = 40, ["value_ruined"] = 0 },
+	["vik_rock_caisil_2"] = { ["building"] = "vik_rock_caisil_2", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 80, ["value_damaged"] = 80, ["value_ruined"] = 0 },
+	["vik_rock_caisil_3"] = { ["building"] = "vik_rock_caisil_3", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 120, ["value_damaged"] = 120, ["value_ruined"] = 0 },
+	["vik_rock_caisil_4"] = { ["building"] = "vik_rock_caisil_4", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 160, ["value_damaged"] = 160, ["value_ruined"] = 0 },
+	["vik_rock_caisil_5"] = { ["building"] = "vik_rock_caisil_5", ["effect"] = "shield_scripted_pop_cap_lord", ["effect_scope"] = "region_to_region_own", ["value"] = 200, ["value_damaged"] = 200, ["value_ruined"] = 0 }
+} --:map<string, {building: string, effect: string, effect_scope: string, value: number, value_damaged:number, value_ruined: number}>
+
+
 
 --v function(faction: CA_FACTION)
 local function apply_turn_start(faction)
@@ -57,9 +87,9 @@ local function apply_turn_start(faction)
         local current_region = region_list:item_at(j)     
         local manpower_obj = PettyKingdoms.RegionManpower.get(current_region:name())
         if current_region:majority_religion() == faction:state_religion() then
-            allegiance = allegiance + (current_region:majority_religion_percentage()/100)*manpower_obj.base_lord
+            allegiance = allegiance + (current_region:majority_religion_percentage()/100)*manpower_obj.base_lord()
         else
-            allegiance = allegiance - dev.mround(manpower_obj.base_lord/2, 1)
+            allegiance = allegiance - dev.mround(manpower_obj.base_lord()/2, 1)
         end
     end
     nobles:set_factor(allegiance_factor, dev.mround(allegiance, 1))
@@ -119,11 +149,11 @@ dev.first_tick(function(context)
         for j = 0, region_list:num_items() - 1 do
             local current_region = region_list:item_at(j)     
             local manpower_obj = PettyKingdoms.RegionManpower.get(current_region:name())
-            region_base_pop = region_base_pop + manpower_obj.base_lord
+            region_base_pop = region_base_pop + manpower_obj.base_lord()
             if current_region:majority_religion() == faction:state_religion() then
-                allegiance = allegiance + (current_region:majority_religion_percentage()/100)*manpower_obj.base_lord
+                allegiance = allegiance + (current_region:majority_religion_percentage()/100)*manpower_obj.base_lord()
             else
-                allegiance = allegiance - dev.mround(manpower_obj.base_lord/2, 1)
+                allegiance = allegiance - dev.mround(manpower_obj.base_lord()/2, 1)
             end
         end
         nobles:set_factor(allegiance_factor, dev.mround(allegiance, 1))
@@ -138,6 +168,9 @@ dev.first_tick(function(context)
             pop:change_value(change, factor_key)
         end
     end)
+    for building_key, info in pairs(estate_pop_effects) do
+        PettyKingdoms.RegionManpower.add_estate_pop_bonus(building_key, info.value)
+    end
 
     dev.eh:add_listener(
         "LordsFactionBeginTurnPhaseNormal",
@@ -172,7 +205,7 @@ dev.first_tick(function(context)
         PettyKingdoms.FactionResource.get("sw_pop_noble", dev.get_faction(faction_name)):change_value(quantity, recruitment_factor)
     end, "dy_pop_lord")
     for k, entry in pairs(Gamedata.unit_info.main_unit_size_caste_info) do
-        if noble_castes[entry.caste] and not Gamedata.unit_info.mercenary_units[k] then
+        if noble_castes[entry.caste] and (not Gamedata.unit_info.mercenary_units[k]) and (not Gamedata.unit_info.slave_units[k]) then
             rec_handler:set_cost_of_unit(entry.unit_key, dev.mround(entry.num_men*unit_size_mode_scalar, 1))
         end
     end

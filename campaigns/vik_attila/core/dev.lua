@@ -819,8 +819,8 @@ local function dev_create_army(unit_table, region_intensity, army_type)
     return force_key
 end
 
---v function(character_lookup: CA_CQI | CA_CHAR, trait_key: string, show_message: boolean)
-local function dev_add_trait(character_lookup, trait_key, show_message)
+--v function(character_lookup: CA_CQI | CA_CHAR, trait_key: string, show_message: boolean, is_flag: boolean?)
+local function dev_add_trait(character_lookup, trait_key, show_message, is_flag)
     local character = nil --:CA_CHAR
     if type(character_lookup) == "number" then
         --# assume character_lookup: CA_CQI
@@ -835,7 +835,9 @@ local function dev_add_trait(character_lookup, trait_key, show_message)
     end
     if not character:has_trait(trait_key) then
         cm:force_add_trait(char_lookup_str(character), trait_key, not not show_message)
-        get_eh():trigger_event("CharacterGainsTrait", trait_key, character)
+        if not is_flag then
+            get_eh():trigger_event("CharacterGainsTrait", trait_key, character)
+        end
     end
 end
 
@@ -858,6 +860,8 @@ local function dev_remove_trait(character_lookup, trait_key)
         get_eh():trigger_event("CharacterLostTrait", trait_key, character)
     end
 end
+
+local SPAWN_BLOCKERS = {}--:  map<int, map<int, true>>
 
 return {
     log = MODLOG,
@@ -902,5 +906,6 @@ return {
     generate_force_cache_entry = dev_generate_force_cache_entry,
     create_army = dev_create_army,
     distance = dev_distance_2D,
-    is_character_near_region = dev_is_character_near_region
+    is_character_near_region = dev_is_character_near_region, 
+    spawn_blockers = SPAWN_BLOCKERS
 }
