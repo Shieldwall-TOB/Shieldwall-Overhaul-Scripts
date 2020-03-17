@@ -204,8 +204,8 @@
 --# assume CA_MODEL.pending_battle: method() --> CA_PENDING_BATTLE
 --# assume CA_MODEL.is_multiplayer: method() --> boolean
 --# assume CA_MODEL.turn_number: method() --> int
---# assume CA_MODEL.is_player_turn: method() --> number
---# assume CA_MODEL.difficulty_level: method() --> number
+--# assume CA_MODEL.is_player_turn: method() --> boolean
+--# assume CA_MODEL.difficulty_level: method() --> int
 --# assume CA_MODEL.campaign_ai: method() --> CA_AI
 --# assume CA_MODEL.season: method() --> number
 --# assume CA_MODEL.character_for_command_queue_index: method(CA_CQI) --> CA_CHAR
