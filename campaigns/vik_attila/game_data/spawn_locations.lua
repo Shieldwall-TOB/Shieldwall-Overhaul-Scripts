@@ -194,6 +194,116 @@ local viking_spawns = {
 
 }--:map<string, map<string, int>>
 
+
+local bandit_spawns = {
+    ["vik_reg_bodmine"] = {365,67}, 
+    ["vik_reg_totanes"] = {429,91}, 
+    ["vik_reg_waecet"] = {446,137}, 
+    ["vik_reg_brideport"] = {504,99}, 
+    ["vik_reg_suthhamtun"] = {563,113}, 
+    ["vik_reg_cissanbyrig"] = {556,155}, 
+    ["vik_reg_oxnaforda"] = {565,208}, 
+    ["vik_reg_guldeford"] = {612,158}, 
+    ["vik_reg_staeningum"] = {628,135}, 
+    ["vik_reg_pefenesea"] = {655,132}, 
+    ["vik_reg_rofeceaster"] = {657,148}, 
+    ["vik_reg_celmeresfort"] = {661,191}, 
+    ["vik_reg_herutford"] = {633,206}, 
+    ["vik_reg_buccingahamm"] = {610,189}, 
+    ["vik_reg_cirenceaster"] = {516,183},  
+    ["vik_reg_brug"] = {504,254}, 
+    ["vik_reg_staefford"] = {519,298}, 
+    ["vik_reg_wyrcesuuyrthe"] = {535,328}, 
+    ["vik_reg_flichesburg"] = {609,351}, 
+    ["vik_reg_elig"] = {670,261}, 
+    ["vik_reg_sancte_eadmundes"] = {691,225}, 
+    ["vik_reg_theodford"] = {694,254},  
+    ["vik_reg_huntandun"] = {635,242}, 
+    ["vik_reg_rocheberie"] = {563,261}, 
+    ["vik_reg_scrobbesburg"] = {511,275}, 
+    ["vik_reg_lonceaster"] = {512,389}, 
+    ["vik_reg_rudglann"] = {464,314}, 
+    ["vik_reg_oswaldestroe"] = {464,308}, 
+    ["vik_reg_menevia"] = {372,211}, 
+    ["vik_reg_lann_dewi"] = {439,236}, 
+    ["vik_reg_lude"] = {628,357}, 
+    ["vik_reg_doneceaster"] = {560,351}, 
+    ["vik_reg_beoferlic"] = {638,386}, 
+    ["vik_reg_cherchebi"] = {496,411}, 
+    ["vik_reg_rucestr"] = {517,501}, 
+    ["vik_reg_dynbaer"] = {506,562}, 
+    ["vik_reg_dun_domnaill"] = {384,520}, 
+    ["vik_reg_dun_aberte"] = {328,536}, 
+    ["vik_reg_dun_blann"] = {436,597}, 
+    ["vik_reg_brechin"] = {488,646}, 
+    ["vik_reg_ros_cuissine"] = {477,696}, 
+    ["vik_reg_inber_nise"] = {424,705}, 
+    ["vik_reg_torfness"] = {394,714}, 
+    ["vik_reg_latharn"] = {417,777}, 
+    ["vik_reg_dun_beccan"] = {291,687}, 
+    ["vik_reg_aporcrosan"] = {341,707}, 
+    ["vik_reg_dun_na_ngall"] = {180,439}, 
+    ["vik_reg_dun_sebuirgi"] = {296,490}, 
+    ["vik_reg_cairlinn"] = {291,408}, 
+    ["vik_reg_clocher"] = {233,432}, 
+    ["vik_reg_linns"] = {269,382}, 
+    ["vik_reg_cenannas"] = {264,375}, 
+    ["vik_reg_balla"] = {114,382}, 
+    ["vik_reg_inis_cathaigh"] = {113,275}, 
+    ["vik_reg_tuam_greine"] = {167,298}, 
+    ["vik_reg_saigher"] = {222,318}, 
+    ["vik_reg_cluain_mor"] = {260,297}, 
+    ["vik_reg_imblech_ibair"] = {179,268}, 
+    ["vik_reg_druim_collachair"] = {143,266}, 
+    ["vik_reg_cluain"] = {198,220}, 
+    ["vik_reg_cell_maic_aeda"] = {235,252}, 
+    ["vik_reg_ros"] = {260,246}
+} --:map<string, {int, int}>
+
+
+if CONST.__utilities.__create_land_spawns then
+    dev.eh:add_listener(
+        "WhereisAlfy",
+        "ShortcutTriggered",
+        function(context) return context.string == "camera_bookmark_view0"; end, --default F9
+        function(context)
+            local westex = dev.get_faction("vik_fact_west_seaxe")
+            local character = westex:faction_leader()
+            --v function(text: string)
+            local function OUTONE(text)
+            local logText = tostring(text)
+            local popLog = io.open("coordinates.txt","a")
+            popLog :write(logText)
+            popLog :flush()
+            popLog :close()
+            end
+            --v function(text: any)
+            local function OUTTWO(text)
+                local logText = tostring(text)
+                local popLog = io.open("bandit_event_options.txt","a")
+                popLog :write(logText)
+                popLog :flush()
+                popLog :close()
+            end
+    
+            OUTONE("[\""..character:region():name().." \"] = {"..character:logical_position_x()..","..character:logical_position_y().."}, \n")
+            cm:replenish_action_points(dev.lookup(character))
+        end,
+        true)
+    dev.eh:add_listener(
+        "WhereisAlfy",
+        "ShortcutTriggered",
+        function(context) return context.string == "camera_bookmark_view1"; end, --default F9
+        function(context)
+            local westex = dev.get_faction("vik_fact_west_seaxe")
+            local character = westex:faction_leader()
+            cm:replenish_action_points(dev.lookup(character))
+        end,
+        true)
+end
+
+
 return {
-    VikingRaiders = viking_spawns
+    VikingRaiders = viking_spawns,
+    BanditSpawns = bandit_spawns
 }

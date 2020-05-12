@@ -9,9 +9,12 @@ return {
     __log_settlements = true, -- log information about settlements when they are selected
     __log_characters = true, -- log information about characters when they are selected
     __unit_size_scalar = 0.5, --0.5 is shieldwalls default. Controls unit sizes for population counts.
-    __testcases = {
-        __test_riots = false,
-        __test_foreigner_events = false,
-        __test_endgame_invasions = false
+    __testcases = { --coded routes to test functionality of gameplay systems.
+        __test_riots = false, 
+        __test_foreigner_events = false, 
+        __test_endgame_invasions = false 
+    },
+    __utilities = {
+        __create_land_spawns = true
     }
 }
