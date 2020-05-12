@@ -25,6 +25,18 @@ end
 local instance = force_tracker.new()
 
 dev.pre_first_tick(function(context)
+    if dev.is_new_game() then
+        local humans = cm:get_human_factions() 
+        for i = 1, #humans do
+            local char_list = dev.get_faction(humans[i]):character_list()
+            for j = 0, char_list:num_items() - 1 do
+                local char = char_list:item_at(j)
+                if dev.is_char_normal_general(char) then
+                    instance.forces_cache[tostring(char:command_queue_index())] = dev.generate_force_cache_entry(char)
+                end
+            end
+        end
+    end
     dev.eh:add_listener(
         "ForceCacheCharacterTurnEnd",
         "CharacterTurnEnd",

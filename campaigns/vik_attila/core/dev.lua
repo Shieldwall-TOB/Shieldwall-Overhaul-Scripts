@@ -861,7 +861,41 @@ local function dev_remove_trait(character_lookup, trait_key)
     end
 end
 
-local SPAWN_BLOCKERS = {}--:  map<int, map<int, true>>
+local SPAWN_BLOCKERS = {}--:  map<int, map<int, int>>
+local function dev_clear_spawn_blockers()
+    local turn = cm:model():turn_number()
+    for x, yt in pairs(SPAWN_BLOCKERS) do
+        for y, t in pairs(yt) do
+            if t - turn <= -3 then
+                SPAWN_BLOCKERS[x][y] = nil
+            end
+        end
+    end
+end
+cm:register_loading_game_callback(function(context)
+    SPAWN_BLOCKERS = cm:load_value("SPAWN_BLOCKERS", {}, context)
+end)
+
+cm:register_saving_game_callback(function(context)
+    cm:save_value("SPAWN_BLOCKERS", SPAWN_BLOCKERS, context)
+end)
+
+if not dev_is_new_game() then
+    dev_post_first_tick(function(context) dev_clear_spawn_blockers() end)
+end
+
+--v [NO_CHECK] function(faction1: string, faction2: string)
+local function dev_SetFactionsHostile(faction1, faction2)
+	cm:cai_strategic_stance_manager_clear_all_promotions_between_factions(faction1, faction2);
+	cm:cai_strategic_stance_manager_clear_all_blocking_between_factions(faction1, faction2);
+	cm:cai_strategic_stance_manager_clear_all_promotions_between_factions(faction2, faction1);
+	cm:cai_strategic_stance_manager_clear_all_blocking_between_factions(faction2, faction1);
+	cm:cai_strategic_stance_manager_promote_specified_stance_towards_target_faction(faction1, faction2, "CAI_STRATEGIC_STANCE_BITTER_ENEMIES");
+	cm:cai_strategic_stance_manager_block_all_stances_but_that_specified_towards_target_faction(faction1, faction2, "CAI_STRATEGIC_STANCE_BITTER_ENEMIES"); 
+	cm:cai_strategic_stance_manager_promote_specified_stance_towards_target_faction(faction2, faction1, "CAI_STRATEGIC_STANCE_BITTER_ENEMIES");
+	cm:cai_strategic_stance_manager_block_all_stances_but_that_specified_towards_target_faction(faction2, faction1, "CAI_STRATEGIC_STANCE_BITTER_ENEMIES"); 
+end
+
 
 return {
     log = MODLOG,
@@ -907,5 +941,7 @@ return {
     create_army = dev_create_army,
     distance = dev_distance_2D,
     is_character_near_region = dev_is_character_near_region, 
-    spawn_blockers = SPAWN_BLOCKERS
+    spawn_blockers = SPAWN_BLOCKERS,
+    clear_spawn_blockers = dev_clear_spawn_blockers,
+    SetFactionsHostile =  dev_SetFactionsHostile,
 }

@@ -36,11 +36,11 @@ function faction_resource.log(self, t)
     dev.log(tostring(t), self.key)
 end
 
---v [NO_CHECK] function(kind: RESOURCE_KIND) --> function(self: FACTION_RESOURCE)
+--v function(kind: RESOURCE_KIND) --> function(self: FACTION_RESOURCE)
 local function get_applicator_for_kind(kind)
     local switch = {
-        population = function(self)
-            local setter = UIScript.culture_mechanics[self.kind]
+        population = function(self) --:FACTION_RESOURCE
+            local setter = UIScript.culture_mechanics["population"]
             if setter then
                 local new_bundle = self.key .. "_" .. self.conversion_function(self)
                 if self.last_bundle then
@@ -52,26 +52,57 @@ local function get_applicator_for_kind(kind)
                 self:log("Could not find a setter function for this kind!")
             end
         end,
-        capacity_fill = function(self)
-            local setter = UIScript.culture_mechanics[self.kind]
+        capacity_fill = function(self) --:FACTION_RESOURCE
+            local setter = UIScript.culture_mechanics["capacity_fill"]
             if setter then
                 local new_bundle = self.key .. "_" .. self.conversion_function(self)
                 if self.last_bundle then
                     cm:remove_effect_bundle(self.last_bundle, self.owning_faction)
                 end
-                setter(self.owning_faction, new_bundle, self.value, self.cap_value, self.uic_override)
+                setter(self.owning_faction, new_bundle, self.value, self.cap_value)
                 self.last_bundle = new_bundle
             else
                 self:log("Could not find a setter function for this kind!")
             end
         end,
-        resource_bar = function(self)
-
+        resource_bar = function(self) --:FACTION_RESOURCE
+            local setter = UIScript.culture_mechanics["resource_bar"]
+            if setter then
+                local new_bundle = self.key .. "_" .. self.conversion_function(self)
+                if self.last_bundle then
+                    cm:remove_effect_bundle(self.last_bundle, self.owning_faction)
+                end
+                setter(self.owning_faction, new_bundle, self.value, self.cap_value, self.breakdown_factors)
+                self.last_bundle = new_bundle
+            else
+                self:log("Could not find a setter function for this kind!")
+            end
         end,
-        faction_focus = function(self)
-
+        faction_focus = function(self) --:FACTION_RESOURCE
+            local setter = UIScript.culture_mechanics["faction_focus"]
+            if setter then
+                local true_value = self.conversion_function(self)
+                local new_bundle = self.key .. "_" .. true_value
+                if self.last_bundle then
+                    cm:remove_effect_bundle(self.last_bundle, self.owning_faction)
+                end
+                if tonumber(true_value) > 0 then
+                    cm:apply_effect_bundle(new_bundle, self.owning_faction, 0)
+                    self.last_bundle = new_bundle
+                end
+                setter(self.owning_faction, new_bundle, self.value, self.cap_value, self.breakdown_factors)
+            else
+                self:log("Could not find a setter function for this kind!")
+            end
+        end,
+        imaginary = function(self) --:FACTION_RESOURCE
+            local new_bundle = self.key .. "_" .. self.conversion_function(self)
+            if self.last_bundle and self.last_bundle ~= new_bundle then
+                cm:remove_effect_bundle(self.last_bundle, self.owning_faction)
+            end
+            cm:apply_effect_bundle(new_bundle, self.owning_faction, 0)
         end
-    }--:map<RESOURCE_KIND, function(self: FACTION_RESOURCE, any...)>
+    }--:map<RESOURCE_KIND, function(self: FACTION_RESOURCE)>
     return switch[kind]
 
 end
@@ -95,11 +126,26 @@ local function get_setter_for_kind(kind)
             end
         end,
         resource_bar = function(self, arg)
-
+            if not (type(arg[1]) == "number") then
+                self:log("Set new value for called but supplied arg #2 is not a number")
+            else
+                self.value = arg[1]
+            end
         end,
         faction_focus = function(self, arg)
-
-        end
+            if not (type(arg[1]) == "number") then
+                self:log("Set new value for called but supplied arg #2 is not a number")
+            else
+                self.value = arg[1]
+            end
+        end,
+        imaginary = function(self, arg)
+            if not (type(arg[1]) == "number") then
+                self:log("Set new value for called but supplied arg #2 is not a number")
+            else
+                self.value = arg[1]
+            end
+        end,
     }--:map<RESOURCE_KIND, function(self: FACTION_RESOURCE, any...)>
     return switch[kind]
 end
@@ -112,8 +158,8 @@ function faction_resource.set_new_value(self, ...)
     
     if not dev.is_game_created() then
         self:log("Cannot apply values before first tick has begun!")
-    elseif not dev.get_faction(self.owning_faction):is_human() then
-        return --TODO implement AI functions 
+    elseif (not dev.get_faction(self.owning_faction):is_human()) and (not self.kind == "imaginary") then
+        return --AI only get through using imaginary type
     end
 
     local value_func = get_setter_for_kind(self.kind)
@@ -135,6 +181,7 @@ function faction_resource.change_value(self, change_value, factor)
         --# assume factor: string!
         self.breakdown_factors[factor] =( self.breakdown_factors[factor] or 0) + dev.mround(change_value, 1)
     end
+    --faction focus and resource bar have cap value, but those caps are static.
     if self.kind == "capacity_fill" then
         self:set_new_value(new_value, self.cap_value)
     else

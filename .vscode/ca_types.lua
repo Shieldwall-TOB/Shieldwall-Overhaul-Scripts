@@ -239,7 +239,6 @@
 --# assume CA_FACTION.is_human: method() --> boolean
 --# assume CA_FACTION.is_dead: method() --> boolean
 --# assume CA_FACTION.is_vassal_of: method(faction: CA_FACTION) --> boolean
---# assume CA_FACTION.is_ally_vassal_or_client_state_of: method(faction: string) --> boolean
 --# assume CA_FACTION.allied_with: method(faction: CA_FACTION) --> boolean
 --# assume CA_FACTION.at_war_with: method(faction: CA_FACTION) --> boolean
 --# assume CA_FACTION.region_list: method() --> CA_REGION_LIST
@@ -303,8 +302,8 @@
 --# assume CA_GARRISON_RESIDENCE.command_queue_index: method() --> CA_CQI
 --# assume CA_GARRISON_RESIDENCE.unit_count: method() --> number
 --CA SETTLEMENT
---# assume CA_SETTLEMENT.logical_position_x: method() --> number
---# assume CA_SETTLEMENT.logical_position_y: method() --> number
+--# assume CA_SETTLEMENT.logical_position_x: method() --> int
+--# assume CA_SETTLEMENT.logical_position_y: method() --> int
 --# assume CA_SETTLEMENT.is_null_interface: method() --> boolean
 --# assume CA_SETTLEMENT.faction: method() -->CA_FACTION
 --# assume CA_SETTLEMENT.commander: method() --> CA_CHAR
@@ -337,8 +336,8 @@
 
 --CA CHARACTER
 --# assume CA_CHAR.has_trait: method(traitName: string) --> boolean
---# assume CA_CHAR.logical_position_x: method() --> number
---# assume CA_CHAR.logical_position_y: method() --> number
+--# assume CA_CHAR.logical_position_x: method() --> int
+--# assume CA_CHAR.logical_position_y: method() --> int
 --# assume CA_CHAR.display_position_x: method() --> number
 --# assume CA_CHAR.display_position_y: method() --> number
 --# assume CA_CHAR.character_subtype_key: method() --> string

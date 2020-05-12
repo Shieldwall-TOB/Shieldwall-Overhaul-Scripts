@@ -1,7 +1,7 @@
 local dilemma_cd = 4 --how often can the player be asked about danegeld at most?
 local raider_cd_base = 19 -- the formula for final cooldown is base minus clamp(2*region_intensity, 0, 9). 
-local raider_cd_reduction_max = 10 -- how much can cooldown be reduced by intensity?
-local cd_intensity_scale = 2 -- how much cooldown is lost per intensity level?
+local raider_cd_reduction_max = 12 -- how much can cooldown be reduced by intensity?
+local cd_intensity_scale = 3 -- how much cooldown is lost per intensity level?
 -- base - intensity*scale or max.
 
 local vassal_boredom_time = 5 -- how long does it take for a vassal viking faction to betray you if bored?
@@ -34,8 +34,22 @@ local armies = {
         ["dan_anglian_raiders"] = {1, 2, 80},
         ["dan_berserkers"] = {6, 3, 50},
         ["dan_ceorl_axemen"] = {2, 2, 35}
+    },
+    ["dane_royal"] = {
+
+    },
+    ["dane_invader"] = {
+
     }
 }--:map<string, map<string, {int, int, int}>>
+
+--these can be fired by an event call but have settings handled here.
+local scripted_invasions = {
+    ["earlygame_norse"] = {},
+    ["midgame_dane"] = {},
+    ["lategame_norse"] = {},
+    ["lategame_norman"] = {}
+}
 
 
 local invaders = {
@@ -52,7 +66,7 @@ local active_raiders = {
 }--:map<string, {state: number, target: string}>
 
 
-local SPAWN_BLOCKERS = {}--:  map<int, map<int, true>>
+
 
 
 --get the faction who is closest the spawn point. 
@@ -108,7 +122,7 @@ local function get_spawn_position(location_key)
         end
 
         local x, y = Gamedata.spawn_locations.VikingRaiders[location_key]["x"..tostring(s)], Gamedata.spawn_locations.VikingRaiders[location_key]["y"..tostring(s)] 
-        if SPAWN_BLOCKERS[x] and SPAWN_BLOCKERS[x][y] then
+        if dev.spawn_blockers[x] and dev.spawn_blockers[x][y] then
             --go round again
         else
             return x, y
@@ -135,8 +149,8 @@ local function create_invasion_force(faction_key, location_key, x, y, should_fir
     local temp_region = cm:model():world():region_manager():region_list():item_at(0):name();
     dev.log("Spawning Viking Raid!: \nForce key is: "..force_key .. "\nLocation is: "..temp_region.."("..x..","..y..")\nfaction_key:"..faction_key)
     cm:create_force(faction_key, force_key, temp_region, x, y, "sw_raiders_"..dev.invasion_number(), true)
-    SPAWN_BLOCKERS[x] =  SPAWN_BLOCKERS[x] or {}
-    SPAWN_BLOCKERS[x][y] = true
+    dev.spawn_blockers[x] =  dev.spawn_blockers[x] or {}
+    dev.spawn_blockers[x][y] = cm:model():turn_number()
     local cd = raider_cd_base - dev.mround(dev.clamp(cd_intensity_scale*region_intensities[faction_key][turn_increment], 0, raider_cd_reduction_max), 1)
     if cm:model():is_multiplayer() then
         cd = cd*2

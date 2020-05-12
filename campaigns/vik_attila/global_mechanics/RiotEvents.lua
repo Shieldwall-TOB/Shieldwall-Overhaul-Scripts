@@ -3,7 +3,7 @@ local riot_events = {
         name = "sw_rebellion_rioting_household_guard_",
         condition = function(riot_manager) --:RIOT_MANAGER
             local region = dev.get_region(riot_manager.key)
-            return region:has_governor() and cm:random_number(100) > 50 and dev.Check.does_char_have_household_guard(region:governor())
+            return region:has_governor() and cm:random_number(100) > 50 and dev.Check.does_char_have_household_guard(region:governor()) == true
         end,
         response = function(context) --:WHATEVER
             cm:set_saved_value(context:dilemma(), cm:model():turn_number())
@@ -18,7 +18,7 @@ local riot_events = {
         name = "sw_rebellion_bad_governor_",
         condition = function(riot_manager) --:RIOT_MANAGER
             local region = dev.get_region(riot_manager.key)
-            return region:has_governor() and cm:random_number(100) > 33 and not dev.Check.does_char_have_household_guard(region:governor())
+            return region:has_governor() and cm:random_number(100) > 33 and dev.Check.does_char_have_household_guard(region:governor())
         end,
         response = function(context) --:WHATEVER
             cm:set_saved_value(context:dilemma(), cm:model():turn_number())
@@ -127,6 +127,21 @@ local riot_events = {
             end
         end,
         is_dilemma = false
+    },
+    {
+        name = "sw_rebellion_henchmen_",
+        condition = function(riot_manager) --:RIOT_MANAGER
+            local region = dev.get_region(riot_manager.key)
+            return region:has_governor() and cm:random_number(100) > 50 and dev.Check.does_char_have_household_guard(region:governor()) == true
+        end,
+        response = function(context) --:WHATEVER
+            cm:set_saved_value(context:dilemma(), cm:model():turn_number())
+            local region_key = string.gsub(context:dilemma(), "sw_rebellion_henchmen_", "")
+            if context:choice() == 1 then
+                --TODO reduce peasant manpower
+            end
+        end,
+        is_dilemma = true
     }
 }--:vector<{name: string, condition: (function(rioting_region: RIOT_MANAGER) --> boolean), response: (function(context: WHATEVER)), is_dilemma: boolean}>
 

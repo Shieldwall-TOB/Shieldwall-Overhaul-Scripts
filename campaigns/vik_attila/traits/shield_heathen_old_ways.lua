@@ -65,7 +65,6 @@ function(context)
     local faction = context:proposer()
     --if the event is a war and the human faction declared it.
     if faction:is_human() and context:is_war() then
-        local faction_detail = pkm:get_faction(faction:name())
         --don't trigger if the faction is a vassal.
         local faction_list = dev.faction_list()
         for i = 0, faction_list:num_items() - 1 do

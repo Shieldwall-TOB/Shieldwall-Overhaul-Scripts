@@ -2,6 +2,10 @@ local tm = traits_manager.new("shield_heathen_pagan")
 local NEW_CHARACTER_TRAIT_CHANCE = 10
 tm:set_cross_loyalty("shield_faithful_friend_of_the_church", -2)
 
+--dilemma to pick which religion upon fathers death.
+--disloyal character turns to paganism (vikings)
+
+
 tm:add_normal_trait_trigger("CharacterComesOfAge",
 function(context)
     local char = context:character()

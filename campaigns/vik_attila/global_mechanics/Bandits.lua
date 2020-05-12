@@ -1,4 +1,4 @@
-BANDITS = {} --:map<string,string>
+BANDITS = {} --:map<string,CA_CQI>
 BANDIT_ID = 0 --:number
 local bandit_faction = "vik_fact_jorvik"
 local raid_stance = "MILITARY_FORCE_ACTIVE_STANCE_TYPE_LAND_RAID"
@@ -183,7 +183,7 @@ cm:add_listener(
                 return
             end
             if not BANDITS[region:name()] then
-                BANDITS[region:name()] = tostring(bandit:command_queue_index())
+                BANDITS[region:name()] = bandit:command_queue_index()
                 if region:owning_faction():is_human() then
                     cm:trigger_incident(region:owning_faction():name(), "shield_rebellion_bandits_"..region:name(), true)
                 end
@@ -211,7 +211,7 @@ dev.new_game(function(context)
         if bandit:has_military_force() then
             cm:disable_movement_for_character(dev.lookup(bandit))
             if not bandit:region():is_null_interface() then
-                BANDITS[bandit:region():name()] = tostring(bandit:command_queue_index())
+                BANDITS[bandit:region():name()] = bandit:command_queue_index()
                 cm:force_character_force_into_stance(dev.lookup(bandit:command_queue_index()), raid_stance)
             end
         end

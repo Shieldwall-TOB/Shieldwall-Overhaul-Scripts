@@ -367,7 +367,13 @@ local function add_trait_cross_loyalty_to_trait(trait_key, to_trait, effect_bonu
     character_cross_trait_loyalties[trait_key][to_trait] = effect_bonus_value
 end
 
+--v function(cqi: CA_CQI) --> CHARACTER_POLITICS
+local function get_char_politics(cqi)
+    return instances[cqi]
+end
+
 
 return {
+    get = get_char_politics,
     add_trait_cross_loyalty_to_trait = add_trait_cross_loyalty_to_trait
 }

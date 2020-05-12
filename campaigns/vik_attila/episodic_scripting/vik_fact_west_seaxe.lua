@@ -5,7 +5,7 @@ local rivals = {
     {"vik_fact_gwined"},
     {"vik_fact_mide", "vik_fact_dyflin"},
     {"vik_fact_east_engle"},
-    {"vik_fact_strat_clut", "vik_fact_northumbria"},
+    {"vik_fact_strat_clut", "vik_fact_northymbre"},
     {"vik_fact_circenn", "vik_fact_sudreyar"}
 } --:vector<vector<string>>
 

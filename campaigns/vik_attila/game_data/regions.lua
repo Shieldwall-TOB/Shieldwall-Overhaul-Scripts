@@ -12,6 +12,16 @@ dev.pre_first_tick(function(context)
     end
 end)
 
+
+--v function(province: string) --> CA_REGION
+local function get_capital_with_province_key(province)
+    if province_capitals[province] then
+        return dev.get_region(province_capitals[province])
+    else
+        return nil
+    end
+end
+
 --v function(region: string | CA_REGION) --> vector<string>
 local function get_regions_in_regions_province(region)
     --# assume is_region: function(faction: any) --> boolean
@@ -72,6 +82,7 @@ local function province_list_to_region_list(province_list)
 end
 
 return {
+    get_capital_with_province_key = get_capital_with_province_key,
     get_regions_in_regions_province = get_regions_in_regions_province,
     get_province_capital_of_regions_province = get_province_capital_of_regions_province,
     region_list_to_province_list = region_list_to_province_list,

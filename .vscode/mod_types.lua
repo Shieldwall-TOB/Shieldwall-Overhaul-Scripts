@@ -6,7 +6,7 @@
 --# assume global class RECRUITMENT_HANDLER
 --# assume global class TRAITS
 --# assume global class FACTION_RESOURCE
---# type global RESOURCE_KIND = "population" | "capacity_fill" | "resource_bar" | "faction_focus"
+--# type global RESOURCE_KIND = "population" | "capacity_fill" | "resource_bar" | "faction_focus" | "imaginary"
 --# type global EVENT_RESPONSE = {context: WHATEVER, character: CA_CQI?, has_character: boolean, has_region: boolean, region: string?}
 
 

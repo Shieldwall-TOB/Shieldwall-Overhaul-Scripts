@@ -3,6 +3,11 @@
 --gonna leave it broken for MP campaigns for now.
 
 
+--v function(t: any)
+local function log(t)
+    dev.log(tostring(t), "VICT")
+end
+
 local victory_incidents = {
     ["vik_vc_conquest_1"] = "vik_incident_short_victory_conquest",
     ["vik_vc_fame_1"] = "vik_incident_short_victory_fame",
@@ -31,7 +36,8 @@ local victories = {
 
 --v function(faction: CA_FACTION, kingdom: string, long_victory: boolean, no_message:boolean?)
 function KingdomSetFounderFaction(faction, kingdom, long_victory, no_message)
-    cm:set_faction_name_override(faction:name(), "vik_fact_kingdom_"..kingdom);
+    log("Setting Kingdom: campaign_localised_strings_string_vik_fact_kingdom_"..kingdom)
+    cm:set_faction_name_override(faction:name(), "campaign_localised_strings_string_vik_fact_kingdom_"..kingdom);
 	local founder = "ai";
     local faction_string = string.gsub(faction:name(), "vik_fact_", "")
 	--Remove old effect bundles for player and apply new effect bundles
@@ -65,42 +71,53 @@ end
 --v function(faction: CA_FACTION, mission: string)
 local function apply_victory_mission(faction, mission)
     if not not string.find(mission, "_1") then
+        log("Applying Short Victory Reward")
         --short victory
         if mission == "vik_vc_kingdom_1" then
+            log("Setting Kingdom Founder")
             KingdomSetFounderFaction(faction, Gamedata.kingdoms.faction_kingdoms[faction:name()], false)
             victories[faction:name()][3] = Gamedata.kingdoms.faction_kingdoms[faction:name()]
         end
         if victories[faction:name()][1] == false and victory_cutscenes[mission] then
+            log("Firing Cutscene")
             cm:register_instant_movie(victory_cutscenes[mission])
+            log("Unlocking Victory Tech")
             cm:unlock_technology(faction:name(), "vik_mil_cap_1")
             victories[faction:name()][1] = true
             if victory_incidents[mission] then
+                log("Triggering Victory Incident")
                 cm:trigger_incident(faction:name(), victory_incidents[mission], true)
             end
         end
     elseif not not string.find(mission, "_2") then
+        log("Applying Short Victory Reward")
         --long victory
         if mission == "vik_vc_kingdom_2" then
-            KingdomSetFounderFaction(faction, Gamedata.kingdoms.faction_nations[faction:name()], not victories[faction:name()][2])
+            log("Setting Kingdom Founder")
+            KingdomSetFounderFaction(faction, Gamedata.kingdoms.faction_nations[faction:name()], true, not victories[faction:name()][2])
             victories[faction:name()][3] = Gamedata.kingdoms.faction_nations[faction:name()]
         end
         if victories[faction:name()][2] == false then
             victories[faction:name()][2] = true
+            log("Firing Cutscene")
             cm:register_instant_movie(victory_cutscenes[mission])
             if final_victory_events[mission] then
+                log("Triggering Victory Incident")
                 cm:trigger_incident(faction:name(), final_victory_events[mission], true)
             end
         elseif victory_incidents[mission] then
+            log("Triggering Victory Incident")
             cm:trigger_incident(faction:name(), victory_incidents[mission], true)
         end
     elseif mission == "vik_vc_invasion" then
+        log("Firing Endgame Cutscene")
         cm:register_instant_movie("vik_victory_ultimate"); 
     end
 end
 
 
 dev.first_tick(function(context) 
-
+    log("Initializing Victories")
     if cm:is_multiplayer() == false then
         if dev.is_new_game() then
             victories[cm:get_local_faction(true)] = {false, false, "", ""}
@@ -118,19 +135,33 @@ dev.first_tick(function(context)
         if (not victories[cm:get_local_faction(true)]) or victories[cm:get_local_faction(true)][1] == false then
             cm:lock_technology(cm:get_local_faction(true), "vik_mil_cap_1")
         end
+        
         dev.eh:add_listener(
 			"MissionSucceeded_Victory",
 			"MissionSucceeded",
             function(context)
-               return (not not string.find(context:mission(), "vik_vc_")) and (not not Gamedata.kingdoms.faction_kingdoms[context:faction():name()])
+               return (not not string.find(context:mission():mission_record_key(), "vik_vc_")) and (not not Gamedata.kingdoms.faction_kingdoms[context:faction():name()])
             end,
             function(context) 
-                local mission = context:mission() --:string
+                log("Succeeded Victory Mission: "..context:mission():mission_record_key())
+                local mission = context:mission():mission_record_key() --:string
                 local faction = context:faction() --:CA_FACTION
                 apply_victory_mission(faction, mission)
             end,
 			true
         );
+        --[[
+        dev.eh:add_listener(
+            "KingdomTurnStartGenerator",
+            "FactionTurnStart",
+            function(context)
+                return not not victories[context:faction():name()]
+            end,
+            function(context)
+                log("Kingdom: "..context:faction():name().." starting their turn: "..tostring(cm:model():turn_number()))
+                dev.eh:trigger_event("KingdomTurnStart", context:faction(), victories)
+            end,
+            true)
         dev.eh:add_listener(
             "AIKingdomTurnStart",
             "FactionTurnStart",
@@ -192,9 +223,9 @@ dev.first_tick(function(context)
                 end
             end,
             true
-        )
+        )--]]
     end
 end )
 
 
---dev.Save.persist_table(victories, "victory_cnd", function(t) victories = t end)
+dev.Save.persist_table(victories, "victory_cnd", function(t) victories = t end)

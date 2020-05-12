@@ -11,6 +11,7 @@ return {
     __unit_size_scalar = 0.5, --0.5 is shieldwalls default. Controls unit sizes for population counts.
     __testcases = {
         __test_riots = false,
-        __test_foreigner_events = false
+        __test_foreigner_events = false,
+        __test_endgame_invasions = false
     }
 }

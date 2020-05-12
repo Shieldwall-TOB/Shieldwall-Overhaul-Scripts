@@ -281,6 +281,7 @@ local foreign_warrior_startpos = {
 	["vik_fact_circenn"] = 150,
 	["vik_fact_mide"] = 650,
 	["vik_fact_east_engle"] = 1000,
+	["vik_fact_northymbre"] = 800,
 	["vik_fact_dyflin"] = 500,
 	["vik_fact_sudreyar"] = 500
 }--:map<string, int>

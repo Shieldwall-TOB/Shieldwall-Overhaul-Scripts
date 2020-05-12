@@ -12,7 +12,7 @@ local function get_culture_mechanics_bar()
     return culture_mechanics
 end
 
---v function(faction_name: string, effect_bundle: string, numeric_value: int, breakdown_factors: map<string, number>, alternate_uic: vector<string>?)
+--v function(faction_name: string, effect_bundle: string, numeric_value: int, breakdown_factors: map<string, int>, alternate_uic: vector<string>?)
 local function set_population_value(faction_name, effect_bundle, numeric_value, breakdown_factors, alternate_uic)
     log("Set Population Value called for ["..faction_name.."] with bundle ["..effect_bundle.."] and UI: ["..numeric_value.."]")
     local uic = get_culture_mechanics_bar()
@@ -52,9 +52,16 @@ local function set_resource_bar_value(faction_name, effect_bundle, current_value
     end
 end
 
---v function(faction_name: string, effect_bundle: string, current_value: int)
-local function set_faction_focus_bar_value(faction_name, effect_bundle, current_value)
-
+--v function(faction_name: string, effect_bundle: string, current_value: int, max_value: int, breakdown_factors: map<string, int>)
+local function set_faction_focus_bar_value(faction_name, effect_bundle, current_value, max_value, breakdown_factors)
+    local uic = get_culture_mechanics_bar()
+    local mechanic_root = string.gsub(effect_bundle, "_%d", "")
+    if not not uic then
+        for breakdown_factor, factor_value in pairs(breakdown_factors) do
+            uic:InterfaceFunction("add_culture_mechanics_breakdown_factor", breakdown_factor, factor_value, mechanic_root, faction_name);
+        end
+        uic:InterfaceFunction("set_culture_mechanics_data", effect_bundle, faction_name, current_value, max_value);
+    end
 end
 
 

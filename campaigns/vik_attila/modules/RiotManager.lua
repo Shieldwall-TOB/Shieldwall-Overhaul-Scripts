@@ -199,7 +199,7 @@ local function add_riot_event(event_prefix, conditional, response_func, is_dilem
         local is_off_cd = rm.riot_event_cooldown == 0
         if CONST.__testcases.__test_riots then
             local conditional_response = conditional(rm)
-            log("During riot testing, event: "..event_prefix.." returned: "..conditional_response)
+            log("During riot testing, event: "..event_prefix.." returned: "..tostring(conditional_response))
         end
         return is_rioting and is_off_cd and (CONST.__testcases.__test_riots or conditional(rm))
     end, 1, 3, response_func)

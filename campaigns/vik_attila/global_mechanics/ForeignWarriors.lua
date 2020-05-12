@@ -39,9 +39,9 @@ local FOREIGN_WARRIORS = {
         building_modifiers = {},
         events_triggered = {}
     }
-} --:map<string, {crisis_timer: int, last_tension: int, in_crisis: boolean, crisis_level: int, building_modifiers: map<string, number>, events_triggered: map<string, map<number, number>>}>
+} --:map<string, {crisis_timer: int, last_tension: int, in_crisis: boolean, crisis_level: int, building_modifiers: map<string, number>, events_triggered: map<string, {number, number, number}>}>
 
-
+dev.Save.persist_table(FOREIGN_WARRIORS, "FOREIGN_WARRIORS_T", function(t) t = FOREIGN_WARRIORS end)
 --v function(t: any)
 local function log(t)
     dev.log(tostring(t), "FW")
@@ -88,6 +88,7 @@ end
 --v function(faction: CA_FACTION)
 local function process_turn_start(faction)
     local turn = cm:model():turn_number()
+    log("Processing turn "..tostring(turn).." for faction "..faction:name())
     if FOREIGN_WARRIORS[faction:name()].in_crisis then
         FOREIGN_WARRIORS[faction:name()].crisis_timer = FOREIGN_WARRIORS[faction:name()].crisis_timer - 1;
         if FOREIGN_WARRIORS[faction:name()].crisis_timer <= 0 then
@@ -104,13 +105,14 @@ local function process_turn_start(faction)
     local monk_pressure = weight_monk * PettyKingdoms.FactionResource.get("sw_pop_monk", faction).value 
     local foreigner_pressure = weight_foreign * MANPOWER_FOREIGN[faction:name()].value 
     local base_tensions = peasant_pressure + foreigner_pressure + monk_pressure
-    for event_key, effect_pair in pairs(FOREIGN_WARRIORS[faction:name()].events_triggered) do
-        for effect_quantity, turn_to_remove in pairs(effect_pair) do
-            if effect_quantity > 0 and turn < turn_to_remove then
-                base_tensions = dev.mround(base_tensions*effect_quantity, 1)
-            end
+    for event_key, details in pairs(FOREIGN_WARRIORS[faction:name()].events_triggered) do
+        local effect_quantity = details[1]
+        local turn_to_remove = details[2] + 10;
+        if effect_quantity > 0 and turn < turn_to_remove then
+            base_tensions = dev.mround(base_tensions*effect_quantity, 1)
         end
     end
+    log("Base Tension: "..tostring(base_tensions))
     --find building and trait effects.
     local province_weights = {} --:map<string, number>
     local province_effects = {} --:map<string, number>
@@ -133,29 +135,48 @@ local function process_turn_start(faction)
     --apply building and trait effects
     local tensions = base_tensions
     for province, effect in pairs(province_effects) do
-        tensions = dev.mround(tensions - ( base_tensions * effect * (province_weights[province]/faction:region_list():num_items()) ), 1)
+        tensions = dev.mround(tensions + ( base_tensions * effect * (province_weights[province]/faction:region_list():num_items()) ), 1)
     end
     --if the faction is from the Great Viking Army, add Here King.
     if faction:subculture() == "vik_sub_cult_anglo_viking" then
-        --TODO get here king value
+        if faction:has_effect_bundle("vik_here_king_english_1") or faction:has_effect_bundle("vik_here_king_army_1") then
+            tensions = dev.mround(tensions + (base_tensions*-0.25), 1)
+        elseif faction:has_effect_bundle("vik_here_king_english_2") or faction:has_effect_bundle("vik_here_king_army_2") then
+            tensions = dev.mround(tensions + (base_tensions*-0.1), 1)
+        elseif faction:has_effect_bundle("vik_here_king_english_3") or faction:has_effect_bundle("vik_here_king_army_3") then
+            tensions = dev.mround(tensions + (base_tensions*0.15), 1)
+        end
     end
+    --if the faction is East Engle and at Peace, increase tensions:
+    if faction:name() == "vik_fact_east_engle" then
+        local at_war = false --:boolean
+        for w = 0, faction:factions_at_war_with():num_items() - 1 do
+            at_war = true
+            break
+        end
+        if not at_war then
+            tensions = dev.mround(tensions + (base_tensions*0.25), 1)
+        end
+    end
+    log("Tensions before reductions: "..tostring(tensions))
     --apply reduction from nobles
     local noble_pressure = weight_noble * PettyKingdoms.FactionResource.get("sw_pop_noble", faction).value 
     if PettyKingdoms.FactionResource.get("sw_pop_noble", faction).value  > MANPOWER_FOREIGN[faction:name()].value then
         noble_pressure = noble_pressure*2
     end
-    for event_key, effect_pair in pairs(FOREIGN_WARRIORS[faction:name()].events_triggered) do
-        for effect_quantity, turn_to_remove in pairs(effect_pair) do
-            if effect_quantity < 0 and turn < turn_to_remove then
-                --noble pressure will be -, effect quantity is also -, we add -1 to avoid a +
-                noble_pressure = dev.mround(base_tensions*(effect_quantity*-1), 1)
-            elseif turn > turn_to_remove then
-                FOREIGN_WARRIORS[faction:name()].events_triggered[event_key] = nil
-                break;
-            end
+    for event_key, details in pairs(FOREIGN_WARRIORS[faction:name()].events_triggered) do
+        local effect_quantity = details[1]
+        local turn_to_remove = details[2] + 10;
+        if effect_quantity < 0 and turn < turn_to_remove then
+            --noble pressure will be -, effect quantity is also -, we add -1 to avoid a +
+            noble_pressure = dev.mround(base_tensions*(effect_quantity*-1), 1)
+        elseif turn > turn_to_remove then
+            FOREIGN_WARRIORS[faction:name()].events_triggered[event_key] = nil
+            break;
         end
     end
     tensions = tensions + noble_pressure
+    log("Final net tension: "..tostring(tensions))
     --apply tensions
     if tensions > 0 then
         FOREIGN_WARRIORS[faction:name()].crisis_timer = FOREIGN_WARRIORS[faction:name()].crisis_timer - 1
@@ -164,13 +185,12 @@ local function process_turn_start(faction)
     end
     FOREIGN_WARRIORS[faction:name()].last_tension = tensions
     if FOREIGN_WARRIORS[faction:name()].crisis_timer - get_turn_penalty(faction) <= 0 then
+        log("Starting Crisis for this faction")
         FOREIGN_WARRIORS[faction:name()].in_crisis = true
         FOREIGN_WARRIORS[faction:name()].crisis_timer = crisis_duration
     end
-    --see if crisis needs to escalate automatically.
-    if FOREIGN_WARRIORS[faction:name()].crisis_level < 3 and faction:region_list():num_items() > 20 then
-        FOREIGN_WARRIORS[faction:name()].crisis_level = 3
-    end
+    log("Crisis Timer: "..tostring(FOREIGN_WARRIORS[faction:name()].crisis_timer))
+    log("Crisis Level "..tostring(FOREIGN_WARRIORS[faction:name()].crisis_level))
 end
 
 --v function(resource: FACTION_RESOURCE) --> string
@@ -241,7 +261,7 @@ dev.first_tick(function(context)
     rec_handler.image_state = "foreigner"
 
 end)
----{is_dilemma, is_capitals, is_villages, fw_pop_changes, fw_tensions_changes, can_repeat}
+---{is_dilemma, is_capitals, is_villages, fw_pop_changes, fw_tensions_changes, cd}
 local events_regional = {
     sw_foreign_warriors_trial_fair_ = {false, true, false, 
             {}, 
@@ -251,7 +271,6 @@ local events_regional = {
             {}, 
             {[1] = 1.10},
             24},
-    sw_foreign_settlers_conquest_ = {false, false, true, {[1]=120}, {}, 0},
     sw_foreign_settlers_drive_out_ = {true, true, false, {}, {}, 24},
     sw_foreign_settlers_drive_out_here_king_ = {true, true, false, {}, {}, 24},
     sw_foreign_dead_wife_ = {false, false, true, {}, {}, 24},
@@ -296,9 +315,6 @@ local regional_event_conditions = {
         local has_bonus = not not fw.building_modifiers["vik_moot_hill"] or not not fw.building_modifiers["vik_court"]
         return has_building and fw.in_crisis and fw.crisis_level > 2 and fw.crisis_level < 5 and not has_bonus
     end,
-    ["sw_foreign_settlers_conquest_"] = function(context) --:WHATEVER
-        return false
-    end,
     ["sw_foreign_dead_wife_"] = function(context) --:WHATEVER
         local region = context:region() --:CA_REGION
         local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
@@ -318,6 +334,79 @@ local regional_event_conditions = {
         end
         --we aren't in crisis, but last tension value was negative, we're more than halfway to crisis. 
         return (not fw.in_crisis) and fw.last_tension > 0 and (fw.crisis_timer - get_turn_penalty(region:owning_faction()) <= base_boiling_time/2 ) and fw.crisis_level <= 2
+    end,
+    ["sw_foreign_banditry_"] = function(context) --:WHATEVER
+        local region = context:region() --:CA_REGION
+        local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
+        local is_human = region:owning_faction():is_human()
+        if (not is_human) or (not fw) then
+            return false
+        end
+        --we are in crisis at level 3 or more 
+        return fw.in_crisis and fw.crisis_level > 2 and fw.crisis_level < 5 
+    end,
+    ["sw_foreign_cows_"] = function(context) --:WHATEVER
+        local region = context:region() --:CA_REGION
+        local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
+        local is_human = region:owning_faction():is_human()
+        if (not is_human) or (not fw) then
+            return false
+        end
+        local has_building = region:building_superchain_exists("vik_pasture")
+        --we are in crisis at level 1-3
+        return fw.in_crisis and has_building and fw.crisis_level < 4
+    end,
+    ["sw_foreign_sheep_"] = function(context) --:WHATEVER
+        local region = context:region() --:CA_REGION
+        local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
+        local is_human = region:owning_faction():is_human()
+        if (not is_human) or (not fw) then
+            return false
+        end
+        local has_building = region:building_exists("vik_cloth_2") or region:building_exists("vik_cloth_3")
+        --we are in crisis at level 1-3
+        return fw.in_crisis and has_building and fw.crisis_level < 4
+    end,
+    ["sw_foreign_drunk_brawl_"] = function(context) --:WHATEVER
+        local region = context:region() --:CA_REGION
+        local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
+        local is_human = region:owning_faction():is_human()
+        if (not is_human) or (not fw) then
+            return false
+        end
+        local has_building = region:building_superchain_exists("vik_alehouse") 
+        --we are in crisis at level 1-3
+        return fw.in_crisis and has_building and fw.crisis_level < 4
+    end,
+    ["sw_foreign_priest_assaulted_"] = function(context) --:WHATEVER
+        local region = context:region() --:CA_REGION
+        local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
+        local is_human = region:owning_faction():is_human()
+        if (not is_human) or (not fw) then
+            return false
+        end
+        local has_building = region:building_superchain_exists("vik_church")
+        --we are in crisis at level 1-3
+        return fw.in_crisis and has_building and fw.crisis_level < 4
+    end,
+    ["sw_foreign_esc_tar_and_feather_"] = function(context) --:WHATEVER
+        local region = context:region() --:CA_REGION
+        local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
+        local is_human = region:owning_faction():is_human()
+        if (not is_human) or (not fw) then
+            return false
+        end
+        return fw.in_crisis and fw.crisis_level > 1
+    end,
+    ["sw_foreign_fields_"] = function(context) --:WHATEVER
+        local region = context:region() --:CA_REGION
+        local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
+        local is_human = region:owning_faction():is_human()
+        if (not is_human) or (not fw) then
+            return false
+        end
+        local has_building = region:building_superchain_exists("vik_farm")
+        return has_building and fw.in_crisis and fw.crisis_level > 1 
     end
 }--:map<string, (function(context: WHATEVER) --> boolean)>
 
@@ -343,6 +432,10 @@ dev.first_tick(function(context)
                 event_details[1], 
                 function(context)
                     local region = context:region() --:CA_REGION
+                    local faction_name = region:owning_faction():name()
+                    if FOREIGN_WARRIORS[faction_name].events_triggered[event_key] and FOREIGN_WARRIORS[faction_name].events_triggered[event_key][2] >= cm:model():turn_number() + 3 then
+
+                    end
                     return ((event_details[2] and region:is_province_capital()) or (event_details[3] and not region:is_province_capital())) and regional_event_conditions[event_key](context)
                 end, 
                 3, 
@@ -357,18 +450,17 @@ dev.first_tick(function(context)
                     if not not event_details[4][num] then
                         PettyKingdoms.FactionResource.get("sw_pop_foreign", dev.get_faction(faction_name)):change_value(event_details[4][num])
                     end
-                    if not not event_details[5][num] then
-                        FOREIGN_WARRIORS[faction_name].events_triggered[event_key] = {[event_details[5][num]] = cm:model():turn_number() + 10}
-                    end
-                end)
-    
+                    FOREIGN_WARRIORS[faction_name].events_triggered[event_key] = {event_details[5][num] or 0, cm:model():turn_number(), num}
+                end
+            )
         end
     end 
+    dev.Events.add_regional_event("sw_foreign_settlers_conquest_", false, true, false, function(context) return false end, 2)
     dev.eh:add_listener(
         "RegionChangesOwnership",
         "RegionChangesOwnership",
         function(context)
-            return context:region():owning_faction():is_human() and cm:model():turn_number() - dev.Events.last_event_occurance("sw_foreign_settlers_conquest_") > 2
+            return context:region():owning_faction():is_human() and cm:model():turn_number() - dev.Events.last_event_occurance("sw_foreign_settlers_conquest_") > 2 and not context:region():is_province_capital()
         end,
         function(context)
             local turn_diff = dev.clamp(cm:model():turn_number() - dev.Events.last_event_occurance("sw_foreign_settlers_conquest_"), 1, 8)

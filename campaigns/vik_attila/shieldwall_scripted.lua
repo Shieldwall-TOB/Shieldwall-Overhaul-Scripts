@@ -50,6 +50,7 @@ local ok, err = pcall( function()
     PettyKingdoms.Rivals = require("modules/RivalFactions")
     PettyKingdoms.Geopolitics = require("modules/Geopolitical_unit")
     PettyKingdoms.RegionManpower = require("modules/RegionManpower")
+    PettyKingdoms.Traits = require("modules/Traits")
     PettyKingdoms.CharacterPolitics = require("modules/CharacterPolitics")
 end) 
 if not ok then
@@ -68,7 +69,9 @@ local ok, err = pcall( function()
     require("global_mechanics/Bandits")
     require("global_mechanics/CitiesLandmarks")
     require("global_mechanics/VikingRaiders")
+    require("global_mechanics/Endgame")
     require("global_mechanics/building_effects")
+    require("global_mechanics/skill_effects")
     --manpower
     require("global_mechanics/PeasantManpower")
     require("global_mechanics/NobleManpower")
@@ -76,8 +79,16 @@ local ok, err = pcall( function()
     require("global_mechanics/ForeignWarriors")
     --culture mechanics
     require("culture_mechanics/burghal")
+
+    require("culture_mechanics/here_king")
+
     require("culture_mechanics/hof")
     require("culture_mechanics/slaves")
+    require("culture_mechanics/tribute")
+
+    require("culture_mechanics/heroism")
+
+    require("culture_mechanics/legitimacy")
     --faction mechanics
     require("faction_mechanics/mierce_hoards")
     require("faction_mechanics/dyflin_puppet_kings")
@@ -106,10 +117,10 @@ require_traits(require("traits/TraitTriggers"))
 --require episodic scripting
 local ok, err = pcall( function()
     --faction events
-    ---require("episodic_scripting/vik_fact_northleode")
+    require("episodic_scripting/vik_fact_northleode")
 
     --geopols
-    --require("episodic_scripting/geopolitics_south_england")
+    require("episodic_scripting/geopolitics_south_england")
 end) 
 if not ok then
     dev.log("Error loading episodic scripts!")

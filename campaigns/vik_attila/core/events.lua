@@ -42,6 +42,7 @@ local function trigger_event(event_key, faction, region)
     end
     local is_regional = false
     local is_incident = false
+    local response = game_events.stored_responses[event_key]
     game_events.already_happened[event_key] = cm:model():turn_number()
     if game_events.incidents[event_key] then
         is_incident = true
@@ -53,13 +54,13 @@ local function trigger_event(event_key, faction, region)
     end
     log("Triggering event with event key: "..event_key)
     if is_incident then
-        if game_events.stored_responses[event_key] then
-            dev.respond_to_incident(event_key, game_events.stored_responses[event_key])
+        if response then
+            dev.respond_to_incident(event_key, response)
         end
         cm:trigger_incident(faction:name(), event_key, true)
     elseif not (game_events.last_event_turn[faction:name()] == cm:model():turn_number()) and cm:model():world():whose_turn_is_it():name() == faction:name() then
-        if game_events.stored_responses[event_key] then
-            dev.respond_to_dilemma(event_key, game_events.stored_responses[event_key])
+        if response then
+            dev.respond_to_dilemma(event_key, response)
         end
         cm:trigger_dilemma(faction:name(), event_key, true)
     else
@@ -127,6 +128,8 @@ dev.post_first_tick(function(context)
             return context:character():faction():is_human()
         end,
         function(context)
+            local faction = context:character():faction() --:CA_FACTION
+            local can_fire_dilemma = not (game_events.last_event_turn[faction:name()] == cm:model():turn_number())
             for i = 1, max_priority_levels do
                 local events = game_events.postbattle_events[i]
                 if events then 
@@ -138,8 +141,8 @@ dev.post_first_tick(function(context)
                         end
                         local event_key = events[event_index]
                         if game_events.event_conditions[event_key] then
-                            if game_events.event_conditions[event_key](context) then
-                                cm:trigger_dilemma(context:faction():name(), event_key, true)
+                            if (game_events.incidents[event_key] or can_fire_dilemma) and game_events.event_conditions[event_key](context) then
+                                trigger_event(event_key, faction)
                                 return
                             end
                         end
@@ -210,6 +213,9 @@ local function add_turnstart_event(event_key, condition, priority, cooldown, res
     else
         game_events.event_cooldowns[event_key] = 1
     end
+    if response_function then
+        game_events.stored_responses[event_key] = response_function
+    end
 end
 
 --v [NO_CHECK] function(event_key: string, faction_name: string, above_all_others: boolean?)
@@ -233,6 +239,9 @@ local function add_regional_event(prefix, capitals, villages, is_dilemma, condit
     if not is_dilemma then
         game_events.incidents[prefix] = true
     end
+    if response_function then
+        game_events.stored_responses[prefix] = response_function
+    end
 end
 
 --v function(prefix: string, region_key: string, faction: string)
@@ -252,9 +261,18 @@ local function force_regional_event(prefix, region_key, faction)
     table.insert(game_events.region_queue, {event = prefix, faction = faction, region = region_key})
 end
 
---v function()
-local function add_post_battle_event()
-    
+
+--v function(event_key: string, condition: (function(context: WHATEVER) --> boolean), priority: int, cooldown: int?, response_function: (function(context: WHATEVER))?)
+local function add_post_battle_event(event_key, condition, priority, cooldown, response_function)
+    game_events.postbattle_events[priority] = game_events.postbattle_events[priority] or {}
+    table.insert(game_events.postbattle_events[priority], event_key)
+    game_events.event_conditions[event_key] = condition
+    if cooldown then
+        --# assume event_cooldowns: int!
+        game_events.event_cooldowns[event_key] = cooldown
+    else
+        game_events.event_cooldowns[event_key] = 1
+    end
 
 end
 
@@ -263,11 +281,31 @@ local function last_event_occurance(event)
     return game_events.already_happened[event] or 0
 end
 
+--v function(event: string) --> boolean
+local function has_event_occured(event)
+    return not not game_events.already_happened[event]
+end
+
+--v function(event: string)
+local function register_as_incident(event)
+    game_events.incidents[event] = true
+end
+
+--v function(event: string, faction:CA_FACTION, region: string?)
+local function trigger_incident(event, faction, region)
+    game_events.incidents[event] = true
+    trigger_event(event, faction, region)
+end
+
 return {
     trigger_event = trigger_event,
     trigger_turnstart_dilemma = queue_event_for_turn_start,
     add_turnstart_event = add_turnstart_event,
     add_regional_event = add_regional_event,
     force_regional_event = force_regional_event,
-    last_event_occurance = last_event_occurance
+    last_event_occurance = last_event_occurance,
+    has_event_occured = has_event_occured,
+    register_as_incident = register_as_incident,
+    trigger_incident = trigger_incident,
+    add_post_battle_event = add_post_battle_event
 }
