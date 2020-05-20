@@ -1,4 +1,4 @@
-local dilemma_cd = 4 --how often can the player be asked about danegeld at most?
+local dilemma_cd = 12 --how often can the player be asked about danegeld at most?
 local raider_cd_base = 19 -- the formula for final cooldown is base minus clamp(2*region_intensity, 0, 9). 
 local raider_cd_reduction_max = 12 -- how much can cooldown be reduced by intensity?
 local cd_intensity_scale = 3 -- how much cooldown is lost per intensity level?
@@ -135,23 +135,18 @@ end
 --spawn the army itself
 --figure out if we have a human target player
 --fire any necessary event.
---v function(faction_key: string, location_key: string, x: int, y: int, should_fire_event: boolean)
-local function create_invasion_force(faction_key, location_key, x, y, should_fire_event)
+--v function(faction_key: string, location_key: string, x: int, y: int, intensity: int, should_fire_event: boolean)
+local function create_invasion_force(faction_key, location_key, x, y, intensity, should_fire_event)
     dev.log("Creating invasion force for ["..faction_key.."] from location ["..location_key.."]", "RAIDER")
     local army_type = invaders[faction_key].army
     local force_vector = {} --:vector<string>
-    local turn_increment = math.ceil(cm:model():turn_number()/20)
-    if not region_intensities[faction_key][turn_increment] then
-        dev.log("No intensity value found at the current turn increment, aborting!")
-        return
-    end
-    local force_key = dev.create_army(armies, region_intensities[faction_key][turn_increment], army_type)
+    local force_key = dev.create_army(armies, intensity, army_type)
     local temp_region = cm:model():world():region_manager():region_list():item_at(0):name();
     dev.log("Spawning Viking Raid!: \nForce key is: "..force_key .. "\nLocation is: "..temp_region.."("..x..","..y..")\nfaction_key:"..faction_key)
     cm:create_force(faction_key, force_key, temp_region, x, y, "sw_raiders_"..dev.invasion_number(), true)
     dev.spawn_blockers[x] =  dev.spawn_blockers[x] or {}
     dev.spawn_blockers[x][y] = cm:model():turn_number()
-    local cd = raider_cd_base - dev.mround(dev.clamp(cd_intensity_scale*region_intensities[faction_key][turn_increment], 0, raider_cd_reduction_max), 1)
+    local cd = raider_cd_base - dev.mround(dev.clamp(cd_intensity_scale*intensity, 0, raider_cd_reduction_max), 1)
     if cm:model():is_multiplayer() then
         cd = cd*2
     end
@@ -175,6 +170,12 @@ local function invasions_turn_start(faction_key)
         dev.log("No valid spawn found!", "RAIDER")
         return
     end
+    local turn_increment = math.ceil(cm:model():turn_number()/20)
+    if not region_intensities[faction_key][turn_increment] then
+        dev.log("No intensity value found at the current turn increment, aborting!")
+        return
+    end
+    local intensity = turn_increment - cm:model():difficulty_level(); --DIFFICULTY VARS
     local closest_human, h = get_closest_faction_to_spawn_point(x, y, true)
     local closest_faction, f = get_closest_faction_to_spawn_point(x, y, false)
     local target = closest_faction
@@ -194,10 +195,10 @@ local function invasions_turn_start(faction_key)
             --queue responce of spawning army when dilemma is picked.
             dev.respond_to_dilemma(dilemma, function(context)
                 if context:choice() == 1 then
-                    create_invasion_force(faction_key, location_key, x, y, false)
+                    create_invasion_force(faction_key, location_key, x, y, intensity, false)
                     active_raiders[faction_key] = {state = -1, target = closest_human}
                 elseif context:choice() == 3 then
-                    create_invasion_force(faction_key, location_key, x, y, false)
+                    create_invasion_force(faction_key, location_key, x, y, intensity, false)
                     active_raiders[faction_key] = {state = vassal_boredom_time, target = closest_human}
                     dev.callback(function() cm:force_make_vassal(closest_human, faction_key) end, 0.1)
                 end
@@ -205,10 +206,10 @@ local function invasions_turn_start(faction_key)
             end)
             dev.Events.trigger_turnstart_dilemma(dilemma, closest_human)
         else
-            create_invasion_force(faction_key, location_key, x, y, (h < 3*f)) --only show a message when the human's distance is less than 3x the distance to the target.
+            create_invasion_force(faction_key, location_key, x, y, intensity, (h < 3*f)) --only show a message when the human's distance is less than 3x the distance to the target.
         end
     else
-        create_invasion_force(faction_key, location_key, x, y, false)
+        create_invasion_force(faction_key, location_key, x, y, intensity, false)
     end
 end
 
@@ -255,8 +256,15 @@ dev.first_tick(function(context)
         end,
         function(context)
             local vikings = context:faction() --:CA_FACTION
+            local viking_leader = vikings:faction_leader()
             local target = dev.get_faction(active_raiders[vikings:name()].target)
             local state = active_raiders[vikings:name()].state
+            if target:is_dead() then
+                local settlement = dev.closest_settlement_to_char(viking_leader)
+                state = -1
+                target = dev.get_region(settlement):owning_faction()
+                active_raiders[vikings:name()].target = target:name()
+            end
             if state < 0 and not vikings:at_war_with(target) then
                 cm:force_declare_war(vikings:name(), target:name())
             elseif state > 0 then

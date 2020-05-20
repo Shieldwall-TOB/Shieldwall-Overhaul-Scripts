@@ -13,6 +13,7 @@ game_events.raider_events = {} --:map<int, vector<string>>
 game_events.stored_responses = {} --:map<string, function(context: WHATEVER)>
 game_events.event_cooldowns = {} --:map<string, int>
 game_events.region_queue = {} --:vector<{faction: string, region: string, event: string}>
+game_events.regional_events_last_queued = {} --:map<string, string>
 game_events.region_events = {} --:map<int, vector<string>>
 game_events.region_event_validity = {} --: map<string, {bool, bool}>
 game_events.turnstart_queue = {} --:vector<{faction: string, dilemma: string}>
@@ -28,7 +29,7 @@ game_events.save = {
 
 --v function(event_key: string) --> boolean
 local function is_off_cooldown(event_key)
- return (not game_events.event_cooldowns[event_key]) or (cm:model():turn_number() >= (game_events.already_happened[event_key] + game_events.event_cooldowns[event_key]))
+ return (not game_events.event_cooldowns[event_key]) or (not game_events.already_happened[event_key]) or (cm:model():turn_number() >= (game_events.already_happened[event_key] + game_events.event_cooldowns[event_key]))
 end
 
 
@@ -186,9 +187,11 @@ dev.post_first_tick(function(context)
                         if game_events.event_conditions[event_key] then
                             local capitals = game_events.region_event_validity[event_key][1]
                             local villages = game_events.region_event_validity[event_key][2]
-                            if (((region:is_province_capital() and capitals) or ((not region:is_province_capital()) and villages))) and game_events.event_conditions[event_key](context) and (can_fire_dilemma or game_events.incidents[event_key]) then
-                               trigger_event(event_key, faction, region:name())
-                                return
+                            if (((region:is_province_capital() and capitals) or ((not region:is_province_capital()) and villages))) and is_off_cooldown(event_key) then
+                                if game_events.event_conditions[event_key](context) and (can_fire_dilemma or game_events.incidents[event_key]) then
+                                trigger_event(event_key, faction, region:name())
+                                    return
+                                end
                             end
                         end
                     end
@@ -197,7 +200,6 @@ dev.post_first_tick(function(context)
         end,
         true
     )
-
 
 end)
 
@@ -307,5 +309,6 @@ return {
     has_event_occured = has_event_occured,
     register_as_incident = register_as_incident,
     trigger_incident = trigger_incident,
-    add_post_battle_event = add_post_battle_event
+    add_post_battle_event = add_post_battle_event,
+    is_off_cooldown = is_off_cooldown
 }

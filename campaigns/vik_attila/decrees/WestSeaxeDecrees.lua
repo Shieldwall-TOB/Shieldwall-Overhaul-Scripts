@@ -7,7 +7,16 @@ local decrees = {
         ["gold_cost"] = -1500,
         ["currency"] = "influence",
         ["currency_cost"] = -1,
-        ["cooldown"] = 20
+        ["cooldown"] = 20,
+        ["callback"] = function(decree) --:DECREE
+            local owner = dev.get_faction(decree.owning_faction)
+            for i = 0, owner:character_list():num_items() - 1 do
+                local char = owner:character_list():item_at(i)
+                if dev.is_char_normal_general(char) then
+                    cm:replenish_action_points(dev.lookup(char))
+                end
+            end
+        end
     },
     [2] = {
         ["event"] = "sw_decree_wessex_fyrd",

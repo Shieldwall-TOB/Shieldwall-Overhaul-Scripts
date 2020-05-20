@@ -20,6 +20,10 @@ local peasant_castes = {
     light = true
 }--:map<string, boolean>
 
+--v function(t: any)
+local function log(t)
+    dev.log(tostring(t), "PEASANTS")
+end
 
 --v function(total_food: number) --> (number, string)
 local function get_food_effect(total_food)
@@ -47,9 +51,10 @@ local function apply_turn_start(faction)
     local past_famine = serfs:get_factor(famine_factor) --this will be a negative number
     local past_levy = serfs:get_factor(recruitment_factor) --this will be a negative number
     local past_raids = serfs:get_factor(raiding_factor) --this will be a negative number
-    local region_base = serfs:get_factor(region_factor)
+    local past_overcrowding = serfs:get_factor(overcrowding_factor) --this will be a negative number
+    local region_base = serfs:get_factor(region_factor) + serfs:get_factor(buildings_factor) --both are set by Regional Manpower Objects.
     local past_riots = serfs:get_factor(riots_factor)
-    local actual_pop_base = past_growth + past_famine + past_levy + region_base + past_raids + past_riots
+    local actual_pop_base = past_growth + past_famine + past_levy + region_base + past_raids + past_riots + past_overcrowding
     local growth = 0 --:int
     --growth and famine
     local total_food = faction:total_food()
@@ -68,6 +73,7 @@ local function apply_turn_start(faction)
     --overpopulation
     local pop_effective_cap = (region_base) * 2
     local cap_perc = actual_pop_base / pop_effective_cap
+    log("Serf overpopulation calculation factors: actual_pop_base is "..tostring(actual_pop_base) ..", cap perc is "..tostring(cap_perc)..", pop_effective_cap is "..tostring(pop_effective_cap))
     if cap_perc > 1 then 
         --lose everything over the cap.
         local difference = pop_effective_cap - actual_pop_base
@@ -104,10 +110,12 @@ dev.first_tick(function(context)
         serfs.uic_override = {"layout", "top_center_holder", "resources_bar2", "culture_mechanics"} 
         local region_list = dev.get_faction(human_factions[i]):region_list()
         local region_base_pop = 0 --:number
+        local building_pop_contribution = 0 --:number
         for j = 0, region_list:num_items() - 1 do
             local current_region = region_list:item_at(j)     
             local manpower_obj = PettyKingdoms.RegionManpower.get(current_region:name())
             region_base_pop = region_base_pop + manpower_obj.base_serf()
+            building_pop_contribution = building_pop_contribution + manpower_obj.settlement_serf_bonus
         end
         serfs:set_factor(region_factor, dev.mround(region_base_pop, 1))
         serfs:reapply()
@@ -140,7 +148,6 @@ dev.first_tick(function(context)
             serf:set_factor(recruitment_factor, 0)
             serf:set_factor(riots_factor, 0)
             serf:set_factor(raiding_factor, 0)
-            --serf:set_factor(buildings_factor, 0)
         end
         apply_turn_start(cm:model():world():whose_turn_is_it())
     end

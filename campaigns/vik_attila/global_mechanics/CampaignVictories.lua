@@ -119,7 +119,7 @@ end
 dev.first_tick(function(context) 
     log("Initializing Victories")
     if cm:is_multiplayer() == false then
-        if dev.is_new_game() then
+        if dev.is_new_game() or (victories[cm:get_local_faction(true)] == nil) then
             victories[cm:get_local_faction(true)] = {false, false, "", ""}
         end
         local faction = dev.get_faction(cm:get_local_faction(true))
@@ -150,7 +150,6 @@ dev.first_tick(function(context)
             end,
 			true
         );
-        --[[
         dev.eh:add_listener(
             "KingdomTurnStartGenerator",
             "FactionTurnStart",
@@ -158,10 +157,12 @@ dev.first_tick(function(context)
                 return not not victories[context:faction():name()]
             end,
             function(context)
-                log("Kingdom: "..context:faction():name().." starting their turn: "..tostring(cm:model():turn_number()))
-                dev.eh:trigger_event("KingdomTurnStart", context:faction(), victories)
+                local faction = context:faction()
+                log("Kingdom: "..faction:name().." starting their turn: "..tostring(cm:model():turn_number()))
+                dev.eh:trigger_event("KingdomTurnStart", faction, victories)
             end,
             true)
+        --[[
         dev.eh:add_listener(
             "AIKingdomTurnStart",
             "FactionTurnStart",

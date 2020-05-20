@@ -31,17 +31,10 @@ local HEREKING_EFFECTS = {
 
 local MANPOWER_FOREIGN = {} --:map<string, FACTION_RESOURCE>
 local FOREIGN_WARRIORS = {
-    ["vik_fact_west_seaxe"] = {
-        crisis_timer = base_boiling_time,
-        last_tension = 0,
-        in_crisis = false,
-        crisis_level = 1,
-        building_modifiers = {},
-        events_triggered = {}
-    }
-} --:map<string, {crisis_timer: int, last_tension: int, in_crisis: boolean, crisis_level: int, building_modifiers: map<string, number>, events_triggered: map<string, {number, number, number}>}>
 
-dev.Save.persist_table(FOREIGN_WARRIORS, "FOREIGN_WARRIORS_T", function(t) t = FOREIGN_WARRIORS end)
+} --:map<string, {crisis_timer: int, last_tension: int, in_crisis: boolean, crisis_has_fired: boolean, crisis_level: int, building_modifiers: map<string, number>, events_triggered: map<string, {number, number, number}>}>
+
+dev.Save.persist_table(FOREIGN_WARRIORS, "FOREIGN_WARRIORS_T", function(t) FOREIGN_WARRIORS = t end)
 --v function(t: any)
 local function log(t)
     dev.log(tostring(t), "FW")
@@ -53,6 +46,7 @@ local function add_blank_foreign_warrior_entry(faction_key)
         crisis_timer = base_boiling_time,
         last_tension = 0,
         in_crisis = false,
+        crisis_has_fired = false,
         crisis_level = 1,
         building_modifiers = {},
         events_triggered = {}
@@ -178,19 +172,23 @@ local function process_turn_start(faction)
     tensions = tensions + noble_pressure
     log("Final net tension: "..tostring(tensions))
     --apply tensions
-    if tensions > 0 then
-        FOREIGN_WARRIORS[faction:name()].crisis_timer = FOREIGN_WARRIORS[faction:name()].crisis_timer - 1
-    elseif tensions < 0 then
-        FOREIGN_WARRIORS[faction:name()].crisis_timer = dev.mround(dev.clamp(FOREIGN_WARRIORS[faction:name()].crisis_timer + defuse_rate, 0, base_boiling_time), 1)
+    if not FOREIGN_WARRIORS[faction:name()].in_crisis then
+        if tensions > 0 then
+            FOREIGN_WARRIORS[faction:name()].crisis_timer = FOREIGN_WARRIORS[faction:name()].crisis_timer - 1
+        elseif tensions < 0 then
+            FOREIGN_WARRIORS[faction:name()].crisis_timer = dev.mround(dev.clamp(FOREIGN_WARRIORS[faction:name()].crisis_timer + defuse_rate, 0, base_boiling_time), 1)
+        end
     end
     FOREIGN_WARRIORS[faction:name()].last_tension = tensions
     if FOREIGN_WARRIORS[faction:name()].crisis_timer - get_turn_penalty(faction) <= 0 then
         log("Starting Crisis for this faction")
         FOREIGN_WARRIORS[faction:name()].in_crisis = true
+        FOREIGN_WARRIORS[faction:name()].crisis_has_fired = false
         FOREIGN_WARRIORS[faction:name()].crisis_timer = crisis_duration
     end
     log("Crisis Timer: "..tostring(FOREIGN_WARRIORS[faction:name()].crisis_timer))
     log("Crisis Level "..tostring(FOREIGN_WARRIORS[faction:name()].crisis_level))
+    MANPOWER_FOREIGN[faction:name()]:reapply()
 end
 
 --v function(resource: FACTION_RESOURCE) --> string
@@ -293,7 +291,7 @@ local events_regional = {
     sw_foreign_spies_ = {false, true, false, {}, {}, 24},
     sw_foreign_plot_governor_ = {true, true, false, {}, {}, 24},
     sw_foreign_displacement_ = {true, true, false, {}, {}, 24},
-    sw_foreign_army_ = {false, false, true, {}, {}, 24},
+    sw_foreign_army_ = {false, false, true, {[1] = -0.40}, {}, 24},
     sw_foreign_oaths_ = {true, true, false, {}, {}, 24},
     sw_foreign_ports_ = {false, true, false, {}, {}, 24}
 } --:map<string, {boolean, boolean, boolean, map<int, number>, map<int, number>, int}>
@@ -323,7 +321,7 @@ local regional_event_conditions = {
             return false
         end
         --we aren't in crisis, but last tension value was negative, we're more than halfway to crisis. 
-        return (not fw.in_crisis) and fw.last_tension > 0 and (fw.crisis_timer - get_turn_penalty(region:owning_faction()) <= base_boiling_time/2 ) and fw.crisis_level <= 2
+        return (not fw.in_crisis) and fw.last_tension > 0 and (fw.crisis_timer - get_turn_penalty(region:owning_faction()) <= base_boiling_time/2 ) and fw.crisis_level <= 2 and dev.Events.is_off_cooldown("sw_foreign_grumpy_neighbours_")
     end,
     ["sw_foreign_grumpy_neighbours_"] = function(context) --:WHATEVER
         local region = context:region() --:CA_REGION
@@ -333,7 +331,7 @@ local regional_event_conditions = {
             return false
         end
         --we aren't in crisis, but last tension value was negative, we're more than halfway to crisis. 
-        return (not fw.in_crisis) and fw.last_tension > 0 and (fw.crisis_timer - get_turn_penalty(region:owning_faction()) <= base_boiling_time/2 ) and fw.crisis_level <= 2
+        return (not fw.in_crisis) and fw.last_tension > 0 and (fw.crisis_timer - get_turn_penalty(region:owning_faction()) <= base_boiling_time/2 ) and fw.crisis_level <= 2 and dev.Events.is_off_cooldown("sw_foreign_dead_wife_")
     end,
     ["sw_foreign_banditry_"] = function(context) --:WHATEVER
         local region = context:region() --:CA_REGION
@@ -434,7 +432,10 @@ dev.first_tick(function(context)
                     local region = context:region() --:CA_REGION
                     local faction_name = region:owning_faction():name()
                     if FOREIGN_WARRIORS[faction_name].events_triggered[event_key] and FOREIGN_WARRIORS[faction_name].events_triggered[event_key][2] >= cm:model():turn_number() + 3 then
-
+                        return CONST.__testcases.__test_foreigner_events
+                    end
+                    if FOREIGN_WARRIORS[faction_name].crisis_has_fired == true then
+                        return false
                     end
                     return ((event_details[2] and region:is_province_capital()) or (event_details[3] and not region:is_province_capital())) and regional_event_conditions[event_key](context)
                 end, 
@@ -448,14 +449,22 @@ dev.first_tick(function(context)
                         num = num + context:choice()
                     end
                     if not not event_details[4][num] then
-                        PettyKingdoms.FactionResource.get("sw_pop_foreign", dev.get_faction(faction_name)):change_value(event_details[4][num])
+                        local res = PettyKingdoms.FactionResource.get("sw_pop_foreign", dev.get_faction(faction_name))
+                        local change = dev.mround(res.value * event_details[4][num], 1)
+                        res:change_value(change)
                     end
                     FOREIGN_WARRIORS[faction_name].events_triggered[event_key] = {event_details[5][num] or 0, cm:model():turn_number(), num}
+                    FOREIGN_WARRIORS[faction_name].crisis_has_fired = true
                 end
             )
         end
     end 
-    dev.Events.add_regional_event("sw_foreign_settlers_conquest_", false, true, false, function(context) return false end, 2)
+    dev.Events.add_regional_event("sw_foreign_settlers_conquest_", false, true, false, function(context) return false end, 2, 1, function(context) --:WHATEVER
+        local region_key = string.gsub(context:dilemma(), "sw_foreign_settlers_conquest_", "")
+        local faction_name = dev.get_region(region_key):owning_faction():name()
+        local res = PettyKingdoms.FactionResource.get("sw_pop_foreign", dev.get_faction(faction_name))
+        res:change_value(120)
+    end)
     dev.eh:add_listener(
         "RegionChangesOwnership",
         "RegionChangesOwnership",
@@ -474,6 +483,20 @@ dev.first_tick(function(context)
             if cm:random_number(100) < chance then
                 dev.Events.force_regional_event("sw_foreign_settlers_conquest_", context:region():name(), context:region():owning_faction():name())
             end
+        end,
+        true
+    )
+    dev.eh:add_listener(
+        "IncidentOccuredEventForeignArmy",
+        "IncidentOccuredEvent",
+        function(context)
+            return not not string.find(context:dilemma(), "sw_foreign_army_")
+        end,
+        function(context)
+            local region_key = string.gsub(context:dilemma(), "sw_foreign_army_", "")
+            local region = dev.get_region(region_key)
+            
+
         end,
         true
     )

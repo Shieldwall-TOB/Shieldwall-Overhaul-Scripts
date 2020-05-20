@@ -160,7 +160,7 @@ local function check_norman_invasion(human_faction)
         return
     end
     END_GAME_INVASIONS["vik_fact_normaunds"].delay = entry.delay - 1
-    log("Cooldown on vik_fact_normaunds endgame invasion is: "..END_GAME_INVASIONS["vik_fact_normaunds"].delay)
+    log("Cooldown on vik_fact_normaunds endgame invasion is: "..tostring(END_GAME_INVASIONS["vik_fact_normaunds"].delay))
     if entry.delay <= normans_prelude_turn and not dev.Events.has_event_occured(normans_warning) then
         dev.Events.trigger_incident(normans_warning, human_faction)
     end
@@ -186,12 +186,12 @@ local function check_norse_invasion(human_faction)
         return
     end
     END_GAME_INVASIONS["vik_fact_norse"].delay = entry.delay - 1
-    log("Cooldown on vik_fact_norse endgame invasion is: "..END_GAME_INVASIONS["vik_fact_norse"].delay)
+    log("Cooldown on vik_fact_norse endgame invasion is: "..tostring(END_GAME_INVASIONS["vik_fact_norse"].delay))
     if entry.delay <= 0 then
         local location_key = entry.spawns[cm:random_number(#entry.spawns)]
         spawn_invasion("vik_fact_norse", location_key)
         local jorvik_owner = dev.get_region(norse_location):owning_faction()
-        if not dev.get_faction("vik_fact_norse"):at_war_with(jorvik_owner) then
+        if jorvik_owner:name() ~= "vik_fact_norse" and not dev.get_faction("vik_fact_norse"):at_war_with(jorvik_owner) then
             cm:force_declare_war("vik_fact_norse", jorvik_owner:name())
         end
         if human_faction:name() == jorvik_owner:name() then
@@ -206,10 +206,12 @@ dev.first_tick(function(context)
         "EndGameInvasionsTurnStart",
         "KingdomTurnStart",
         function(context)
-            return (context:table_data()[context:faction():name()][2] == true) or (context:faction():is_human() and CONST.__testcases.__test_endgame_invasions)
+            local table = context:table_data()[context:faction():name()]
+            return (table and table[2] == true) or (context:faction():is_human() and CONST.__testcases.__test_endgame_invasions)
         end,
         function(context)
             local faction = context:faction()
+            log("Checking Endgame invasions for "..faction:name())
             if CONST.__testcases.__test_endgame_invasions then
                 log("TEST VAR IS ACTIVE: CONST.__testcases.__test_endgame_invasions")
             end
@@ -218,7 +220,7 @@ dev.first_tick(function(context)
         end,
         true)
     dev.eh:add_listener(
-        "GameGameInvasionManagers",
+        "EndGameInvasionManagers",
         "FactionTurnStart",
         function(context)
             return not not END_GAME_INVASIONS[context:faction():name()]
@@ -231,7 +233,7 @@ dev.first_tick(function(context)
                 local owner = dev.get_region(norse_location):owning_faction()
                 log("Jorvik is owned by: "..owner:name())
                 if owner:name() ~= faction:name() then
-                    dev.SetFactionsHostile(faction:name(), owner:name())
+                    dev.set_factions_hostile(faction:name(), owner:name())
                     if not faction:at_war_with(owner) then
                         log("Declaring war on owner!")
                         cm:force_declare_war(faction:name(), owner:name())
@@ -254,7 +256,7 @@ dev.first_tick(function(context)
                     local owner = dev.get_region(list[closest_target_i]):owning_faction()
                     if owner:name() ~= faction:name() then
                         log("closest target was owned by: "..owner:name())
-                        dev.SetFactionsHostile(faction:name(), owner:name())
+                        dev.set_factions_hostile(faction:name(), owner:name())
                         if not faction:at_war_with(owner) then
                             log("Declaring war on owner!")
                             cm:force_declare_war(faction:name(), owner:name())
@@ -269,7 +271,7 @@ dev.first_tick(function(context)
                     if not char:region():is_null_interface() then
                         if char:region():owning_faction():name() ~= faction:name() and not (char:region():owning_faction():is_vassal_of(faction)) then
                             if not faction:at_war_with(char:region():owning_faction()) then
-                                dev.SetFactionsHostile(faction:name(), char:region():owning_faction():name())
+                                dev.set_factions_hostile(faction:name(), char:region():owning_faction():name())
                                 cm:force_declare_war(faction:name(), char:region():owning_faction():name())
                             end
                         end

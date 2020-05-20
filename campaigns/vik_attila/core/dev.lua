@@ -470,6 +470,11 @@ local function dev_get_faction(key)
     return nil;
 end
 
+--v function(chance: int) --> boolean
+local function dev_chance(chance)
+    return cm:random_number(100) <= chance
+end
+
 --v function(cqi: CA_CQI) --> CA_FORCE
 local function dev_get_force(cqi)
     if cm:model():has_military_force_command_queue_index(cqi) then
@@ -506,6 +511,11 @@ end
 local function dev_distance_2D(ax, ay, bx, by)
     return (((bx - ax) ^ 2 + (by - ay) ^ 2) ^ 0.5);
 end;
+
+--v function() --> int
+local function dev_turn()
+    return cm:model():turn_number()
+end
 
 
 --v function(character: CA_CHAR) --> string
@@ -692,32 +702,32 @@ local function dev_turn_start(faction_name, callback)
     callback, true)
 end
 
---v function(incident_key: string, callback: function(context: WHATEVER))
-local function dev_respond_to_incident(incident_key, callback)
+--v function(event_key: string, callback: function(context: WHATEVER))
+local function dev_respond_to_incident(event_key, callback)
     get_eh():add_listener(
-		incident_key.."_response",
+		event_key.."_response",
 		"IncidentOccuredEvent",
 		function(context)
-			return context:dilemma() == incident_key
+			return context:dilemma() == event_key
 		end,
         function(context)
-            MODLOG("Responding to incident: "..incident_key)
+            MODLOG("Responding to incident: "..event_key)
 			callback(context)
 		end,
 		false
 	)
 end
 
---v function(dilemma_key: string, callback: function(context: WHATEVER))
-local function dev_respond_to_dilemma(dilemma_key, callback)
+--v function(event_key: string, callback: function(context: WHATEVER))
+local function dev_respond_to_dilemma(event_key, callback)
     get_eh():add_listener(
-		dilemma_key.."_response",
+		event_key.."_response",
 		"DilemmaChoiceMadeEvent",
 		function(context)
-			return context:dilemma() == dilemma_key
+			return context:dilemma() == event_key
 		end,
         function(context)
-            MODLOG("Responding to dilemma: "..dilemma_key)
+            MODLOG("Responding to dilemma: "..event_key)
 			callback(context)
 		end,
 		false
@@ -909,10 +919,12 @@ return {
     out_details_for_children = dev_print_all_uicomponent_details,
     get_uic = find_uicomponent,
     uic_from_vec = find_uicomponent_by_table,
+    chance = dev_chance,
     get_faction = dev_get_faction,
     get_region = dev_get_region,
     get_character = dev_get_character,
     is_char_normal_general = dev_is_char_normal_general,
+    turn = dev_turn,
     get_force = dev_get_force,
     lookup = char_lookup_str,
     closest_settlement_to_char = dev_closest_settlement_to_char,
@@ -943,5 +955,5 @@ return {
     is_character_near_region = dev_is_character_near_region, 
     spawn_blockers = SPAWN_BLOCKERS,
     clear_spawn_blockers = dev_clear_spawn_blockers,
-    SetFactionsHostile =  dev_SetFactionsHostile,
+    set_factions_hostile =  dev_SetFactionsHostile,
 }

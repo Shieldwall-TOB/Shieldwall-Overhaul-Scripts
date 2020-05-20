@@ -79,7 +79,8 @@ local function apply_turn_start(faction)
     local past_famine = nobles:get_factor(famine_factor) --this will be a negative number
     local past_levy = nobles:get_factor(recruitment_factor) --this will be a negative number
     local past_raids = nobles:get_factor(raiding_factor) --this will be a negative number
-    local region_base = nobles:get_factor(region_factor)
+    local past_overcrowding = nobles:get_factor(overcrowding_factor)
+    local region_base = nobles:get_factor(region_factor) + nobles:get_factor(estates_factor)
     local past_riots = nobles:get_factor(riots_factor)
     local allegiance = 0 --:number
     local region_list = dev.region_list(faction)
@@ -93,7 +94,7 @@ local function apply_turn_start(faction)
         end
     end
     nobles:set_factor(allegiance_factor, dev.mround(allegiance, 1))
-    local actual_pop_base = past_growth + past_famine + past_levy + region_base + past_raids + past_riots + allegiance
+    local actual_pop_base = past_growth + past_famine + past_overcrowding + past_levy + region_base + past_raids + past_riots + allegiance
     local growth = 0 --:int
     --growth and famine
     local total_food = faction:total_food()
@@ -106,7 +107,7 @@ local function apply_turn_start(faction)
         nobles:change_value(growth, growth_factor)
     else
         local loss = dev.mround(-1*(actual_pop_base * (famine_loss/100)), 1)
-        nobles:change_value(loss, famine_factor)
+        nobles:change_value(loss, overcrowding_factor)
     end
 
     --overpopulation
@@ -145,11 +146,13 @@ dev.first_tick(function(context)
         local faction = dev.get_faction(human_factions[i])
         local region_list = dev.region_list(faction)
         local region_base_pop = 0 --:number
+        local estate_pop = 0 --:number
         local allegiance = 0 --:number
         for j = 0, region_list:num_items() - 1 do
             local current_region = region_list:item_at(j)     
             local manpower_obj = PettyKingdoms.RegionManpower.get(current_region:name())
             region_base_pop = region_base_pop + manpower_obj.base_lord()
+            estate_pop = estate_pop + manpower_obj.estate_lord_bonus
             if current_region:majority_religion() == faction:state_religion() then
                 allegiance = allegiance + (current_region:majority_religion_percentage()/100)*manpower_obj.base_lord()
             else
@@ -158,6 +161,7 @@ dev.first_tick(function(context)
         end
         nobles:set_factor(allegiance_factor, dev.mround(allegiance, 1))
         nobles:set_factor(region_factor, dev.mround(region_base_pop, 1))
+        nobles:set_factor(estates_factor, dev.mround(estate_pop, 1))
         nobles:reapply()
     end
 
@@ -193,7 +197,6 @@ dev.first_tick(function(context)
             nobles:set_factor(recruitment_factor, 0)
             nobles:set_factor(riots_factor, 0)
             nobles:set_factor(raiding_factor, 0)
-            --nobles:set_factor(estates_factor, 0)
         end
         apply_turn_start(cm:model():world():whose_turn_is_it())
     end

@@ -48,15 +48,19 @@ function region_manpower.new(key, base_serf, base_lord)
     self.estate_lord_bonus = 0 --:number
 
     self.base_serf = function()
-        return dev.mround(base_serf + self.settlement_serf_bonus, 1)
+        return dev.mround(base_serf, 1)
     end
     self.base_lord = function()
+        return dev.mround((base_lord)*lord_cap_proportion, 1) 
+    end
+    self.cap_serf = function()
+        return dev.mround(base_serf + self.settlement_serf_bonus, 1)
+    end
+    self.cap_lord = function()
         return dev.mround((base_lord+self.estate_lord_bonus)*lord_cap_proportion, 1) 
     end
     self.loss_cap = 100 --:number
     
-
-
 
     self.monk_pop = 0 --:number
     self.monk_cap = 0 --:number
@@ -107,26 +111,39 @@ end
 
 --v function(self: REGION_MANPOWER)
 function region_manpower.update_pop_caps(self)
-    local slot_list = dev.get_region(self.key):settlement():slot_list()
-    local cap = 0 --:number
-    self.settlement_serf_bonus = 0
-    self.estate_lord_bonus = 0
+    local region_obj = dev.get_region(self.key)
+    local slot_list = region_obj:settlement():slot_list()
+    local monk_cap = 0 --:number
+    local serf_cap = 0 --:number
+    local lord_cap = 0 --:number
     for i = 0, slot_list:num_items() - 1 do 
         local slot = slot_list:item_at(i)
         if slot:has_building() then
             local key  = slot:building():name()
             if monastery_sizes[key] then
-                cap = cap + monastery_sizes[key]
+                monk_cap = monk_cap + monastery_sizes[key]
             end
             if estate_sizes[key] then
-                self.estate_lord_bonus = self.estate_lord_bonus + estate_sizes[key]
+                lord_cap = lord_cap + estate_sizes[key]
             end
             if settlement_sizes[key] then
-                self.settlement_serf_bonus = self.settlement_serf_bonus + settlement_sizes[key]
+                serf_cap = serf_cap + settlement_sizes[key]
             end
         end
     end
-    self.monk_cap = cap
+    self.monk_cap = monk_cap
+    --if the lord cap has changed
+    if self.estate_lord_bonus ~= lord_cap and mod_functions.lord then
+        local change = lord_cap - self.estate_lord_bonus
+        mod_functions.lord(region_obj:owning_faction():name(), "manpower_estates", change)
+        self.estate_lord_bonus = lord_cap
+    end
+    --if the serf cap has changed
+    if self.settlement_serf_bonus ~= serf_cap and mod_functions.serf then
+        local change = serf_cap - self.settlement_serf_bonus
+        mod_functions.serf(region_obj:owning_faction():name(), "manpower_settlement_upgrades", change)
+        self.settlement_serf_bonus = serf_cap
+    end
 end
 
 --v function(self: REGION_MANPOWER, turns: number)
@@ -165,8 +182,13 @@ dev.pre_first_tick(function (context)
             local new_faction = context:region():owning_faction()
             local current_region = context:region() --:CA_REGION
             local old_monks = rmp.monk_pop
+            local old_serf_bonus = rmp.settlement_serf_bonus
+            local old_lord_bonus = rmp.estate_lord_bonus
             rmp:update_pop_caps()
             rmp:mod_monks(rmp.monk_pop*occupation_loss/100)
+            ----------------------------------------------
+            --The faction conquering the region is human--
+            ----------------------------------------------
             if new_faction:is_human() then
                 if mod_functions.serf then
                     local loss = dev.mround(rmp.base_serf()*lost_perc, 1)
@@ -189,13 +211,20 @@ dev.pre_first_tick(function (context)
                 if mod_functions.monk then
                     mod_functions.monk(new_faction:name(), "monk_gained_settlements", rmp.monk_pop)
                 end
+                --TODO slaves
             end
+            ------------------------------------------
+            --the faction losing the region is human--
+            ------------------------------------------
             if old_faction:is_human() then
                 if mod_functions.serf then
+                    --lose the regions manpower
                     mod_functions.serf(old_faction:name(), "manpower_region_population", dev.mround(rmp.base_serf()*-1*old_loss_cap_perc, 1))
+                    --lose the regions building bonuses
+                    mod_functions.serf(old_faction:name(), "manpower_settlement_upgrades", dev.mround(old_serf_bonus *-1, 1))
                 end
                 if mod_functions.lord then
-                    --loss the regions manpower
+                    --lose the regions manpower
                     mod_functions.lord(old_faction:name(), "manpower_region_population", dev.mround(rmp.base_lord()*-1*old_loss_cap_perc, 1))
                     local lord_allegiance_factor = 0 --:number
                     if current_region:majority_religion() == old_faction:state_religion() then
@@ -203,13 +232,16 @@ dev.pre_first_tick(function (context)
                     else
                         lord_allegiance_factor = lord_allegiance_factor - dev.mround(rmp.base_lord()/2, 1)
                     end
-                    --loss all allegiance from this region
+                    --lose all allegiance from this region
                     mod_functions.lord(old_faction:name(), "manpower_region_allegiance", -1*lord_allegiance_factor)
+                    --lose the regions estates
+                    mod_functions.lord(old_faction:name(), "manpower_estates", dev.mround(old_lord_bonus *-1, 1))
                 end
                 if mod_functions.monk then
                     mod_functions.monk(old_faction:name(), "monk_lost_settlements", old_monks)
                 end
                 if Gamedata.base_pop.slaves_factions[old_faction:name()] and mod_functions.slave then
+                    --TODO slaves
                     if current_region:is_province_capital() then
                         local slaves_lost = dev.mround(dev.clamp(rmp.base_serf()/2, 0, PettyKingdoms.FactionResource.get("vik_dyflin_slaves", old_faction).value/3), 1)
                         mod_functions.slave(old_faction:name(), "monk_lost_settlements", slaves_lost*-1)

@@ -14,7 +14,7 @@ return {
         __test_foreigner_events = false, 
         __test_endgame_invasions = false 
     },
-    __utilities = {
-        __create_land_spawns = true
+    __utilities = { --coded cheats or data creation scripts.
+        __create_land_spawns = false
     }
 }
