@@ -30,13 +30,13 @@ local game_interface_by_type = {
 condition_contructor = nil --:function(string) --> EVENT_CONDITION_GROUP
 
 
---v function(key: string, type_group: EVENT_CONDITION_GROUP, trigger_kind: GAME_EVENT_TRIGGER_KIND)
-function game_event.new(key, type_group, trigger_kind)
+--v function(manager: GAME_EVENT_MANAGER, key: string, type_group: EVENT_CONDITION_GROUP, trigger_kind: GAME_EVENT_TRIGGER_KIND) --> GAME_EVENT
+function game_event.new(manager, key, type_group, trigger_kind)
     local self = {}
     setmetatable(self, {
         __index = game_event
     }) --# assume self: GAME_EVENT
-
+    self.manager = manager
     self.key = key
     self.event_type = type_group.name
     self.type_group = type_group
@@ -52,8 +52,7 @@ function game_event.new(key, type_group, trigger_kind)
         self.own_group
     } --:vector<EVENT_CONDITION_GROUP>
 
-    self.event_occured_callbacks = {} --:vector<(function(context: WHATEVER))>
-
+    return self
 end
 
 --queries
@@ -82,10 +81,22 @@ end
 
 --mods
 
---v function(self: GAME_EVENT, group: EVENT_CONDITION_GROUP)
-function game_event.add_group_to_event(self, group)
-    table.insert(self.groups, group)
+--v function(self: GAME_EVENT, group_name: string)
+function game_event.join_group(self, group_name)
+    local group = self.manager.condition_groups[group_name]
+    if not group then
+        self.manager:log("Attempted to add "..self.key.." to event group: ".. group_name .." which does not exist!")
+        return
+    end
+    dev.insert(self.groups, 2, group)
     group:add_event(self)
+end
+
+--v function(self: GAME_EVENT, ...: string)
+function game_event.join_groups(self, ...)
+    for i = 1, #arg do
+        self:join_group(arg[i])
+    end
 end
 
 --v function(self: GAME_EVENT, condition: (function(context: WHATEVER) --> boolean))
@@ -95,8 +106,20 @@ end
 
 --v function(self: GAME_EVENT, callback: function(context: WHATEVER))
 function game_event.add_callback(self, callback)
-    table.insert(self.event_occured_callbacks, callback)
+    self.own_group.callback  = callback
 end
+
+
+--v function(self: GAME_EVENT, cooldown: int)
+function game_event.set_cooldown(self, cooldown)
+    self.own_group.cooldown = cooldown
+end
+
+--v function(self: GAME_EVENT, num_allowed: int)
+function game_event.set_number_allowed_in_queue(self, num_allowed)
+    self.own_group.num_allowed_queued = num_allowed
+end
+
 
 --system
 
@@ -106,11 +129,14 @@ local trigger_by_kind = {
 
         local turn = dev.turn()
         callback_by_type[event_object.event_type]()(event_object.key, function(context) 
+            if event_object.event_type == "dilemma" then
+                custom_event_context.choice_data = context:choice()
+            end
             for i = 1, #event_object.groups do
                 event_object.groups[i]:OnMemberEventOccured(event_object.key, turn)
             end
-            for i = 1, #event_object.event_occured_callbacks do
-                event_object.event_occured_callbacks[i](custom_event_context) 
+            for i = 1, #event_object.groups do
+                event_object.groups[i].callback(custom_event_context) 
             end 
         end)
         game_interface_by_type[event_object.event_type](custom_event_context:faction():name(), event_object.key)
@@ -119,20 +145,27 @@ local trigger_by_kind = {
         custom_event_context) --:WHATEVER
         local actual_event_key = event_object.key .. custom_event_context:region():name()
         local turn = dev.turn()
-        callback_by_type[event_object.event_type]()(actual_event_key, function(context) 
+        callback_by_type[event_object.event_type]()(actual_event_key, function(context)
+            if event_object.event_type == "dilemma" then
+                custom_event_context.choice_data = context:choice()
+            end
             for i = 1, #event_object.groups do
                 event_object.groups[i]:OnMemberEventOccured(event_object.key, turn)
             end
-            for i = 1, #event_object.event_occured_callbacks do
-                event_object.event_occured_callbacks[i](custom_event_context) 
+            for i = 1, #event_object.groups do
+                event_object.groups[i].callback(custom_event_context) 
             end 
         end)
         game_interface_by_type[event_object.event_type](custom_event_context:faction():name(), actual_event_key)
     end,
     trait_flag = function(event_object, --:GAME_EVENT
         custom_event_context) --:WHATEVER
-        for i = 1, #event_object.event_occured_callbacks do
-            event_object.event_occured_callbacks[i](custom_event_context) 
+        local turn = dev.turn()
+        for i = 1, #event_object.groups do
+            event_object.groups[i]:OnMemberEventOccured(event_object.key, turn)
+        end
+        for i = 1, #event_object.groups do
+            event_object.groups[i].callback(custom_event_context) 
         end 
     end
 } --:map<GAME_EVENT_TRIGGER_KIND, function(event_object: GAME_EVENT, custom_event_context: WHATEVER)>
@@ -140,7 +173,10 @@ local trigger_by_kind = {
 --v function(self: GAME_EVENT, custom_event_context: WHATEVER)
 function game_event.trigger(self, custom_event_context)
     if trigger_by_kind[self.trigger_kind] then
+        self.manager:log("Triggering event: "..self.key)
         trigger_by_kind[self.trigger_kind](self, custom_event_context)
+    else
+        self.manager:log("WARNING: no trigger kind for event "..self.key)
     end
 end
 

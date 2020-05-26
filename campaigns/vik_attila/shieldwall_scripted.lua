@@ -4,12 +4,18 @@ Gamedata = {}
 Gamedata.unit_info = require("game_data/unit_info")
 dev = require("core/dev")
 dev.log("Development library loaded, starting to load gameplay scripts")
-dev.Save = require("core/save")
-dev.Events = require("core/Events")
-dev.Check = require("core/checks")
+local ok, err = pcall(function()
+    dev.Save = require("core/save")
+    dev.Events = require("core/Events")
+    dev.Check = require("core/checks")
 
-require("story/Events")
-
+    dev.GameEvents = require("story/Events")
+end)
+if not ok then 
+    dev.log("Error loading supplemental dev files")
+    dev.log(tostring(err))
+    dev.log(debug.traceback())
+end
 --require UI Libaries
 UIScript = {}
 local ok, err = pcall( function()
@@ -38,6 +44,7 @@ if not ok then
     dev.log(tostring(err))
     dev.log(debug.traceback())
 end
+
 
 --require object models
 PettyKingdoms = {} 

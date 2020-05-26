@@ -906,6 +906,11 @@ local function dev_SetFactionsHostile(faction1, faction2)
 	cm:cai_strategic_stance_manager_block_all_stances_but_that_specified_towards_target_faction(faction2, faction1, "CAI_STRATEGIC_STANCE_BITTER_ENEMIES"); 
 end
 
+--this is to get Kailua to accept how fucking stupid table.insert's alt call is.
+--v [NO_CHECK] function(t: vector<WHATEVER>, pos: int, item: any)
+function dev_insert(t, pos, item)
+    table.insert(t, pos, item)
+end
 
 return {
     log = MODLOG,
@@ -933,6 +938,7 @@ return {
     faction_list = dev_faction_list,
     clamp = dev_clamp,
     mround = dev_mround,
+    insert = dev_insert,
     arg = dev_pack_args,
     split_string = dev_split_string,
     add_settlement_selected_log = dev_add_settlement_select_log_call,

@@ -130,8 +130,8 @@ dev.first_tick(function(context)
         PettyKingdoms.RegionManpower.add_settlement_pop_bonus(k, v.value)
     end
     dev.eh:add_listener(
-        "SerfsFactionBeginTurnPhaseNormal",
-        "FactionBeginTurnPhaseNormal",
+        "SerfsFactionTurnStart",
+        "FactionTurnStart",
         function(context)
             return context:faction():is_human() 
         end,

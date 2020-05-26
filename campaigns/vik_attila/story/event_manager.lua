@@ -11,6 +11,7 @@ local queue_times = {
 
 local default_groups = {"dilemma", "incident", "mission"}
 
+--v function() --> GAME_EVENT_MANAGER
 function game_event_manager.new()
 
     local self = {}
@@ -34,6 +35,8 @@ function game_event_manager.new()
         name = "GAME_EVENT_MANAGER", 
         for_save = {"event_queue", "queue_map"}
     }--:SAVE_SCHEMA
+    dev.Save.attach_to_object(self)
+    return self
 end
 
 local condition_group = require("story/event_condition_groups")
@@ -41,13 +44,39 @@ local condition_group = require("story/event_condition_groups")
 --v function(self: GAME_EVENT_MANAGER, new_condition_group: EVENT_CONDITION_GROUP, schedule: GAME_EVENT_QUEUE_TIMES?)
 function game_event_manager.register_condition_group(self, new_condition_group, schedule)
     self.condition_groups[new_condition_group.name] = new_condition_group
+    local t = "Registered " .. new_condition_group.name .. " as an event condition group"
     if schedule then
         --# assume schedule: GAME_EVENT_QUEUE_TIMES
         table.insert(self.schedule[schedule], new_condition_group)
+        t = t .. "; scheduled group for " ..schedule
     end
+    self:log(t)
 end
 
+--v function(self: GAME_EVENT_MANAGER, name: string, condition: (function(context: WHATEVER) --> boolean)?) --> EVENT_CONDITION_GROUP
+function game_event_manager.create_new_condition_group(self, name, condition)
+    local new_group = condition_group.new(name)
+    if condition then
+        new_group.queue_time_condition = condition
+    end
+    return new_group
+end
+
+--game events
 local game_event = require("story/event")
+
+--v function(self: GAME_EVENT_MANAGER, name: string, event_type: GAME_EVENT_TYPE, event_trigger_kind: GAME_EVENT_TRIGGER_KIND) --> GAME_EVENT
+function game_event_manager.create_event(self, name, event_type, event_trigger_kind)
+    local type_group = self.condition_groups[event_type]
+    if not type_group then
+        self:log("Attempting to create event: "..name..". The provided event type "..event_type.." is not registered!")
+    end
+    local new_event = game_event.new(self, name, type_group, event_trigger_kind)
+    self.events[name] = new_event
+    return new_event
+end
+
+--internals
 
 --v [NO_CHECK] function(self: GAME_EVENT_MANAGER, ...:any) --> WHATEVER
 function game_event_manager.build_context_for_event(self, ...)
@@ -55,6 +84,9 @@ function game_event_manager.build_context_for_event(self, ...)
     local context = custom_context:new();
     for i = 1, arg.n do
         local current_obj = arg[i];
+        if is_string(current_obj) and self.events[current_obj] then
+            current_obj = self.events[current_obj]
+        end
         context:add_data(current_obj);
     end
     return context
@@ -62,10 +94,11 @@ end
 
 --v function(self: GAME_EVENT_MANAGER, queued_event: QUEUED_GAME_EVENT) --> WHATEVER
 function game_event_manager.build_context_from_queued_event(self, queued_event)
-    local event = queued_event
-    local faction_to_recieve = dev.get_faction(event.faction_key)
-    local region_to_recieve = dev.get_region(event.region_key) or true
-    local character_to_recieve = dev.get_character(event.char_cqi) or true
+    self:log("Building event context for: "..queued_event.event_key)
+    local event = self.events[queued_event.event_key]
+    local faction_to_recieve = dev.get_faction(queued_event.faction_key)
+    local region_to_recieve = dev.get_region(queued_event.region_key) or true
+    local character_to_recieve = dev.get_character(queued_event.char_cqi) or true
     return self:build_context_for_event(event, faction_to_recieve, region_to_recieve, character_to_recieve)
 end
 
@@ -76,16 +109,26 @@ function game_event_manager.get_event_from_queue(self, event_key)
     return event
 end
 
---v function(self: GAME_EVENT_MANAGER, event_key: string) --> boolean
-function game_event_manager.remove_event_from_queue(self, event_key)
-    if event_key == "" then
+--v function(self: GAME_EVENT_MANAGER, event_key: string, should_notify: boolean) --> boolean
+function game_event_manager.remove_event_from_queue(self, event_key, should_notify)
+    if (not event_key) or (not self.events[event_key]) then
         return false
     end
     local position_in_queue = self.queue_map[event_key]
     local queue_entry = self.event_queue[position_in_queue]
+    if self.events[event_key].trigger_kind == "trait_flag" then
+        local char_cqi = queue_entry.char_cqi
+        dev.remove_trait(char_cqi, event_key .. "_flag")
+    end
     if queue_entry.event_key == event_key then
         table.remove(self.event_queue, position_in_queue)
         self.queue_map[event_key] = nil
+        if should_notify then
+            local turn = dev.turn()
+            for i = 1, #self.events[event_key].groups do
+                self.events[event_key].groups[i]:OnMemberEventRemovedFromQueue(event_key, turn)
+            end
+        end
         return true
     end
     return false
@@ -93,6 +136,7 @@ end
 
 --v function(self: GAME_EVENT_MANAGER, event_object: GAME_EVENT, context: WHATEVER)
 function game_event_manager.queue_event(self, event_object, context)
+    self:log("Queueing Event: "..event_object.key)
     local queue_entry = {event_key = event_object.key, faction_key = context:faction():name()} --:QUEUED_GAME_EVENT
     if context:character() then
         queue_entry.char_cqi = context:character():command_queue_index()
@@ -115,14 +159,26 @@ end
 
 --v function(self: GAME_EVENT_MANAGER, main_group: EVENT_CONDITION_GROUP, event_object: GAME_EVENT, event_context: WHATEVER) --> (boolean, string?)
 function game_event_manager.can_queue_event(self, main_group, event_object, event_context)
+    --self:log("Checking if "..event_object.key.." is queueable")
+    if not event_context.game_event_data then
+        event_context.game_event_data = event_object
+    end
     local groups_to_check = event_object.groups
     for i = 1, #groups_to_check do
         local group = groups_to_check[i]
         if group ~= main_group then
             if group:is_off_cooldown() and group:has_room_in_queue() then
-                local condition_result = group.queue_time_condition(event_context)
+                local condition_result = false
+                local ok, err = pcall(function()
+                    condition_result = group.queue_time_condition(event_context)
+                end)
+                if not ok then
+                    condition_result = false
+                    self:log("Event "..event_object.key .. " has errored on conditions given by group: "..group.name)
+                    self:log(err)
+                end
                 if condition_result then
-                    self:log("Event "..event_object.key .. " has passed conditions given by group: "..group.name)
+                    --self:log("Event "..event_object.key .. " has passed conditions given by group: "..group.name)
                 else
                     return false
                 end
@@ -134,13 +190,21 @@ function game_event_manager.can_queue_event(self, main_group, event_object, even
     if not main_group:is_off_cooldown() then 
         return false
     end
+    local main_group_result = false --:boolean
+    local ok, err = pcall(function()
+        main_group_result = main_group.queue_time_condition(event_context)
+    end)
+    if not ok then
+        self:log("Event "..event_object.key .. " has errored on conditions given by group: "..main_group.name)
+        self:log(err)
+    end
     if main_group:has_room_in_queue() then
-        return main_group.queue_time_condition(event_context)
+        return main_group_result
     elseif main_group.permits_swapping then
         local chance_to_swap_in = main_group:get_swap_chance(event_object.key)
         if dev.chance(chance_to_swap_in) then
             local swap_out = main_group.last_queued_event
-            return main_group.queue_time_condition(event_context), swap_out 
+            return main_group_result, swap_out 
         end
     end
     return false
@@ -152,8 +216,32 @@ function game_event_manager.force_check_and_queue_event(self, event_key, event_c
     if not event_object then
         self:log("Tried to force check and queue for an event: "..event_key.." but this event does not have any registry in the events manager")
     end
+    self:log("Forcibly checking event "..event_key.." for validity and adding to queue!")
     if self:can_queue_event(event_object.own_group, event_object, event_context) then
         self:queue_event(event_object, event_context)
+    end
+end
+
+--v function(self: GAME_EVENT_MANAGER, event_key: string, event_context: WHATEVER) --> boolean
+function game_event_manager.force_check_and_trigger_event_immediately(self, event_key, event_context)
+    local event_object = self.events[event_key]
+    if not event_object then
+        self:log("Tried to force check and trigger for an event: "..event_key.." but this event does not have any registry in the events manager")
+        return false
+    end
+    if event_object.type_group.name ~= "incident" then
+        self:log("WARNING: asked to trigger a dilemma or mission immediately! This is not supported, these events must use the Queue!")
+        return false
+    end
+    if event_object.trigger_kind == "trait_flag" then
+        self:log("Error: tried to force check and trigger an event with the trigger kind trait_flag. These events cannot be force triggered.")
+        return false
+    end
+    if self:can_queue_event(event_object.own_group, event_object, event_context) then
+        event_object:trigger(event_context)
+        return true
+    else
+        return false
     end
 end
 
@@ -190,12 +278,14 @@ function game_event_manager.start_player_turn(self, player_faction)
     local qt = "FactionTurnStart" --:GAME_EVENT_QUEUE_TIMES
     local scheduled_groups = self.schedule[qt]
     local context = self:build_context_for_event(player_faction)
+    self:log("Checking schedule: "..qt)
     for i = 1, #scheduled_groups do
         local this_group = scheduled_groups[i]
+        self:log("Checking group: "..this_group.name)
         for event_key, event_object in pairs(this_group.members) do
             local can_queue, displaces_event = self:can_queue_event(this_group, event_object, context)
             if can_queue and displaces_event then
-                if self:remove_event_from_queue(displaces_event) then
+                if self:remove_event_from_queue(displaces_event, true) then
                     self:queue_event(event_object, context)
                 end
             elseif can_queue then
@@ -207,17 +297,23 @@ function game_event_manager.start_player_turn(self, player_faction)
     local qt = "RegionTurnStart" --:GAME_EVENT_QUEUE_TIMES
     local scheduled_groups = self.schedule[qt]
     local region_list = player_faction:region_list()
+    self:log("Checking schedule: "..qt)
     for i = 1, #scheduled_groups do
         local this_group = scheduled_groups[i]
+        self:log("Checking group: "..this_group.name)
         for event_key, event_object in pairs(this_group.members) do
+            self:log("Checking event: "..event_key)
             for j = 0, region_list:num_items() - 1 do
                 local region_context = self:build_context_for_event(player_faction, region_list:item_at(j))
                 local can_queue, displaces_event = self:can_queue_event(this_group, event_object, region_context)
                 if can_queue and displaces_event then
-                    if self:remove_event_from_queue(displaces_event) then
+                    --# assume displaces_event: string
+                    if self:remove_event_from_queue(displaces_event, true) then
+                        self:log("Queueing event "..event_key.." and displacing event "..displaces_event)
                         self:queue_event(event_object, region_context)
                     end
                 elseif can_queue then
+                    self:log("Queueing event "..event_key)
                     self:queue_event(event_object, region_context)
                 end
             end
@@ -227,8 +323,10 @@ function game_event_manager.start_player_turn(self, player_faction)
     local qt = "CharacterTurnStart" --:GAME_EVENT_QUEUE_TIMES
     local scheduled_groups = self.schedule[qt]
     local character_list = player_faction:character_list()
+    self:log("Checking schedule: "..qt)
     for i = 1, #scheduled_groups do
         local this_group = scheduled_groups[i]
+        self:log("Checking group: "..this_group.name)
         for event_key, event_object in pairs(this_group.members) do
             for j = 0, character_list:num_items() - 1 do
                 local character = character_list:item_at(j)
@@ -236,7 +334,7 @@ function game_event_manager.start_player_turn(self, player_faction)
                     local character_context = self:build_context_for_event(player_faction, character, character:region())
                     local can_queue, displaces_event = self:can_queue_event(this_group, event_object, character_context)
                     if can_queue and displaces_event then
-                        if self:remove_event_from_queue(displaces_event) then
+                        if self:remove_event_from_queue(displaces_event, true) then
                             self:queue_event(event_object, character_context)
                         end
                     elseif can_queue then
@@ -246,11 +344,13 @@ function game_event_manager.start_player_turn(self, player_faction)
             end
         end
     end
+    self:log("Firing Queue")
     --fire the events waiting in the Queue
     self:fire_queued_events(player_faction)
 end
 
 local active_manager = nil --:GAME_EVENT_MANAGER
+--v function() --> GAME_EVENT_MANAGER
 local function initialize_game_events()
     --init objects
     game_event.init(condition_group.new)
@@ -268,39 +368,44 @@ local function initialize_game_events()
 
     local incident = condition_group.new("incident")
     active_manager:register_condition_group(incident)
-
-    dev.eh:add_listener(
-        "EventsCore",
-        "FactionTurnStart",
-        function(context)
-            return context:faction():is_human()
-        end,
-        function(context)
-            active_manager:start_player_turn(context:faction())
-        end,
-        true
-    )
-    dev.eh:add_listener(
-        "EventsCore",
-        "DilemmaIssued",
-        true,
-        function(context)
-            local key = context:dilemma() --:string
-            if active_manager.events[key] and active_manager.events[key].trigger_kind == "trait_flag" then
-                local queued_event = active_manager:get_event_from_queue(key)
-                if queued_event then
-                    local event_context = active_manager:build_context_from_queued_event(queued_event)
-                    if event_context then
-                        active_manager.events[key]:trigger(event_context)
+    dev.first_tick(function(context)
+        dev.eh:add_listener(
+            "EventsCore",
+            "FactionBeginTurnPhaseNormal",
+            function(context)
+                return context:faction():is_human()
+            end,
+            function(context)
+                active_manager:start_player_turn(context:faction())
+            end,
+            true
+        )
+        dev.eh:add_listener(
+            "EventsCore",
+            "DilemmaIssued",
+            true,
+            function(context)
+                local key = context:dilemma() --:string
+                if active_manager.events[key] and active_manager.events[key].trigger_kind == "trait_flag" then
+                    local queued_event = active_manager:get_event_from_queue(key)
+                    if queued_event then
+                        local event_context = active_manager:build_context_from_queued_event(queued_event)
+                        event_context.choice_data = context:choice()
+                        if event_context then
+                            active_manager.events[key]:trigger(event_context)
+                            local ok = active_manager:remove_event_from_queue(key, false)
+                            if not ok then
+                                active_manager:log("Failed to remove flagged dilemma "..key.." from the Queue after it fired!")
+                            end
+                        end
                     end
                 end
-            end
-        end,
-        true
-    )
+            end,
+            true
+        )
+    end)
+    return active_manager
 end
 
-return {
-    init = initialize_game_events,
-    events = active_manager
-}
+
+return initialize_game_events()

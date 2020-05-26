@@ -31,6 +31,8 @@ function condition_group.new(name)
     --allows events in the same group to share conditions for queue time.
     self.queue_time_condition = function(context) return true end --:function(context: WHATEVER) --> boolean
 
+    self.callback = function(context) end --:function(context: WHATEVER)
+
     self.save = {
         name = "event_condition_group_"..name, 
         for_save = {"last_turn_occured", "last_queued_event"}
@@ -61,6 +63,25 @@ function condition_group.add_event(self, event)
     self.members[event.key] = event
 end
 
+--v function(self: EVENT_CONDITION_GROUP)
+function condition_group.enable_swapping(self)
+    self.permits_swapping = true
+end
+
+--v function(self: EVENT_CONDITION_GROUP, cooldown: int)
+function condition_group.set_cooldown(self, cooldown)
+    self.cooldown = cooldown
+end
+
+--v function(self: EVENT_CONDITION_GROUP, num_allowed: int)
+function condition_group.set_number_allowed_in_queue(self, num_allowed)
+    self.num_allowed_queued = num_allowed
+end
+
+--v function(self: EVENT_CONDITION_GROUP, callback: function(context: WHATEVER))
+function condition_group.add_callback(self, callback)
+    self.callback  = callback
+end
 
 --system
 --v function(self: EVENT_CONDITION_GROUP, event: string,turn: int)

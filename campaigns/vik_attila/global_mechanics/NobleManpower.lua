@@ -177,8 +177,8 @@ dev.first_tick(function(context)
     end
 
     dev.eh:add_listener(
-        "LordsFactionBeginTurnPhaseNormal",
-        "FactionBeginTurnPhaseNormal",
+        "LordsFactionTurnStart",
+        "FactionTurnStart",
         function(context)
             return context:faction():is_human() 
         end,

@@ -270,7 +270,7 @@ end;
 custom_context = {};
 
 local additional_context_types = {
-	["sheildwall_game_event"] = "event_data"
+	["sheildwall_game_event"] = "game_event_data"
 }
 
 function custom_context:new()
@@ -307,7 +307,7 @@ function custom_context:add_data(obj)
 		self.number = obj;
 	elseif is_region(obj) then
 		self.region_data = obj;
-		if obj:has_governor() then
+		if obj:is_province_capital() and obj:has_governor() then
 			self.governor_data = obj:governor()
 		end
 	elseif is_character(obj) then
@@ -341,9 +341,18 @@ function custom_context:add_data(obj)
 	end;	
 end;
 
-
+function custom_context:choice()
+	return self.choice_data
+end
 function custom_context:game_event()
 	return self[additional_context_types["shieldwall_game_event"]]
+end
+
+function custom_context:dilemma()
+	if not self[additional_context_types["shieldwall_game_event"]] then
+		return nil
+	end
+	return self[additional_context_types["shieldwall_game_event"]].key
 end
 
 function custom_context:governor()

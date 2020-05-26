@@ -47,7 +47,7 @@ local function add_blank_foreign_warrior_entry(faction_key)
         last_tension = 0,
         in_crisis = false,
         crisis_has_fired = false,
-        crisis_level = 1,
+        crisis_level = 0,
         building_modifiers = {},
         events_triggered = {}
     }
@@ -248,7 +248,7 @@ dev.first_tick(function(context)
         return PettyKingdoms.FactionResource.get("sw_pop_foreign", dev.get_faction(faction_name)).value
     end, 
     function(faction_name, quantity)
-        PettyKingdoms.FactionResource.get("sw_pop_foreign", dev.get_faction(faction_name)):change_value(quantity, recruitment_factor)
+        PettyKingdoms.FactionResource.get("sw_pop_foreign", dev.get_faction(faction_name)):change_value(quantity)
     end, "dy_pop_foreign")
     for k, entry in pairs(Gamedata.unit_info.main_unit_size_caste_info) do
         if Gamedata.unit_info.mercenary_units[k] then
@@ -259,42 +259,168 @@ dev.first_tick(function(context)
     rec_handler.image_state = "foreigner"
 
 end)
----{is_dilemma, is_capitals, is_villages, fw_pop_changes, fw_tensions_changes, cd}
+
+local events = dev.GameEvents
 local events_regional = {
-    sw_foreign_warriors_trial_fair_ = {false, true, false, 
-            {}, 
-            {[1] = -1.10},
-        24},
-    sw_foreign_warriors_trial_unfair_ = {false, true, false, 
-            {}, 
-            {[1] = 1.10},
-            24},
-    sw_foreign_settlers_drive_out_ = {true, true, false, {}, {}, 24},
-    sw_foreign_settlers_drive_out_here_king_ = {true, true, false, {}, {}, 24},
-    sw_foreign_dead_wife_ = {false, false, true, {}, {}, 24},
-    sw_foreign_grumpy_neighbours_ = {false, false, true, {}, {}, 24},
-    sw_foreign_drunk_brawl_ = {false, true, false, {}, {}, 24},
-    sw_foreign_priest_assaulted_ = {false, true, false, {}, {}, 24},
-    sw_foreign_sheep_ = {false, false, true, {}, {}, 24},
-    sw_foreign_fields_ = {false, false, true, {}, {}, 24},
-    sw_foreign_cows_ = {false, false, false, {}, {}, 24},
-    sw_foreign_bees_ = {false, true, false, {}, {}, 24},
-    sw_foreign_esc_vandalism_ = {false, true, false, {}, {}, 24},
-    sw_foreign_esc_tar_and_feather_ = {false, false, true, {}, {}, 24},
-    sw_foreign_esc_gothi_ = {false, false, true, {}, {}, 24},
-    sw_foreign_church_crafts_ = {false, true, false, {}, {}, 24},
-    sw_foreign_mine_ = {false, false, true, {}, {}, 24},
-    sw_foreign_soldiers_ = {false, true, false, {}, {}, 24},
-    sw_foreign_food_stores_ = {false, true, false, {}, {}, 24},
-    sw_foreign_banditry_ = {false, false, true, {}, {}, 24},
-    sw_foreign_settlement_ = {false, true, false, {}, {}, 24},
-    sw_foreign_spies_ = {false, true, false, {}, {}, 24},
-    sw_foreign_plot_governor_ = {true, true, false, {}, {}, 24},
-    sw_foreign_displacement_ = {true, true, false, {}, {}, 24},
-    sw_foreign_army_ = {false, false, true, {[1] = -0.40}, {}, 24},
-    sw_foreign_oaths_ = {true, true, false, {}, {}, 24},
-    sw_foreign_ports_ = {false, true, false, {}, {}, 24}
-} --:map<string, {boolean, boolean, boolean, map<int, number>, map<int, number>, int}>
+    sw_foreign_bees_ = {
+        event_type = "incident",
+        group = {"ProvinceCapitals", "GenericForeignWarriors"}
+    },
+    sw_foreign_soldiers_ = {
+        event_type = "incident",
+        group = {"ProvinceCapitals", "GenericForeignWarriorsMid"},
+        callback = function(context) --:WHATEVER
+
+        end
+    },
+    sw_foreign_warriors_trial_fair_ = {
+        event_type = "incident",
+        group = {"ProvinceCapitals"}
+    },
+    sw_foreign_esc_gothi_ = {
+        event_type = "incident",
+        group = {"NotProvinceCapitals", "EscalationsForeignWarriorsLate"},
+        callback = function(context) --:WHATEVER
+            local faction = context:faction() --:CA_FACTION
+            local fw = FOREIGN_WARRIORS[faction:name()] 
+            fw.crisis_level = fw.crisis_level + 1
+        end
+    },
+    sw_foreign_oaths_ = {
+        event_type = "dilemma",
+        group = {"ProvinceCapitals", "IsSaxonFaction", "GenericForeignWarriorsMid"},
+        callback = function(context) --:WHATEVER
+
+        end
+    },
+    sw_foreign_cows_ = {
+        event_type = "incident",
+        group = {"ProvinceCapitals", "GenericForeignWarriors"}
+    },
+    sw_foreign_fields_ = {
+        event_type = "incident",
+        group = {"NotProvinceCapitals", "GenericForeignWarriors"}
+    },
+    sw_foreign_settlement_ = {
+        event_type = "incident",
+        group = {"ProvinceCapitals", "GenericForeignWarriorsLate"}
+    },
+    sw_foreign_displacement_ = {
+        event_type = "dilemma",
+        group = {"ProvinceCapitals"},
+        callback = function(context) --:WHATEVER
+
+        end
+    },
+    sw_foreign_dead_wife_ = {
+        event_type = "incident",
+        group = {"NotProvinceCapitals", "EscalationsForeignWarriorsEarly"},
+        callback = function(context) --:WHATEVER
+            local faction = context:faction() --:CA_FACTION
+            local fw = FOREIGN_WARRIORS[faction:name()] 
+            fw.crisis_level = fw.crisis_level + 1
+        end
+    },
+    sw_foreign_banditry_ = {
+        event_type = "incident",
+        group = {"NotProvinceCapitals", "GenericForeignWarriorsMid"}
+    },
+    sw_foreign_warriors_trial_unfair_ = {
+        event_type = "incident",
+        group = {"ProvinceCapitals", "GenericForeignWarriors"}
+    },
+    sw_foreign_grumpy_neighbours_ = {
+        event_type = "incident",
+        group = {"NotProvinceCapitals", "EscalationsForeignWarriorsEarly"},
+        callback = function(context) --:WHATEVER
+            local faction = context:faction() --:CA_FACTION
+            local fw = FOREIGN_WARRIORS[faction:name()] 
+            fw.crisis_level = fw.crisis_level + 1
+        end
+    },
+    sw_foreign_food_stores_ = {
+        event_type = "incident",
+        group = {"ProvinceCapitals", "GenericForeignWarriors"},
+        callback = function(context) --:WHATEVER
+            local region = context:region() --:CA_REGION
+            PettyKingdoms.FoodStorage.get(region:owning_faction():name()):lose_food_from_region(region)
+        end
+    },
+    sw_foreign_army_ = {
+        event_type = "incident",
+        group = {"NotProvinceCapitals"} 
+        --",GenericForeignWarriorsMid"},        callback = function(context) --:WHATEVER
+
+        --end
+    },
+    sw_foreign_esc_tar_and_feather_ = {
+        event_type = "incident",
+        group = {"NotProvinceCapitals", "EscalationsForeignWarriorsLate"},
+        callback = function(context) --:WHATEVER
+            local faction = context:faction() --:CA_FACTION
+            local fw = FOREIGN_WARRIORS[faction:name()] 
+            fw.crisis_level = fw.crisis_level + 1
+        end
+    },
+    sw_foreign_ports_ = {
+        event_type = "incident",
+        group = {"ProvinceCapitals", "GenericForeignWarriorsLate"}
+    },
+    sw_foreign_spies_ = {
+        event_type = "incident",
+        group = {"ProvinceCapitals", "GenericForeignWarriorsLate"}
+    },
+    sw_foreign_settlers_drive_out_ = {
+        event_type = "dilemma",
+        group = {"ProvinceCapitals"},
+        callback = function(context) --:WHATEVER
+
+        end
+    },
+    sw_foreign_plot_governor_ = {
+        event_type = "dilemma",
+        group = {"ProvinceCapitals", "GenericForeignWarriorsLate"},
+        callback = function(context) --:WHATEVER
+
+        end
+    },
+    sw_foreign_esc_vandalism_ = {
+        event_type = "incident",
+        group = {"ProvinceCapitals", "EscalationsForeignWarriorsLate"},
+        callback = function(context) --:WHATEVER
+            local faction = context:faction() --:CA_FACTION
+            local fw = FOREIGN_WARRIORS[faction:name()] 
+            fw.crisis_level = fw.crisis_level + 1
+        end
+    },
+    sw_foreign_church_crafts_ = {
+        event_type = "incident",
+        group = {"ProvinceCapitals", "GenericForeignWarriorsMid"}
+    },
+    sw_foreign_settlers_drive_out_here_king_ = {
+        event_type = "dilemma",
+        group = {"ProvinceCapitals"},
+        callback = function(context) --:WHATEVER
+
+        end
+    },
+    sw_foreign_sheep_ = {
+        event_type = "incident",
+        group = {"NotProvinceCapitals", "GenericForeignWarriors"}
+    },
+    sw_foreign_drunk_brawl_ = {
+        event_type = "incident",
+        group = {"ProvinceCapitals", "GenericForeignWarriors"}
+    },
+    sw_foreign_priest_assaulted_ = {
+        event_type = "incident",
+        group = {"ProvinceCapitals", "GenericForeignWarriors"}
+    },
+    sw_foreign_mine_ = {
+        event_type = "incident",
+        group = {"NotProvinceCapitals", "GenericForeignWarriors"}
+    },
+} --:map<string, {event_type: GAME_EVENT_TYPE, group: vector<string>, callback: (function(context: WHATEVER))?}>
 
 -- local region = context:region() --:CA_REGION
 -- local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
@@ -305,214 +431,133 @@ local regional_event_conditions = {
     ["sw_foreign_warriors_trial_unfair_"] = function(context) --:WHATEVER
         local region = context:region() --:CA_REGION
         local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
-        local is_human = region:owning_faction():is_human()
-        if (not is_human) or (not fw) then
-            return false
-        end
         local has_building = region:building_superchain_exists("vik_moot_hill") or region:building_superchain_exists("vik_court")
         local has_bonus = not not fw.building_modifiers["vik_moot_hill"] or not not fw.building_modifiers["vik_court"]
-        return has_building and fw.in_crisis and fw.crisis_level > 2 and fw.crisis_level < 5 and not has_bonus
-    end,
-    ["sw_foreign_dead_wife_"] = function(context) --:WHATEVER
-        local region = context:region() --:CA_REGION
-        local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
-        local is_human = region:owning_faction():is_human()
-        if (not is_human) or (not fw) then
-            return false
-        end
-        --we aren't in crisis, but last tension value was negative, we're more than halfway to crisis. 
-        return (not fw.in_crisis) and fw.last_tension > 0 and (fw.crisis_timer - get_turn_penalty(region:owning_faction()) <= base_boiling_time/2 ) and fw.crisis_level <= 2 and dev.Events.is_off_cooldown("sw_foreign_grumpy_neighbours_")
-    end,
-    ["sw_foreign_grumpy_neighbours_"] = function(context) --:WHATEVER
-        local region = context:region() --:CA_REGION
-        local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
-        local is_human = region:owning_faction():is_human()
-        if (not is_human) or (not fw) then
-            return false
-        end
-        --we aren't in crisis, but last tension value was negative, we're more than halfway to crisis. 
-        return (not fw.in_crisis) and fw.last_tension > 0 and (fw.crisis_timer - get_turn_penalty(region:owning_faction()) <= base_boiling_time/2 ) and fw.crisis_level <= 2 and dev.Events.is_off_cooldown("sw_foreign_dead_wife_")
-    end,
-    ["sw_foreign_banditry_"] = function(context) --:WHATEVER
-        local region = context:region() --:CA_REGION
-        local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
-        local is_human = region:owning_faction():is_human()
-        if (not is_human) or (not fw) then
-            return false
-        end
-        --we are in crisis at level 3 or more 
-        return fw.in_crisis and fw.crisis_level > 2 and fw.crisis_level < 5 
+        return has_building and not has_bonus
     end,
     ["sw_foreign_cows_"] = function(context) --:WHATEVER
         local region = context:region() --:CA_REGION
-        local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
-        local is_human = region:owning_faction():is_human()
-        if (not is_human) or (not fw) then
-            return false
-        end
         local has_building = region:building_superchain_exists("vik_pasture")
-        --we are in crisis at level 1-3
-        return fw.in_crisis and has_building and fw.crisis_level < 4
+        return has_building 
     end,
     ["sw_foreign_sheep_"] = function(context) --:WHATEVER
         local region = context:region() --:CA_REGION
-        local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
-        local is_human = region:owning_faction():is_human()
-        if (not is_human) or (not fw) then
-            return false
-        end
         local has_building = region:building_exists("vik_cloth_2") or region:building_exists("vik_cloth_3")
-        --we are in crisis at level 1-3
-        return fw.in_crisis and has_building and fw.crisis_level < 4
+        return has_building 
     end,
     ["sw_foreign_drunk_brawl_"] = function(context) --:WHATEVER
         local region = context:region() --:CA_REGION
-        local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
-        local is_human = region:owning_faction():is_human()
-        if (not is_human) or (not fw) then
-            return false
-        end
         local has_building = region:building_superchain_exists("vik_alehouse") 
-        --we are in crisis at level 1-3
-        return fw.in_crisis and has_building and fw.crisis_level < 4
+        return has_building 
     end,
     ["sw_foreign_priest_assaulted_"] = function(context) --:WHATEVER
         local region = context:region() --:CA_REGION
-        local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
-        local is_human = region:owning_faction():is_human()
-        if (not is_human) or (not fw) then
-            return false
-        end
-        local has_building = region:building_superchain_exists("vik_church")
+        local has_building = region:building_superchain_exists("vik_church") or region:building_superchain_exists("vik_monastery")
         --we are in crisis at level 1-3
-        return fw.in_crisis and has_building and fw.crisis_level < 4
-    end,
-    ["sw_foreign_esc_tar_and_feather_"] = function(context) --:WHATEVER
-        local region = context:region() --:CA_REGION
-        local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
-        local is_human = region:owning_faction():is_human()
-        if (not is_human) or (not fw) then
-            return false
-        end
-        return fw.in_crisis and fw.crisis_level > 1
+        return  has_building
     end,
     ["sw_foreign_fields_"] = function(context) --:WHATEVER
         local region = context:region() --:CA_REGION
-        local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
-        local is_human = region:owning_faction():is_human()
-        if (not is_human) or (not fw) then
-            return false
-        end
         local has_building = region:building_superchain_exists("vik_farm")
-        return has_building and fw.in_crisis and fw.crisis_level > 1 
+        return has_building 
+    end,
+    ["sw_foreign_spies_"] = function(context) --:WHATEVER
+        --TODO at war with vikings
+        return false
+    end,
+    ["sw_foreign_plot_governor_"] = function(context) --:WHATEVER
+        --TODO disloyal gov with viking ways, or just being a viking
+        return false
     end
 }--:map<string, (function(context: WHATEVER) --> boolean)>
 
 dev.first_tick(function(context)
-    if CONST.__testcases.__test_foreigner_events then
-        for event_key, event_details in pairs(events_regional) do
-            if regional_event_conditions[event_key] then
-                log("Adding Foreign Warrior Event to regional event handler: "..event_key)
-                dev.Events.add_regional_event(event_key, event_details[2], event_details[3], event_details[1], function(context) log("During testing, conditon for: "..event_key.." is returning: "..tostring(regional_event_conditions[event_key])) return true end,
-                1, event_details[6])
-
-            end
-        end 
-        return 
-    end
+    --first step is to register each condition group
+    --generic group for all events
+    local event_group_general = events:create_new_condition_group("GenericForeignWarriors", function(context)
+        local region = context:region()
+        local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
+        return fw.in_crisis and fw.crisis_level > 0
+     end)
+    events:register_condition_group(event_group_general, "RegionTurnStart")
+    --events which start in the midgame
+    local event_group_general_mid = events:create_new_condition_group("GenericForeignWarriorsMid", function(context)
+        local region = context:region()
+        local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
+        return fw.in_crisis and fw.crisis_level > 2 
+    end)
+    events:register_condition_group(event_group_general_mid, "RegionTurnStart")
+    --lategame only events
+    local event_group_general_late = events:create_new_condition_group("GenericForeignWarriorsLate", function(context)
+        local region = context:region()
+        local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
+        return fw.in_crisis and fw.crisis_level > 4 
+    end)
+    events:register_condition_group(event_group_general_late, "RegionTurnStart")
+    --escalation events for earlier
+    local escalation_events_early = events:create_new_condition_group("EscalationsForeignWarriorsEarly", function(context)
+        local region = context:region()
+        local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
+        return fw.in_crisis and fw.crisis_level < 2 
+     end)
+    escalation_events_early:set_cooldown(8)
+    escalation_events_early:set_number_allowed_in_queue(1)
+    events:register_condition_group(escalation_events_early, "RegionTurnStart")
+    --escalation events once the system has "kicked off"
+    local escalation_events_late = events:create_new_condition_group("EscalationsForeignWarriorsLate", function(context)
+        local region = context:region()
+        local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
+        return fw.in_crisis and fw.crisis_level >= 2 
+     end)
+    escalation_events_late:set_cooldown(8)
+    escalation_events_late:set_number_allowed_in_queue(1)
+    events:register_condition_group(escalation_events_late, "RegionTurnStart")
+    --step two, adding all the events
+    --loop through events and construct, adding conditions and callbacks where found
     for event_key, event_details in pairs(events_regional) do
+        log("Adding Foreign Warrior Event to regional event handler: "..event_key)
+        local current = events:create_event(event_key, event_details.event_type, "concatenate_region")
         if regional_event_conditions[event_key] then
-            log("Adding Foreign Warrior Event to regional event handler: "..event_key)
-            dev.Events.add_regional_event(
-                event_key,
-                event_details[2],
-                event_details[3], 
-                event_details[1], 
-                function(context)
-                    local region = context:region() --:CA_REGION
-                    local faction_name = region:owning_faction():name()
-                    if FOREIGN_WARRIORS[faction_name].events_triggered[event_key] and FOREIGN_WARRIORS[faction_name].events_triggered[event_key][2] >= cm:model():turn_number() + 3 then
-                        return CONST.__testcases.__test_foreigner_events
-                    end
-                    if FOREIGN_WARRIORS[faction_name].crisis_has_fired == true then
-                        return false
-                    end
-                    return ((event_details[2] and region:is_province_capital()) or (event_details[3] and not region:is_province_capital())) and regional_event_conditions[event_key](context)
-                end, 
-                3, 
-                event_details[6],
-                function(context) --:WHATEVER
-                    local region_key = string.gsub(context:dilemma(), event_key, "")
-                    local faction_name = dev.get_region(region_key):owning_faction():name()
-                    local num = 1
-                    if event_details[1] then
-                        num = num + context:choice()
-                    end
-                    if not not event_details[4][num] then
-                        local res = PettyKingdoms.FactionResource.get("sw_pop_foreign", dev.get_faction(faction_name))
-                        local change = dev.mround(res.value * event_details[4][num], 1)
-                        res:change_value(change)
-                    end
-                    FOREIGN_WARRIORS[faction_name].events_triggered[event_key] = {event_details[5][num] or 0, cm:model():turn_number(), num}
-                    FOREIGN_WARRIORS[faction_name].crisis_has_fired = true
-                end
-            )
+            current:add_queue_time_condition(regional_event_conditions[event_key])
+        end
+        current:set_cooldown(6)
+        current:set_number_allowed_in_queue(1)
+        if event_details.callback then
+            --# assume event_details.callback: function(context: WHATEVER)
+            current:add_callback(event_details.callback)
+        end
+        for i = 1, #event_details.group do
+            current:join_group(event_details.group[i])
         end
     end 
-    dev.Events.add_regional_event("sw_foreign_settlers_conquest_", false, true, false, function(context) return false end, 2, 1, function(context) --:WHATEVER
-        local region_key = string.gsub(context:dilemma(), "sw_foreign_settlers_conquest_", "")
-        local faction_name = dev.get_region(region_key):owning_faction():name()
-        local res = PettyKingdoms.FactionResource.get("sw_pop_foreign", dev.get_faction(faction_name))
-        res:change_value(120)
+    --step three, add the conquest event and set it up
+    local conquest_event = events:create_event("sw_foreign_settlers_conquest_", "incident", "concatenate_region")
+    conquest_event:set_cooldown(5)
+    conquest_event:add_callback(function(context) 
+        local faction = context:faction() --:CA_FACTION
+        local resource = PettyKingdoms.FactionResource.get("sw_pop_foreign", faction)
+        resource:change_value(120)
     end)
+    --TODO post capture events should be formalized into a second queue system. This will suck.
     dev.eh:add_listener(
         "RegionChangesOwnership",
         "RegionChangesOwnership",
         function(context)
-            return context:region():owning_faction():is_human() and cm:model():turn_number() - dev.Events.last_event_occurance("sw_foreign_settlers_conquest_") > 2 and not context:region():is_province_capital()
+            return context:region():owning_faction():is_human() and (not context:region():is_province_capital())
         end,
         function(context)
-            local turn_diff = dev.clamp(cm:model():turn_number() - dev.Events.last_event_occurance("sw_foreign_settlers_conquest_"), 1, 8)
-            local chance = 50 - dev.mround(40/turn_diff, 1)
+            local chance = 30
             if dev.Check.is_faction_viking_faction(context:prev_faction()) then
                 chance = chance + 40
             elseif context:prev_faction():subculture() == "vik_sub_cult_welsh" then
                 chance = dev.mround(chance/4, 1)
             end
             log("Conquest event chance: "..tostring(chance))
-            if cm:random_number(100) < chance then
-                dev.Events.force_regional_event("sw_foreign_settlers_conquest_", context:region():name(), context:region():owning_faction():name())
+            if dev.chance(chance) then
+                local region = context:region()
+                local context = events:build_context_for_event("sw_foreign_settlers_conquest_", region, region:owning_faction())
+                events:force_check_and_trigger_event_immediately("sw_foreign_settlers_conquest_", context)
             end
         end,
-        true
-    )
-    dev.eh:add_listener(
-        "IncidentOccuredEventForeignArmy",
-        "IncidentOccuredEvent",
-        function(context)
-            return not not string.find(context:dilemma(), "sw_foreign_army_")
-        end,
-        function(context)
-            local region_key = string.gsub(context:dilemma(), "sw_foreign_army_", "")
-            local region = dev.get_region(region_key)
-            
-
-        end,
-        true
-    )
+        true)
 end)
-
-
-local events_characters = {
-
-}
-
-
-
-
-
-
-
-local events_generic = {
-
-}
