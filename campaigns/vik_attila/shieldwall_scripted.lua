@@ -8,6 +8,7 @@ dev.Save = require("core/save")
 dev.Events = require("core/Events")
 dev.Check = require("core/checks")
 
+require("story/Events")
 
 --require UI Libaries
 UIScript = {}

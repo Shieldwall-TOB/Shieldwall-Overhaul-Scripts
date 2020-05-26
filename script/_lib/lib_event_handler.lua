@@ -269,6 +269,10 @@ end;
 
 custom_context = {};
 
+local additional_context_types = {
+	["sheildwall_game_event"] = "event_data"
+}
+
 function custom_context:new()
 	local cc = {};
 	setmetatable(cc, self);
@@ -294,12 +298,18 @@ end;
 --- @desc A limitation of the implementation is that only one object of each type may be placed on the custom context (except for characters, currently).
 --- @p object context data, Data object to add
 function custom_context:add_data(obj)
-	if is_string(obj) then
+	if is_boolean(obj) then
+		--no error, ignore this one
+		return
+	elseif is_string(obj) then
 		self.string = obj;
 	elseif is_number(obj) then
 		self.number = obj;
 	elseif is_region(obj) then
 		self.region_data = obj;
+		if obj:has_governor() then
+			self.governor_data = obj:governor()
+		end
 	elseif is_character(obj) then
 		-- not such a nice construct - the first character will be accessible at "character", the second at "target_character"
 		if self.character_data then
@@ -322,6 +332,9 @@ function custom_context:add_data(obj)
 	elseif is_vector(obj) then
 		self.vector_data = obj;
 	elseif is_table(obj) then			-- keep this check last, as script objects are tables and will erroneously return true here
+		if obj.context_data and additional_context_types[obj.context_data] then
+			self[additional_context_types[obj.context_data]] = obj
+		end
 		self.stored_table = obj;
 	else
 		script_error("ERROR: adding data to custom context but couldn't recognise data [" .. tostring(obj) .. "] of type [" .. type(obj) .. "]");
@@ -329,7 +342,17 @@ function custom_context:add_data(obj)
 end;
 
 
+function custom_context:game_event()
+	return self[additional_context_types["shieldwall_game_event"]]
+end
 
+function custom_context:governor()
+	return self.governor_data
+end
+
+function custom_context:has_governor()
+	return not not self.governor_data
+end
 
 --- @function table_data
 --- @desc Called by the receiving script to retrieve the table placed on the custom context, were one specified by the script that created it.

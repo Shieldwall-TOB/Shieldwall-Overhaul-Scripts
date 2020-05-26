@@ -23,3 +23,12 @@
 --# assume global class RIVAL
 --# assume global class GEOPOLITICS
 
+
+--# assume global class GAME_EVENT_MANAGER
+--# assume global class GAME_EVENT
+--# assume global class EVENT_CONDITION_GROUP
+--# type global QUEUED_GAME_EVENT = {char_cqi: CA_CQI?, region_key: string?, 
+--# faction_key: string, event_key: string}
+--# type global GAME_EVENT_TRIGGER_KIND = "trait_flag" | "standard" | "concatenate_region"
+--# type global GAME_EVENT_TYPE = "dilemma" | "mission" | "incident"
+--# type global GAME_EVENT_QUEUE_TIMES = "FactionTurnStart" | "CharacterTurnStart" | "RegionTurnStart" | "CharacterCompletedBattle"
