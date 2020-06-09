@@ -112,15 +112,16 @@ if not ok then
 end
 
 --require traits
-
---v [NO_CHECK]function(list:table)
-local function require_traits(list)
-    for i = 1, #list do
-        require("traits/"..list[i])
-    end
+local ok, err = pcall(function()
+    trait_manager = require("traits/helpers/trait_manager")
+    require("traits/shield_heathen_old_ways")
+    require("traits/shield_elder_beloved")
+end)
+if not ok then
+    dev.log("Error loading traits!")
+    dev.log(tostring(err))
+    dev.log(debug.traceback())
 end
-traits_manager = require("traits/helpers/trait_manager")
-require_traits(require("traits/TraitTriggers"))
 
 --require episodic scripting
 local ok, err = pcall( function()
@@ -136,6 +137,17 @@ if not ok then
     dev.log(debug.traceback())
 end
 
+--require vanilla files
+local ok, err = pcall(function()
+    require("vik_ai_personalities");
+
+
+end)
+if not ok then
+    dev.log("Error loading ca scripts!")
+    dev.log(tostring(err))
+    dev.log(debug.traceback())
+end
 
 --[[ old vanilla shit
 require("vik_start");
@@ -144,7 +156,7 @@ require("vik_war_fervour");
 require("vik_rebels");
 require("vik_lists");
 require("vik_kingdom_events");
-require("vik_ai_personalities");
+
 require("vik_trade_and_shroud");
 require("vik_common");
 require("vik_victory_conditions");

@@ -72,8 +72,8 @@ end
 dev.post_first_tick(function(context)
     dev.Save.attach_to_object(game_events)
     dev.eh:add_listener(
-        "DilemmaIssued",
-        "DilemmaIssued",
+        "DilemmaIssuedEvent",
+        "DilemmaIssuedEvent",
         true,
         function(context)
             game_events.last_event_turn[context:faction():name()] = cm:model():turn_number() 

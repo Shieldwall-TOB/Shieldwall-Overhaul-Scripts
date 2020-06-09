@@ -152,7 +152,7 @@ function game_event_manager.queue_event(self, event_object, context)
     for i = 1, #groups do
         groups[i]:OnMemberEventQueued(event_object.key, current_turn)
     end
-    if event_object.trigger_kind == "trait_flag" then
+    if event_object.trigger_kind == "trait_flag" and queue_entry.char_cqi then
         dev.add_trait(context:character(), event_object.key .. "_flag", false, true)
     end
 end
@@ -254,11 +254,14 @@ function game_event_manager.fire_queued_events(self, player_faction)
         if queue_record.faction_key == player_faction:name() then
             if event_object.trigger_kind ~= "trait_flag" then
                 local context = self:build_context_from_queued_event(queue_record)
+                self:log("Firing Queued Event: "..event_object.key.." of kind "..event_object.type_group.name)
                 event_object:trigger(context)
             else
+                self:log("Queued Dilemma: "..event_object.key.." is flagged on character")
                 table.insert(other_player_events, queue_record)
             end
         else
+            self:log("Queued Event "..event_object.key.." is for the other human!")
             table.insert(other_player_events, queue_record)
         end
     end
@@ -309,11 +312,10 @@ function game_event_manager.start_player_turn(self, player_faction)
                 if can_queue and displaces_event then
                     --# assume displaces_event: string
                     if self:remove_event_from_queue(displaces_event, true) then
-                        self:log("Queueing event "..event_key.." and displacing event "..displaces_event)
+                        self:log("Displaced Event "..displaces_event)
                         self:queue_event(event_object, region_context)
                     end
                 elseif can_queue then
-                    self:log("Queueing event "..event_key)
                     self:queue_event(event_object, region_context)
                 end
             end
@@ -382,7 +384,7 @@ local function initialize_game_events()
         )
         dev.eh:add_listener(
             "EventsCore",
-            "DilemmaIssued",
+            "DilemmaChoiceMadeEvent",
             true,
             function(context)
                 local key = context:dilemma() --:string

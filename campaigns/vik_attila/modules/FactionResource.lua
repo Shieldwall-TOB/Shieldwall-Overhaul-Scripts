@@ -104,7 +104,6 @@ local function get_applicator_for_kind(kind)
         end
     }--:map<RESOURCE_KIND, function(self: FACTION_RESOURCE)>
     return switch[kind]
-
 end
 
 --v [NO_CHECK] function(kind: RESOURCE_KIND) --> (function(self: FACTION_RESOURCE, arg: WHATEVER))

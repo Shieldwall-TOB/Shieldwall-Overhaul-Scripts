@@ -226,29 +226,26 @@ function character_politics.update_general_trait(self, character)
         if character:military_force():unit_list():num_items() > 15 then
             local old_bundle = general_level_trait..tostring(self.general_level-1)
             local new_bundle = general_level_trait.."1"
-            local changed_trait = false --:boolean
             if character:has_trait(old_bundle) then
                 self:log("Removing old general trait "..old_bundle)
-                cm:force_remove_trait(dev.lookup(character), old_bundle)
-                changed_trait = true
+                dev.remove_trait(character, old_bundle)
             end
             if old_bundle ~= new_bundle and not character:has_trait(new_bundle) then
                 self:log("adding new general trait "..new_bundle)
-                dev.add_trait(character, new_bundle, changed_trait)
+                dev.add_trait(character, new_bundle, true)
             end
             self.general_level = 2
         else
             local old_bundle = general_level_trait..tostring(self.general_level-1)
             local new_bundle = general_level_trait.."0"
-            local changed_trait = false --:boolean
             if old_bundle ~= new_bundle and character:has_trait(old_bundle) then
                 self:log("Removing old general trait "..old_bundle)
-                cm:force_remove_trait(dev.lookup(character), old_bundle)
+                dev.remove_trait(character, old_bundle)
                 changed_trait = true
             end
             if old_bundle ~= new_bundle and not character:has_trait(new_bundle) then
                 self:log("adding new general trait "..new_bundle)
-                dev.add_trait(character, new_bundle, changed_trait)
+                dev.add_trait(character, new_bundle, true)
             end
             self.general_level = 1
         end
@@ -367,9 +364,14 @@ local function add_trait_cross_loyalty_to_trait(trait_key, to_trait, effect_bonu
     character_cross_trait_loyalties[trait_key][to_trait] = effect_bonus_value
 end
 
---v function(cqi: CA_CQI) --> CHARACTER_POLITICS
-local function get_char_politics(cqi)
-    return instances[cqi]
+--v function(char: CA_CQI|CA_CHAR) --> CHARACTER_POLITICS
+local function get_char_politics(char)
+    if not is_number(char) then
+        --# assume char: WHATEVER
+        char = char:command_queue_index()
+    end
+    --# assume char: CA_CQI
+    return instances[char]
 end
 
 

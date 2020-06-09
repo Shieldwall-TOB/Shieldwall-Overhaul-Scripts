@@ -37,6 +37,18 @@ local function check_is_faction_viking_faction(faction)
     return not not viking_sc[faction:subculture()]
 end
 
+--v function(faction: CA_FACTION) --> boolean
+local function check_is_faction_raider_faction(faction)
+    local raiders = {
+        vik_fact_wicing = true,
+		vik_fact_finngaill = true,
+		vik_fact_nordmann = true,
+		vik_fact_dubgaill = true,
+		vik_fact_haeden = true
+    } --:map<string, boolean>
+    return not not raiders[faction:subculture()]
+end
+
 --v function(region: CA_REGION) --> boolean
 local function check_is_region_low_public_order(region)
     return (region:squalor() - region:sanitation() > 0) 
@@ -300,7 +312,8 @@ return {
     not_null = check_not_null,
     --faction
     is_faction_human = check_is_faction_human,
-    is_faction_viking_faction = check_is_faction_viking_faction,
+	is_faction_viking_faction = check_is_faction_viking_faction,
+	is_faction_raider_faction = check_is_faction_raider_faction,
     is_faction_player_ally = check_is_faction_player_ally,
     --region
     is_region_low_public_order = check_is_region_low_public_order,

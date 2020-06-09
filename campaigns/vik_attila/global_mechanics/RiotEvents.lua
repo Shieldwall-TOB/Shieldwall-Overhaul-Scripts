@@ -3,7 +3,7 @@ local riot_events = {
         name = "sw_rebellion_rioting_household_guard_",
         condition = function(context) --:WHATEVER
             local region = context:region()
-            return region:has_governor() and cm:random_number(100) > 50 and dev.Check.does_char_have_household_guard(region:governor()) == true
+            return region:has_governor() and dev.chance(50) and dev.Check.does_char_have_household_guard(region:governor()) == true
         end,
         response = function(context) --:WHATEVER
             local region = context:region() --:CA_REGION
@@ -17,7 +17,7 @@ local riot_events = {
         name = "sw_rebellion_bad_governor_",
         condition = function(context) --:WHATEVER
             local region = context:region()
-            return region:has_governor() and cm:random_number(100) > 33 and dev.Check.does_char_have_household_guard(region:governor())
+            return region:has_governor() and dev.chance(33) and dev.Check.does_char_have_household_guard(region:governor()) == false and region:governor():has_trait("shield_elder_beloved") == false
         end,
         response = function(context) --:WHATEVER
             local region = context:region() --:CA_REGION

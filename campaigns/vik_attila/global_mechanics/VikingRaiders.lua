@@ -200,7 +200,6 @@ local function invasions_turn_start(faction_key)
                 elseif context:choice() == 3 then
                     create_invasion_force(faction_key, location_key, x, y, intensity, false)
                     active_raiders[faction_key] = {state = vassal_boredom_time, target = closest_human}
-                    dev.callback(function() cm:force_make_vassal(closest_human, faction_key) end, 0.1)
                 end
                 invaders[closest_human].cooldown = dilemma_cd
             end)

@@ -473,45 +473,69 @@ local regional_event_conditions = {
 
 dev.first_tick(function(context)
     --first step is to register each condition group
-    --generic group for all events
+    --group for all events
+    local event_group_all = events:create_new_condition_group("ForeignWarriors")
+    event_group_all:set_number_allowed_in_queue(1)
+    event_group_all:set_cooldown(4)
+    events:register_condition_group(event_group_all, "RegionTurnStart")
+    --for basic events
     local event_group_general = events:create_new_condition_group("GenericForeignWarriors", function(context)
         local region = context:region()
+        local blocked_by_traits = false --:boolean
+        if region:has_governor() then
+            blocked_by_traits = region:governor():has_trait("shield_heathen_old_ways")
+        end
         local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
-        return fw.in_crisis and fw.crisis_level > 0
+        return fw.in_crisis and fw.crisis_level > 0 and not blocked_by_traits
      end)
-    events:register_condition_group(event_group_general, "RegionTurnStart")
+    events:register_condition_group(event_group_general)
     --events which start in the midgame
     local event_group_general_mid = events:create_new_condition_group("GenericForeignWarriorsMid", function(context)
         local region = context:region()
+        local blocked_by_traits = false --:boolean
+        if region:has_governor() then
+            blocked_by_traits = region:governor():has_trait("shield_heathen_old_ways")
+        end
         local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
-        return fw.in_crisis and fw.crisis_level > 2 
+        return fw.in_crisis and fw.crisis_level > 2  and not blocked_by_traits
     end)
-    events:register_condition_group(event_group_general_mid, "RegionTurnStart")
+    
+    events:register_condition_group(event_group_general_mid)
     --lategame only events
     local event_group_general_late = events:create_new_condition_group("GenericForeignWarriorsLate", function(context)
         local region = context:region()
+        local blocked_by_traits = false --:boolean
+        if region:has_governor() then
+            blocked_by_traits = region:governor():has_trait("shield_heathen_old_ways")
+        end
         local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
-        return fw.in_crisis and fw.crisis_level > 4 
+        return fw.in_crisis and fw.crisis_level > 4 and not blocked_by_traits
     end)
-    events:register_condition_group(event_group_general_late, "RegionTurnStart")
+    events:register_condition_group(event_group_general_late)
     --escalation events for earlier
     local escalation_events_early = events:create_new_condition_group("EscalationsForeignWarriorsEarly", function(context)
         local region = context:region()
+        local blocked_by_traits = false --:boolean
+        if region:has_governor() then
+            blocked_by_traits = region:governor():has_trait("shield_heathen_old_ways")
+        end
         local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
-        return fw.in_crisis and fw.crisis_level < 2 
+        return fw.in_crisis and fw.crisis_level < 2  and not blocked_by_traits
      end)
-    escalation_events_early:set_cooldown(8)
-    escalation_events_early:set_number_allowed_in_queue(1)
-    events:register_condition_group(escalation_events_early, "RegionTurnStart")
+    escalation_events_early:set_cooldown(16)
+    events:register_condition_group(escalation_events_early)
     --escalation events once the system has "kicked off"
     local escalation_events_late = events:create_new_condition_group("EscalationsForeignWarriorsLate", function(context)
         local region = context:region()
+        local blocked_by_traits = false --:boolean
+        if region:has_governor() then
+            blocked_by_traits = region:governor():has_trait("shield_heathen_old_ways")
+        end
         local fw =  FOREIGN_WARRIORS[region:owning_faction():name()]
-        return fw.in_crisis and fw.crisis_level >= 2 
+        return fw.in_crisis and fw.crisis_level >= 2  and not blocked_by_traits
      end)
-    escalation_events_late:set_cooldown(8)
-    escalation_events_late:set_number_allowed_in_queue(1)
-    events:register_condition_group(escalation_events_late, "RegionTurnStart")
+    escalation_events_late:set_cooldown(16)
+    events:register_condition_group(escalation_events_late)
     --step two, adding all the events
     --loop through events and construct, adding conditions and callbacks where found
     for event_key, event_details in pairs(events_regional) do
@@ -520,12 +544,13 @@ dev.first_tick(function(context)
         if regional_event_conditions[event_key] then
             current:add_queue_time_condition(regional_event_conditions[event_key])
         end
-        current:set_cooldown(6)
+        current:set_cooldown(crisis_duration)
         current:set_number_allowed_in_queue(1)
         if event_details.callback then
             --# assume event_details.callback: function(context: WHATEVER)
             current:add_callback(event_details.callback)
         end
+        current:join_group("ForeignWarriors")
         for i = 1, #event_details.group do
             current:join_group(event_details.group[i])
         end

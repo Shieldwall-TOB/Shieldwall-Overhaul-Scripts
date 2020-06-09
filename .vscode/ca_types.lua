@@ -182,6 +182,8 @@
 --# assume CM.remove_restricted_building_level_record_for_faction: method(faction_key: string, building_key: string)
 --# assume CM.add_event_restricted_unit_record_for_faction: method(unit: string, faction_key: string)
 --# assume CM.remove_event_restricted_unit_record_for_faction: method(unit: string, faction_key: string)
+--units
+--# assume CM.grant_unit: method(lookup: string, unit: string)
 --ai
 --# assume CM.force_change_cai_faction_personality: method(key: string, personality: string)
 --battles
