@@ -27,10 +27,23 @@ local function is_owned_force_nearby(region)
     return false
 end
 
+--v function(region: CA_REGION) --> CA_CQI
+local function is_bandit_force_nearby(region)
+    local faction_character_list = dev.get_faction(bandit_faction):character_list()
+    for i = 0, faction_character_list:num_items() - 1 do
+        local character = faction_character_list:item_at(i)
+        if dev.is_char_normal_general(character) then
+            if not character:region():is_null_interface() and character:region():name() == region:name() then
+                return character:command_queue_index()
+            end
+        end
+    end
+    return nil
+end
 
 
 
-cm:add_listener(
+dev.eh:add_listener(
     "RegionTurnEndBanditSpawnCheck",
     "RegionTurnEnd",
     function(context)
@@ -63,6 +76,12 @@ cm:add_listener(
                 BANDITS[region:name()] = nil
             end
             return    
+        end
+        --double check if we have bandits here already
+        local nearby_bandit = is_bandit_force_nearby(region)
+        if not not nearby_bandit then
+            BANDITS[region:name()] = nearby_bandit
+            return
         end
         local num_units_to_add = 2
         -- Sets the number of invading armies based upon difficulty settings

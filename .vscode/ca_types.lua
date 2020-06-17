@@ -35,6 +35,7 @@
 --# assume global class CA_UIC
 --# assume global class CA_Component
 --# assume global class CA_UIContext
+--# assume global class CA_CAMPAIGNUI
 --Fake types
 --# assume global class CA_CQI
 --# assume global class CA_CONTEXT
@@ -209,7 +210,7 @@
 --# assume CA_MODEL.is_player_turn: method() --> boolean
 --# assume CA_MODEL.difficulty_level: method() --> int
 --# assume CA_MODEL.campaign_ai: method() --> CA_AI
---# assume CA_MODEL.season: method() --> number
+--# assume CA_MODEL.season: method() --> int
 --# assume CA_MODEL.character_for_command_queue_index: method(CA_CQI) --> CA_CHAR
 --# assume CA_MODEL.has_character_command_queue_index: method(CA_CQI) --> boolean
 --# assume CA_MODEL.military_force_for_command_queue_index: method(CA_CQI) --> CA_FORCE
@@ -456,6 +457,7 @@
 --# assume CA_EFFECT.advance_scripted_advice_thread: function(key: string, prioritiy: number)
 --# assume CA_EFFECT.add_agent_experience: function(trigger: string, exp: number, auth: number, context: CA_CONTEXT)
 
+--# assume CA_CAMPAIGNUI.ClearSelection: function()
 
 -- GLOBAL FUNCTIONS
 -- COMMON
@@ -489,7 +491,7 @@
 --# assume global cm: CM
 --# assume global effect: CA_EFFECT
 --# assume global __write_output_to_logfile: boolean
-
+--# assume global CampaignUI: CA_CAMPAIGNUI
 
 
 

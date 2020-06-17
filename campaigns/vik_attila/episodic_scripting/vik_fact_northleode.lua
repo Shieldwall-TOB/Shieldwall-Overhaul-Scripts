@@ -31,11 +31,6 @@ local armies = {
         ["dan_anglian_raiders"] = {2, 2, 35}
     }
 }--:map<string, map<string, {int, int, int}>>
-local bonus_units_ai = {
-    ["vik_fact_northleode_ai"] = {
-        [1] = {""}
-    }
-}
 
 
 
@@ -48,10 +43,10 @@ EVENTS_NORTHLEODE_BETRAYAL = false--:boolean
 EVENTS_NORTHLEODE_BOOKS = 0--:int
 EVENTS_NORTHLEODE_KING_OF_NOTHING = false--:boolean
 dev.Save.save_value("EVENTS_NORTHLEODE_STRAT_CLUT", EVENTS_NORTHLEODE_STRAT_CLUT, function(t) EVENTS_NORTHLEODE_STRAT_CLUT = t end)
-dev.Save.save_value("EVENTS_NORTHLEODE_WESTMORINGAS", EVENTS_NORTHLEODE_WESTMORINGAS, function(t) EVENTS_NORTHLEODE_STRAT_CLUT = t end)
-dev.Save.save_value("EVENTS_NORTHLEODE_BETRAYAL", EVENTS_NORTHLEODE_BETRAYAL, function(t) EVENTS_NORTHLEODE_STRAT_CLUT = t end)
-dev.Save.save_value("EVENTS_NORTHLEODE_BOOKS", EVENTS_NORTHLEODE_BOOKS, function(t) EVENTS_NORTHLEODE_STRAT_CLUT = t end)
-dev.Save.save_value("EVENTS_NORTHLEODE_KING_OF_NOTHING", EVENTS_NORTHLEODE_KING_OF_NOTHING, function(t) EVENTS_NORTHLEODE_STRAT_CLUT = t end)
+dev.Save.save_value("EVENTS_NORTHLEODE_WESTMORINGAS", EVENTS_NORTHLEODE_WESTMORINGAS, function(t) EVENTS_NORTHLEODE_WESTMORINGAS = t end)
+dev.Save.save_value("EVENTS_NORTHLEODE_BETRAYAL", EVENTS_NORTHLEODE_BETRAYAL, function(t) EVENTS_NORTHLEODE_BETRAYAL = t end)
+dev.Save.save_value("EVENTS_NORTHLEODE_BOOKS", EVENTS_NORTHLEODE_BOOKS, function(t) EVENTS_NORTHLEODE_BOOKS = t end)
+dev.Save.save_value("EVENTS_NORTHLEODE_KING_OF_NOTHING", EVENTS_NORTHLEODE_KING_OF_NOTHING, function(t) EVENTS_NORTHLEODE_KING_OF_NOTHING = t end)
 
 --v function(turn: number)
 local function EventsNorthleode(turn)
@@ -118,6 +113,7 @@ local function EventsNorthleode(turn)
         end
     else
         local leader = northleode:faction_leader()
+        cm:grant_unit(dev.lookup(leader), "eng_thegns")
         cm:grant_unit(dev.lookup(leader), "eng_thegns")
     end
 end

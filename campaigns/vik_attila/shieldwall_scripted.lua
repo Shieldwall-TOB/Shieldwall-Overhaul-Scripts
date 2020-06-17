@@ -73,6 +73,7 @@ local ok, err = pcall( function()
     --global mechanics; 
     require("global_mechanics/CampaignVictories")
     require("global_mechanics/Shroud")
+    require("global_mechanics/SeasonalEffects")
     require("global_mechanics/RiotEvents")
     require("global_mechanics/Bandits")
     require("global_mechanics/CitiesLandmarks")

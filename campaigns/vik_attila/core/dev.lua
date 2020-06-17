@@ -639,6 +639,18 @@ end
 
 cm:register_first_tick_callback(function(context)
     _G.game_created = true
+    cm:add_listener(
+        "DeselectOnTurnStart",
+        "FactionBeginTurnPhaseNormal",
+        function(context)
+            return context:faction():is_human() and context:faction():name() == cm:get_local_faction(true)
+        end,
+        function(context)
+        	CampaignUI.ClearSelection();
+        end,
+        true)
+
+
     MODLOG("===================================================================================", "FTC")
     MODLOG("===================================================================================", "FTC")
     MODLOG("===============THE GAME IS STARTING: RUNNING FIRST TICK CALLBACK===================", "FTC")
