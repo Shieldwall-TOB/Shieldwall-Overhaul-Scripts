@@ -126,8 +126,9 @@ local riot_events = {
         end,
         response = function(context) --:WHATEVER
             local region = context:region() --:CA_REGION
-            if context:choice() == 1 then
-                --TODO reduce peasant manpower
+            if context:choice() == 0 then
+                local region_manpower = PettyKingdoms.RegionManpower.get(region:name())
+                region_manpower:mod_population_through_region(-20, "manpower_riots", true, false)
             end
         end,
         is_dilemma = true

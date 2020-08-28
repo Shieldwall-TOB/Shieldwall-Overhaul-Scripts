@@ -226,8 +226,9 @@ dev.first_tick(function(context)
         if not FOREIGN_WARRIORS[human_factions[i]] then
             add_blank_foreign_warrior_entry(human_factions[i])
         end
-
+        foreign:set_factor("manpower_estates", -2)
         foreign:reapply()
+
     end
 
     dev.eh:add_listener(
@@ -248,7 +249,7 @@ dev.first_tick(function(context)
         return PettyKingdoms.FactionResource.get("sw_pop_foreign", dev.get_faction(faction_name)).value
     end, 
     function(faction_name, quantity)
-        PettyKingdoms.FactionResource.get("sw_pop_foreign", dev.get_faction(faction_name)):change_value(quantity)
+        PettyKingdoms.FactionResource.get("sw_pop_foreign", dev.get_faction(faction_name)):change_value(quantity, recruitment_factor)
     end, "dy_pop_foreign")
     for k, entry in pairs(Gamedata.unit_info.main_unit_size_caste_info) do
         if Gamedata.unit_info.mercenary_units[k] then
@@ -268,10 +269,7 @@ local events_regional = {
     },
     sw_foreign_soldiers_ = {
         event_type = "incident",
-        group = {"ProvinceCapitals", "GenericForeignWarriorsMid"},
-        callback = function(context) --:WHATEVER
-
-        end
+        group = {"ProvinceCapitals", "GenericForeignWarriorsMid"}
     },
     sw_foreign_warriors_trial_fair_ = {
         event_type = "incident",
@@ -290,7 +288,14 @@ local events_regional = {
         event_type = "dilemma",
         group = {"ProvinceCapitals", "IsSaxonFaction", "GenericForeignWarriorsMid"},
         callback = function(context) --:WHATEVER
-
+            local faction = context:faction() --:CA_FACTION
+            local resource = PettyKingdoms.FactionResource.get("sw_pop_foreign", faction)
+            local fw = FOREIGN_WARRIORS[faction:name()] 
+            if context:choice() == 0 then
+                resource:change_value(-120) --kill people
+            else
+                fw.crisis_level = fw.crisis_level - 1; --decrease tensions
+            end
         end
     },
     sw_foreign_cows_ = {
@@ -299,7 +304,7 @@ local events_regional = {
     },
     sw_foreign_fields_ = {
         event_type = "incident",
-        group = {"NotProvinceCapitals", "GenericForeignWarriors"}
+        group = {"NotProvinceCapitals", "EscalationsForeignWarriorsLate"}
     },
     sw_foreign_settlement_ = {
         event_type = "incident",
@@ -307,19 +312,20 @@ local events_regional = {
     },
     sw_foreign_displacement_ = {
         event_type = "dilemma",
-        group = {"ProvinceCapitals"},
+        group = {"ProvinceCapitals", "EscalationsForeignWarriorsLate"},
         callback = function(context) --:WHATEVER
-
+            local faction = context:faction() --:CA_FACTION
+            local resource = PettyKingdoms.FactionResource.get("sw_pop_foreign", faction)
+            local fw = FOREIGN_WARRIORS[faction:name()] 
+            if context:choice() ~= 1 then
+                resource:change_value(-200) --kill people
+                fw.crisis_level = fw.crisis_level - 1; --reduce tensions
+            end
         end
     },
     sw_foreign_dead_wife_ = {
         event_type = "incident",
-        group = {"NotProvinceCapitals", "EscalationsForeignWarriorsEarly"},
-        callback = function(context) --:WHATEVER
-            local faction = context:faction() --:CA_FACTION
-            local fw = FOREIGN_WARRIORS[faction:name()] 
-            fw.crisis_level = fw.crisis_level + 1
-        end
+        group = {"NotProvinceCapitals", "EscalationsForeignWarriorsEarly"}
     },
     sw_foreign_banditry_ = {
         event_type = "incident",
@@ -331,12 +337,7 @@ local events_regional = {
     },
     sw_foreign_grumpy_neighbours_ = {
         event_type = "incident",
-        group = {"NotProvinceCapitals", "EscalationsForeignWarriorsEarly"},
-        callback = function(context) --:WHATEVER
-            local faction = context:faction() --:CA_FACTION
-            local fw = FOREIGN_WARRIORS[faction:name()] 
-            fw.crisis_level = fw.crisis_level + 1
-        end
+        group = {"NotProvinceCapitals", "EscalationsForeignWarriorsEarly"}
     },
     sw_foreign_food_stores_ = {
         event_type = "incident",
@@ -348,19 +349,14 @@ local events_regional = {
     },
     sw_foreign_army_ = {
         event_type = "incident",
-        group = {"NotProvinceCapitals"} 
-        --",GenericForeignWarriorsMid"},        callback = function(context) --:WHATEVER
+        group = {"NotProvinceCapitals"," GenericForeignWarriorsMid"},        
+        callback = function(context) --:WHATEVER
 
-        --end
+        end
     },
     sw_foreign_esc_tar_and_feather_ = {
         event_type = "incident",
-        group = {"NotProvinceCapitals", "EscalationsForeignWarriorsLate"},
-        callback = function(context) --:WHATEVER
-            local faction = context:faction() --:CA_FACTION
-            local fw = FOREIGN_WARRIORS[faction:name()] 
-            fw.crisis_level = fw.crisis_level + 1
-        end
+        group = {"NotProvinceCapitals", "EscalationsForeignWarriorsLate"}
     },
     sw_foreign_ports_ = {
         event_type = "incident",
@@ -370,28 +366,22 @@ local events_regional = {
         event_type = "incident",
         group = {"ProvinceCapitals", "GenericForeignWarriorsLate"}
     },
-    sw_foreign_settlers_drive_out_ = {
-        event_type = "dilemma",
-        group = {"ProvinceCapitals"},
-        callback = function(context) --:WHATEVER
-
-        end
-    },
     sw_foreign_plot_governor_ = {
         event_type = "dilemma",
         group = {"ProvinceCapitals", "GenericForeignWarriorsLate"},
         callback = function(context) --:WHATEVER
+            local region = context:region() --:CA_REGION
+            if context:choice() == 0 then
+                local governor = region:governor()
+                cm:kill_character(dev.lookup(governor), false, true)
+            elseif context:choice() == 1 then
 
+            end
         end
     },
     sw_foreign_esc_vandalism_ = {
         event_type = "incident",
-        group = {"ProvinceCapitals", "EscalationsForeignWarriorsLate"},
-        callback = function(context) --:WHATEVER
-            local faction = context:faction() --:CA_FACTION
-            local fw = FOREIGN_WARRIORS[faction:name()] 
-            fw.crisis_level = fw.crisis_level + 1
-        end
+        group = {"ProvinceCapitals", "EscalationsForeignWarriorsLate"}
     },
     sw_foreign_church_crafts_ = {
         event_type = "incident",
@@ -414,7 +404,7 @@ local events_regional = {
     },
     sw_foreign_priest_assaulted_ = {
         event_type = "incident",
-        group = {"ProvinceCapitals", "GenericForeignWarriors"}
+        group = {"ProvinceCapitals", "EscalationsForeignWarriorsLate"}
     },
     sw_foreign_mine_ = {
         event_type = "incident",
@@ -462,12 +452,45 @@ local regional_event_conditions = {
         return has_building 
     end,
     ["sw_foreign_spies_"] = function(context) --:WHATEVER
-        --TODO at war with vikings
-        return false
+        local faction = context:faction() --:CA_FACTION
+        return dev.Check.is_faction_at_war_with_viking_faction(faction)
     end,
     ["sw_foreign_plot_governor_"] = function(context) --:WHATEVER
-        --TODO disloyal gov with viking ways, or just being a viking
+        local region = context:region() --:CA_REGION
+        if not region:has_governor() then
+            return false
+        end
+        local character = region:governor()
+        return region:owning_faction():treasury() > 1000
+        and character:has_trait("shield_trait_disloyal") 
+        and (character:has_trait("shield_heathen_old_ways") or dev.Check.is_char_from_viking_faction(character))
+    end,
+    ["sw_foreign_displacement_"] = function(context) --:WHATEVER
+        local faction = context:faction() --:CA_FACTION
+        local resource = PettyKingdoms.FactionResource.get("sw_pop_foreign", faction)
+        return resource.value >= 400
+    end,
+    ["sw_foreign_food_stores_"] = function(context) --:WHATEVER
+        local region = context:region() --:CA_REGION
+        return PettyKingdoms.FoodStorage.get(region:owning_faction():name()):does_region_have_food_storage(region)
+    end,
+    ["sw_foreign_settlers_drive_out_here_king_"] = function(context) --:WHATEVER
         return false
+    end,
+    ["sw_foreign_army_"] = function(context) --:WHATEVER
+        return false
+    end,
+    ["sw_foreign_soldiers_"] = function(context) --:WHATEVER
+        local faction = context:faction()
+        for i = 0, faction:character_list():num_items() - 1 do
+            local char = faction:character_list():item_at(i)
+            if dev.is_char_normal_general(char) then
+                if char:region():name() == context:region():name() then
+                    return true
+                end
+            end
+        end
+        return false 
     end
 }--:map<string, (function(context: WHATEVER) --> boolean)>
 
@@ -523,6 +546,11 @@ dev.first_tick(function(context)
         return fw.in_crisis and fw.crisis_level < 2  and not blocked_by_traits
      end)
     escalation_events_early:set_cooldown(16)
+    escalation_events_early:add_callback(function(context) --:WHATEVER
+        local faction = context:faction() --:CA_FACTION
+        local fw = FOREIGN_WARRIORS[faction:name()] 
+        fw.crisis_level = fw.crisis_level + 1
+    end)
     events:register_condition_group(escalation_events_early)
     --escalation events once the system has "kicked off"
     local escalation_events_late = events:create_new_condition_group("EscalationsForeignWarriorsLate", function(context)
@@ -535,7 +563,81 @@ dev.first_tick(function(context)
         return fw.in_crisis and fw.crisis_level >= 2  and not blocked_by_traits
      end)
     escalation_events_late:set_cooldown(16)
+    escalation_events_late:add_callback(function(context) --:WHATEVER
+        local faction = context:faction() --:CA_FACTION
+        local fw = FOREIGN_WARRIORS[faction:name()] 
+        fw.crisis_level = fw.crisis_level + 1
+    end)
     events:register_condition_group(escalation_events_late)
+
+    --these groups help validate events which cause changes in pop
+    local loss_80_events = events:create_new_condition_group("Lose80ForeignWarriors", function(context)
+        local faction = context:faction() --:CA_FACTION
+        local resource = PettyKingdoms.FactionResource.get("sw_pop_foreign", faction)
+        return resource.value >= 160
+    end)
+    loss_80_events:add_callback(function(context)
+        local faction = context:faction() --:CA_FACTION
+        local resource = PettyKingdoms.FactionResource.get("sw_pop_foreign", faction)
+        resource:change_value(-80)
+    end)
+    local loss_120_events = events:create_new_condition_group("Lose120ForeignWarriors",function(context)
+        local faction = context:faction() --:CA_FACTION
+        local resource = PettyKingdoms.FactionResource.get("sw_pop_foreign", faction)
+        return resource.value >= 240
+    end)
+    loss_120_events:add_callback(function(context)
+        local faction = context:faction() --:CA_FACTION
+        local resource = PettyKingdoms.FactionResource.get("sw_pop_foreign", faction)
+        resource:change_value(-120)
+    end)
+    local loss_200_events = events:create_new_condition_group("Lose200ForeignWarriors", function(context)
+        local faction = context:faction() --:CA_FACTION
+        local resource = PettyKingdoms.FactionResource.get("sw_pop_foreign", faction)
+        return resource.value >= 400
+    end)
+    loss_200_events:add_callback(function(context)
+        local faction = context:faction() --:CA_FACTION
+        local resource = PettyKingdoms.FactionResource.get("sw_pop_foreign", faction)
+        resource:change_value(-200)
+    end)
+    local gain_80_events = events:create_new_condition_group("Gain80ForeignWarriors", function(context)
+        local faction = context:faction() --:CA_FACTION
+        local resource = PettyKingdoms.FactionResource.get("sw_pop_noble", faction)
+        return resource.value >= 160
+    end)
+    gain_80_events:add_callback(function(context)
+        local faction = context:faction() --:CA_FACTION
+        local resource = PettyKingdoms.FactionResource.get("sw_pop_foreign", faction)
+        resource:change_value(80)
+    end)
+    local gain_120_events = events:create_new_condition_group("Gain120ForeignWarriors", function(context)
+        local faction = context:faction() --:CA_FACTION
+        local resource = PettyKingdoms.FactionResource.get("sw_pop_noble", faction)
+        return resource.value >= 240
+    end)
+    gain_120_events:add_callback(function(context)
+        local faction = context:faction() --:CA_FACTION
+        local resource = PettyKingdoms.FactionResource.get("sw_pop_foreign", faction)
+        resource:change_value(120)
+    end)
+    local gain_200_events = events:create_new_condition_group("Gain200ForeignWarriors", function(context)
+        local faction = context:faction() --:CA_FACTION
+        local resource = PettyKingdoms.FactionResource.get("sw_pop_noble", faction)
+        return resource.value >= 400
+    end)
+    gain_200_events:add_callback(function(context)
+        local faction = context:faction() --:CA_FACTION
+        local resource = PettyKingdoms.FactionResource.get("sw_pop_foreign", faction)
+        resource:change_value(200)
+    end)
+    events:register_condition_group(loss_80_events)
+    events:register_condition_group(loss_120_events)
+    events:register_condition_group(loss_200_events)
+    events:register_condition_group(gain_80_events)
+    events:register_condition_group(gain_120_events)
+    events:register_condition_group(gain_200_events)
+
     --step two, adding all the events
     --loop through events and construct, adding conditions and callbacks where found
     for event_key, event_details in pairs(events_regional) do
@@ -555,14 +657,12 @@ dev.first_tick(function(context)
             current:join_group(event_details.group[i])
         end
     end 
+
+
     --step three, add the conquest event and set it up
     local conquest_event = events:create_event("sw_foreign_settlers_conquest_", "incident", "concatenate_region")
+    conquest_event:join_group("Gain120ForeignWarriors")
     conquest_event:set_cooldown(5)
-    conquest_event:add_callback(function(context) 
-        local faction = context:faction() --:CA_FACTION
-        local resource = PettyKingdoms.FactionResource.get("sw_pop_foreign", faction)
-        resource:change_value(120)
-    end)
     --TODO post capture events should be formalized into a second queue system. This will suck.
     dev.eh:add_listener(
         "RegionChangesOwnership",

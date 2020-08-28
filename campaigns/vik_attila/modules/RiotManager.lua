@@ -3,6 +3,7 @@ local riot_manager = {} --# assume riot_manager:RIOT_MANAGER
 local events = dev.GameEvents
 local riot_begins_event = "sw_rebellion_rioting_starts_" --:string
 local riot_ends_event = "sw_rebellion_subsides_" --:string
+local riot_bundle = "shield_rebellion_rioting"
 local riot_duration = 10 --:number
 --v function(t: any)
 local function test_log(t) 
@@ -113,16 +114,17 @@ function riot_manager.start_riot(self, region)
     end
 end
 
---v function(self: RIOT_MANAGER, region: CA_REGION)
-function riot_manager.end_riot(self, region)
+--v function(self: RIOT_MANAGER, region: CA_REGION, skip_event: boolean?)
+function riot_manager.end_riot(self, region, skip_event)
     self.riot_in_progress = false
     self.riot_event_cooldown = 0
     self.riot_timer = 0
-    if region:owning_faction():is_human() then
+    if region:owning_faction():is_human() and not skip_event then
         --dev.Events.trigger_event(riot_ends_event, owning_faction, self.key)
         local context = events:build_context_for_event(riot_ends_event, region, region:owning_faction())
         events:force_check_and_queue_event(riot_ends_event, context)
     end
+    cm:remove_effect_bundle_from_region(riot_bundle, region:name())
 end
 
 

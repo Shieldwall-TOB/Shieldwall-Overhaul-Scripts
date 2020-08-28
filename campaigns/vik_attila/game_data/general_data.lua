@@ -1025,5 +1025,15 @@ REGIONS_SALT = {
 
 
 return {
-    sea_regions = SEA_REGIONS
+	sea_regions = SEA_REGIONS,
+	regions = {
+		east_mercia = REGIONS_EAST_MIERCNA_1,
+		northumbria = REGIONS_NORTHUMBRIA,
+		anglo_saxon = REGIONS_ANGLO_SAXON,
+		danelaw = REGIONS_EAST_DANELAW_MINORS
+	},
+	port_regions = {
+		ireland_ports = REGIONS_IRISH_PORTS,
+		scotland_ports = REGIONS_SCOTTISH_PORTS
+	}
 }

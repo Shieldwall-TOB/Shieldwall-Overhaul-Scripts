@@ -163,6 +163,9 @@ end
 --v function(self: FOOD_MANAGER, region: CA_REGION)
 function food_manager.lose_food_from_region(self, region)
     local cap_from_region = self:food_storage_from_region(region)
+    if cap_from_region == 0 then
+        return
+    end
     local food_in_storage = self:food_in_storage()
     local food_store_cap = self:food_store_cap()
     local prop = cap_from_region/(food_store_cap - food_storage_cap_base) 

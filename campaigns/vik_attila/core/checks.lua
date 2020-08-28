@@ -11,7 +11,17 @@ local function distance_2D(ax, ay, bx, by)
     return (((bx - ax) ^ 2 + (by - ay) ^ 2) ^ 0.5);
 end;
 
-
+local viking_sc = {
+	vik_sub_cult_viking_gael = true,
+	vik_sub_cult_anglo_viking = true
+} --:map<string, boolean>
+local raiders = {
+	vik_fact_wicing = true,
+	vik_fact_finngaill = true,
+	vik_fact_nordmann = true,
+	vik_fact_dubgaill = true,
+	vik_fact_haeden = true
+} --:map<string, boolean>
 --CHECKS
 
 --v [NO_CHECK] function(ca_object: any) --> boolean
@@ -29,23 +39,25 @@ local function check_is_faction_human(faction)
 end
 
 --v function(faction: CA_FACTION) --> boolean
+local function check_is_faction_at_war_with_viking_faction(faction)
+	local factions_at_war_with = faction:factions_at_war_with()
+	for i = 0, factions_at_war_with:num_items() - 1 do
+		local current_faction = factions_at_war_with:item_at(i)
+		if viking_sc[current_faction:subculture()] then
+			return true
+		end
+	end
+	return false
+end
+
+--v function(faction: CA_FACTION) --> boolean
 local function check_is_faction_viking_faction(faction)
-    local viking_sc = {
-        vik_sub_cult_viking_gael = true,
-        vik_sub_cult_anglo_viking = true
-    } --:map<string, boolean>
     return not not viking_sc[faction:subculture()]
 end
 
 --v function(faction: CA_FACTION) --> boolean
 local function check_is_faction_raider_faction(faction)
-    local raiders = {
-        vik_fact_wicing = true,
-		vik_fact_finngaill = true,
-		vik_fact_nordmann = true,
-		vik_fact_dubgaill = true,
-		vik_fact_haeden = true
-    } --:map<string, boolean>
+
     return not not raiders[faction:subculture()]
 end
 
@@ -100,10 +112,7 @@ end
 
 --v function(char: CA_CHAR) --> boolean
 local function check_is_char_from_viking_faction(char)
-    local viking_sc = {
-        vik_sub_cult_viking_gael = true,
-        vik_sub_cult_anglo_viking = true
-    } --:map<string, boolean>
+    
     return not not viking_sc[char:faction():subculture()]
 end
 
@@ -314,7 +323,8 @@ return {
     is_faction_human = check_is_faction_human,
 	is_faction_viking_faction = check_is_faction_viking_faction,
 	is_faction_raider_faction = check_is_faction_raider_faction,
-    is_faction_player_ally = check_is_faction_player_ally,
+	is_faction_player_ally = check_is_faction_player_ally,
+	is_faction_at_war_with_viking_faction = check_is_faction_at_war_with_viking_faction,
     --region
     is_region_low_public_order = check_is_region_low_public_order,
     --characters

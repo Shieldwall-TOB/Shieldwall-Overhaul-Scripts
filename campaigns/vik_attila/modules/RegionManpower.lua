@@ -65,6 +65,8 @@ function region_manpower.new(key, base_serf, base_lord)
     self.monk_pop = 0 --:number
     self.monk_cap = 0 --:number
 
+
+
     self.save = {
         name = self.key .. "_manpower",
         for_save = {
