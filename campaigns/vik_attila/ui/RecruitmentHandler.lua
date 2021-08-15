@@ -72,8 +72,7 @@ function recruitment_resource_handler.restrict_unit_card(self, unit_card, apply,
         restriction_uic:SetState(self.image_state)
     end
     restriction_uic:SetVisible(apply) 
-    --TODO image states for this
-    local total_available = self.get(self.faction_key)
+    local total_available = self.get(self.faction_key) - self.pending_cost
     local cost_string = tostring(total_available).."/"..tostring(cost)
     restriction_uic:SetTooltipText("[[col:red]]You do not have the manpower required to recruit this unit (".. cost_string..")[[/col]]\n\n"..self.tooltip)
 end
