@@ -222,7 +222,7 @@ function geopolitics.think(self, thinker, other_faction, regions_to_consider, ot
                 local owns_region = capital:owning_faction():name() == human
                 if not owns_region then
                     --or have a region bordering this one
-                    for k = 0, capital:adjacent_region_list():num_items() do
+                    for k = 0, capital:adjacent_region_list():num_items() - 1 do
                         if capital:adjacent_region_list():item_at(k):owning_faction() == ally then
                             owns_region = true
                         end
@@ -304,7 +304,7 @@ function event_functions.sw_gifts_vassal_region_(geo, faction_considering, regio
         local owns_region = capital:owning_faction():name() == liege
         if not owns_region then
             --or have a region bordering this one
-            for k = 0, capital:adjacent_region_list():num_items() do
+            for k = 0, capital:adjacent_region_list():num_items() - 1 do
                 if capital:adjacent_region_list():item_at(k):owning_faction() == liege then
                     owns_region = true
                 end
@@ -312,7 +312,7 @@ function event_functions.sw_gifts_vassal_region_(geo, faction_considering, regio
             --or if we don't border this one (We're a vassal)
             if not owns_region then
                 owns_region = true -- assume we don't have any
-                for k = 0, capital:adjacent_region_list():num_items() do
+                for k = 0, capital:adjacent_region_list():num_items() - 1 do
                     if capital:adjacent_region_list():item_at(k):owning_faction() == faction_considering then
                         owns_region = false --we have one
                     end
@@ -346,7 +346,7 @@ function event_functions.sw_gifts_ally_region_(geo, faction_considering, region_
                 local owns_region = capital:owning_faction():name() == faction_considering
                 if not owns_region then
                     --or have a region bordering this one
-                    for k = 0, capital:adjacent_region_list():num_items() do
+                    for k = 0, capital:adjacent_region_list():num_items() - 1 do
                         if capital:adjacent_region_list():item_at(k):owning_faction() == other_faction then
                             owns_region = true
                         end
@@ -384,7 +384,7 @@ function event_functions.sw_gifts_region_to_ally_(geo, faction_considering, regi
             local owns_region = capital:owning_faction():name() == ally
             if not owns_region then
                 --or have a region bordering this one
-                for k = 0, capital:adjacent_region_list():num_items() do
+                for k = 0, capital:adjacent_region_list():num_items() - 1 do
                     if capital:adjacent_region_list():item_at(k):owning_faction() == ally then
                         owns_region = true
                     end
