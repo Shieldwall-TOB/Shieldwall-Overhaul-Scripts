@@ -182,40 +182,7 @@ function MOD_ERROR_LOGS()
             end
     end
     
-    
-    --v [NO_CHECK] function(f: function(), name: string)
-    function logFunctionCall(f, name)
-        return function(...)
-            MODLOG("function called: " .. name);
-            return f(...);
-        end
-    end
-    
-    --v [NO_CHECK] function(object: any)
-    function logAllObjectCalls(object)
-        local metatable = getmetatable(object);
-        for name,f in pairs(getmetatable(object)) do
-            if is_function(f) then
-                MODLOG("\tFound " .. name);
-                if name == "Id" or name == "Parent" or name == "Find" or name == "Position" or name == "CurrentState"  or name == "Visible"  or name == "Priority" or "Bounds" then
-                    --Skip
-                else
-                    metatable[name] = logFunctionCall(f, name);
-                end
-            end
-            if name == "__index" and not is_function(f) then
-                for indexname,indexf in pairs(f) do
-                    MODLOG("\t\tFound in index " .. indexname);
-                    if is_function(indexf) then
-                        f[indexname] = logFunctionCall(indexf, indexname);
-                    end
-                end
-                MODLOG("\tIndex end");
-            end
-        end
-    end
-    
-    
+
     eh.trigger_event = wrapFunction(
         eh.trigger_event,
         function(ab)
@@ -261,6 +228,40 @@ cm:register_first_tick_callback(function()
     if not CONST.__log_game_objects then
         return
     end
+        
+    --v [NO_CHECK] function(f: function(), name: string)
+    function logFunctionCall(f, name)
+        return function(...)
+            MODLOG("function called: " .. name);
+            return f(...);
+        end
+    end
+    
+    --v [NO_CHECK] function(object: any)
+    function logAllObjectCalls(object)
+        local metatable = getmetatable(object);
+        for name,f in pairs(getmetatable(object)) do
+            if is_function(f) then
+                MODLOG("\tFound " .. name);
+                if name == "Id" or name == "Parent" or name == "Find" or name == "Position" or name == "CurrentState"  or name == "Visible"  or name == "Priority" or "Bounds" then
+                    --Skip
+                else
+                    metatable[name] = logFunctionCall(f, name);
+                end
+            end
+            if name == "__index" and not is_function(f) then
+                for indexname,indexf in pairs(f) do
+                    MODLOG("\t\tFound in index " .. indexname);
+                    if is_function(indexf) then
+                        f[indexname] = logFunctionCall(indexf, indexname);
+                    end
+                end
+                MODLOG("\tIndex end");
+            end
+        end
+    end
+    
+    
     --v function(text: any)
     local function log(text)
         MODLOG(tostring(text), "OBJ")
