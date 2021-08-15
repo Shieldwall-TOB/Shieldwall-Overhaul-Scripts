@@ -5,6 +5,17 @@ local here_king_factions = {
     ["vik_fact_northymbre"] = 4
 } --:map<string, int>
 
+local here_king_foreigner_manpower_factor = "foreigners_faction_leader" --:string
+
+local hk_value_to_foreigners = {
+    [1] = 0,
+    [2] = 0,
+    [3] = 80,
+    [4] = 120,
+    [5] = 240,
+    [6] = 600
+}--:map<int, int>
+
 --v function(resource: FACTION_RESOURCE) --> string
 local function value_converter_sax(resource)
     if resource.value <= 3 then
@@ -87,7 +98,12 @@ dev.first_tick(function(context)
             local hk_sax = PettyKingdoms.FactionResource.new(h_name, "vik_here_king_english", "faction_focus", here_king_factions[h_name], hk_cap, {}, value_converter_sax)
             local hk_dan = PettyKingdoms.FactionResource.new(h_name, "vik_here_king_army", "faction_focus", here_king_factions[h_name], hk_cap, {}, value_converter_dan)
             HK[h_name] = {hk_sax, hk_dan}
+            if dev.is_new_game() and MANPOWER_FOREIGN[h_name] then
+                MANPOWER_FOREIGN[h_name]:set_factor(here_king_foreigner_manpower_factor, hk_value_to_foreigners[here_king_factions[h_name]])
+                MANPOWER_FOREIGN[h_name]:reapply()
+            end
         end
+       
     end
 
     dev.eh:add_listener("HereKingTurnStart", "FactionTurnStart", function(context) return not not HK[context:faction():name()] end, function(context) here_king_turn(context:faction()) end, true)

@@ -256,6 +256,7 @@ local mercenary_units = {
 	--testing value.
 	--["eng_ceorl_javelinmen"] = true, 
 	--Sea Kings: sailors, longaxes rekkar, vikingar, Bogadrengir and berserkir are foreigners
+	["est_norse_warriors"] = true,
 	["est_marauders"] = true,
 	["est_norse_hersir"] = true,
 	["est_shield_biters"] = true,
@@ -264,6 +265,7 @@ local mercenary_units = {
 	["est_axe_warriors"] = true,
 	["vik_mailed_archers"] = true,
 	--Great Viking Army: sailors, huscarls, rekkar, Sverdani, berserkir, and Vikingar are foreigners.
+	["dan_ceorl_axemen"] = true,
 	["dan_anglian_raiders"] = true,
 	["dan_huscarls"] = true,
 	["dan_berserkers"] = true,

@@ -87,19 +87,15 @@ local ok, err = pcall( function()
     require("global_mechanics/NobleManpower")
     require("global_mechanics/Monks")
     require("global_mechanics/Foreigners")
-    require("global_mechanics/ForeignWarriors")
     --culture mechanics
     require("culture_mechanics/burghal")
-
     require("culture_mechanics/here_king")
-
     require("culture_mechanics/hof")
     require("culture_mechanics/slaves")
     require("culture_mechanics/tribute")
-
     require("culture_mechanics/heroism")
-
     require("culture_mechanics/legitimacy")
+    
     --faction mechanics
     require("faction_mechanics/mierce_hoards")
     require("faction_mechanics/dyflin_puppet_kings")
