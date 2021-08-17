@@ -275,6 +275,7 @@ local mercenary_units = {
 	["eng_royal_huscarles"] = true,
 	--Gealic: Foreign Warriors
 	["iri_foreign_warriors"] = true, 
+	--Actual mercenaries
 	["dan_mailed_horsemen"] = true,
 	["dan_anglian_marauders"] = true,
 	["dan_northumbrian_mailed_thegns"] = true,
@@ -287,7 +288,8 @@ local mercenary_units = {
 
 local slave_units = {
 	["est_warband"]  = true,
-	["est_raiders"] = true
+	["est_raiders"] = true,
+	["est_kerns"] = true
 } --:map<string, boolean>
 
 
