@@ -90,8 +90,8 @@ function riot_manager.should_riot_start(self, public_order)
 					size = size + army:unit_list():item_at(j):percentage_proportion_of_full_strength()
 				end
 				self:log("Character with army ["..size.."] found in region", is_human)
-				if size > 500 then
-					return false --cannot rebel if an army of 6 or more units is around.
+				if size > 100 then
+					return false --cannot rebel if an army of 2 or more units is around.
 				end
 			end
 		end
@@ -140,7 +140,7 @@ function riot_manager.new_turn(self)
     if self.riot_in_progress then
         --we are rioting!
         self.riot_timer = self.riot_timer - 1 
-        if (public_order > 0 or self.riot_timer <= 0) then
+        if (public_order >= 0 or self.riot_timer <= 0) then
 
             self:end_riot(region)
        elseif self.riot_event_cooldown > 1 then

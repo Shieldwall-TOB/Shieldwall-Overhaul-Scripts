@@ -175,8 +175,6 @@ local function check_does_char_have_scribe(character)
 		["vik_fact_northymbre"]  = "vik_follower_scribe_northymbre",
 		["vik_fact_strat_clut"]  = "vik_follower_scribe_strat_clut",
 		["vik_fact_gwined"]  = "vik_follower_scribe_gwined",
-		["vik_fact_dyflin"]  = "vik_follower_scribe_dyflin",
-		["vik_fact_sudreyar"]  = "vik_follower_scribe_sudreyar",
 		["vik_fact_northleode"]  = "vik_follower_scribe",
 		["vik_fact_caisil"]  = "vik_follower_scribe",
 		["nil"] = "vik_follower_scribe"
@@ -231,6 +229,58 @@ local function check_does_char_have_gothi(character)
 	if skill_key == nil then
 		return false
 	end
+	return character:has_skill(skill_key) 
+end
+
+--v function(character: CA_CHAR) --> boolean
+local function check_does_char_have_quartermaster(character)
+	local faction_to_follower_trait = {
+		["vik_fact_circenn"] = "vik_follower_quartermaster_circenn",
+		["vik_fact_west_seaxe"] = "vik_follower_quartermaster_west_seaxe",
+		["vik_fact_mierce"] = "vik_follower_quartermaster_mierce",
+		["vik_fact_mide"]  = "vik_follower_quartermaster_mide",
+		["vik_fact_strat_clut"]  = "vik_follower_quartermaster_strat_clut",
+		["vik_fact_gwined"]  = "vik_follower_quartermaster_gwined",
+		["vik_fact_dyflin"]  = "vik_follower_quartermaster_dyflin",
+		["vik_fact_sudreyar"]  = "vik_follower_quartermaster_sudreyar",
+		["vik_fact_northleode"]  = "vik_follower_quartermaster",
+		["vik_fact_caisil"]  = "vik_follower_quartermaster",
+		["nil"] = "vik_follower_quartermaster"
+	} --:map<string, string>
+
+	local faction_name = character:faction():name()
+	local skill_key = faction_to_follower_trait[faction_name]
+	if skill_key == nil then
+		skill_key = faction_to_follower_trait["nil"]
+	end
+	log("Checking char: "..tostring(character:command_queue_index()).." for skill "..skill_key)
+	return character:has_skill(skill_key) 
+end
+
+--v function(character: CA_CHAR) --> boolean
+local function check_does_char_have_henchmen(character)
+	local faction_to_follower_trait = {
+		["vik_fact_circenn"] = "vik_follower_pillager_circenn",
+		["vik_fact_west_seaxe"] = "vik_follower_pillager_west_seaxe",
+		["vik_fact_mierce"] = "vik_follower_pillager_mierce",
+		["vik_fact_mide"]  = "vik_follower_pillager_mide",
+		["vik_fact_east_engle"]  = "vik_follower_pillager_east_engle",
+		["vik_fact_northymbre"]  = "vik_follower_pillager_northymbre",
+		["vik_fact_strat_clut"]  = "vik_follower_pillager_strat_clut",
+		["vik_fact_gwined"]  = "vik_follower_pillager_gwined",
+		["vik_fact_dyflin"]  = "vik_follower_pillager_dyflin",
+		["vik_fact_sudreyar"]  = "vik_follower_pillager_sudreyar",
+		["vik_fact_northleode"]  = "vik_follower_pillager",
+		["vik_fact_caisil"]  = "vik_follower_pillager",
+		["nil"] = "vik_follower_pillager"
+	} --:map<string, string>
+
+	local faction_name = character:faction():name()
+	local skill_key = faction_to_follower_trait[faction_name]
+	if skill_key == nil then
+		skill_key = faction_to_follower_trait["nil"]
+	end
+	log("Checking char: "..tostring(character:command_queue_index()).." for skill "..skill_key)
 	return character:has_skill(skill_key) 
 end
 
@@ -333,6 +383,8 @@ return {
     does_char_have_household_guard = check_does_char_have_household_guard,
     does_char_have_champion = check_does_char_have_champion,
     does_char_have_scribe = check_does_char_have_scribe,
+	does_char_have_henchmen = check_does_char_have_henchmen,
+	does_char_have_quartermaster = check_does_char_have_quartermaster,
     does_char_have_bard  = check_does_char_have_bard,
     does_char_have_priest = check_does_char_have_priest,
     does_char_have_gothi = check_does_char_have_gothi

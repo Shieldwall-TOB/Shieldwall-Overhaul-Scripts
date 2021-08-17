@@ -122,17 +122,58 @@ local riot_events = {
         name = "sw_rebellion_henchmen_",
         condition = function(context) --:WHATEVER
             local region = context:region()
-            return region:has_governor() and cm:random_number(100) > 50 and dev.Check.does_char_have_household_guard(region:governor()) == true
+            return region:has_governor() and dev.chance(50) and dev.Check.does_char_have_henchmen(region:governor()) == true
         end,
         response = function(context) --:WHATEVER
             local region = context:region() --:CA_REGION
+            local trait = "shield_tyrant_opressor"
             if context:choice() == 0 then
                 local region_manpower = PettyKingdoms.RegionManpower.get(region:name())
                 region_manpower:mod_population_through_region(-20, "manpower_riots", true, false)
+                dev.add_trait(region:governor(), trait, true)
             end
         end,
         is_dilemma = true
-    }
+    },
+    {
+        name = "sw_rebellion_beloved_demagogue_",
+        condition = function(context) --:WHATEVER
+            local region = context:region()
+            return region:has_governor() and dev.chance(50) and region:governor():has_trait("shield_trait_disloyal") == true and region:governor():has_trait("shield_elder_beloved") == true
+        end,
+        response = function(context) --:WHATEVER
+            --nada
+        end,
+        is_dilemma = false
+    },
+    {
+        name = "sw_rebellion_beloved_lost_love_",
+        condition = function(context) --:WHATEVER
+            local region = context:region()
+            return region:has_governor() and dev.chance(50) and region:governor():has_trait("shield_elder_beloved") == true
+        end,
+        response = function(context) --:WHATEVER
+            local region = context:region() --:CA_REGION
+            local trait = "shield_elder_beloved"
+            local governor_cqi = region:governor():command_queue_index()
+            dev.remove_trait(governor_cqi, "shield_elder_beloved")
+        end,
+        is_dilemma = false
+    },
+    {
+        name = "sw_rebellion_beloved_talked_down_",
+        condition = function(context) --:WHATEVER
+            local region = context:region()
+            return region:has_governor() and dev.chance(50) and region:governor():has_trait("shield_trait_loyal") == true and region:governor():has_trait("shield_elder_beloved") == true
+        end,
+        response = function(context) --:WHATEVER
+            local region = context:region() --:CA_REGION
+            local rm = PettyKingdoms.RiotManager.get(region:name())
+            rm:end_riot(region, true)
+        end,
+        is_dilemma = false
+    },
+
 }--:vector<{name: string, condition: (function(context: WHATEVER) --> boolean), response: (function(context: WHATEVER)), is_dilemma: boolean}>
 
 dev.first_tick(function(context)
