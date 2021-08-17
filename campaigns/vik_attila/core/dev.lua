@@ -519,19 +519,21 @@ local function dev_turn()
 end
 
 
---v function(character: CA_CHAR) --> string
-local function dev_closest_settlement_to_char(character)
+--v function(character: CA_CHAR, cannot_own: boolean?) --> string
+local function dev_closest_settlement_to_char(character, cannot_own)
     local region_list = cm:model():world():region_manager():region_list();
 	local target_distance = 0 --:number
-	local region_key = ""
+	local region_key --:string
 	for i = 0, region_list:num_items() - 1 do
 		local region = region_list:item_at(i);
 		local lx = region:settlement():logical_position_x() - character:logical_position_x()
 		local ly = region:settlement():logical_position_y() - character:logical_position_y()
 		local region_distance = ((lx * lx) + (ly * ly))
-		if region_key == "" or region_distance < target_distance then
-			region_key = region:name();
-			target_distance = region_distance;
+		if (not region_key) or region_distance < target_distance then
+            if (not cannot_own) or (region:owning_faction():name() ~= character:faction():name()) then
+                region_key = region:name();
+                target_distance = region_distance;
+            end
 		end
 	end
 	return region_key;
@@ -760,6 +762,16 @@ local function dev_invasion_number()
     return invasions_number - 1;
 end
 
+--v [NO_CHECK] function(txt: string) --> string
+local function dev_get_numbers_from_text(txt)
+    local str = "" --:string
+    string.gsub(txt,"%d+",function(e)
+     str = str .. e
+    end)
+    return str
+end
+
+
 cm:register_loading_game_callback(function(context)
     last_time_settlement_sacked = cm:load_value("last_time_settlement_sacked", {}, context)
     invasions_number = cm:load_value("invasions_number", 0, context)
@@ -776,7 +788,7 @@ get_eh():add_listener(
     true,
     function(context)
         local region_key = dev_closest_settlement_to_char(context:character())
-        if region_key ~= "" then
+        if region_key then
             last_time_settlement_sacked[region_key] = cm:model():turn_number()
         end
     end,
@@ -967,6 +979,7 @@ return {
     respond_to_incident = dev_respond_to_incident,
     respond_to_dilemma = dev_respond_to_dilemma,
     last_time_sacked = dev_last_time_sacked,
+    get_numbers_from_text = dev_get_numbers_from_text,
     invasion_number = dev_invasion_number,
     generate_force_cache_entry = dev_generate_force_cache_entry,
     create_army = dev_create_army,
