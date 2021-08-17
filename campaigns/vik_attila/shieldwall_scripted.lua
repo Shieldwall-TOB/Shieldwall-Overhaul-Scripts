@@ -71,22 +71,23 @@ end
 --require mechanics scripts
 local ok, err = pcall( function()
     --global mechanics; 
+    building_effects = require("global_mechanics/building_effects")
+    require("global_mechanics/skill_effects")
     require("global_mechanics/CampaignVictories")
     require("global_mechanics/Shroud")
-    require("global_mechanics/SeasonalEffects")
+    --require("global_mechanics/SeasonalEffects")
     require("global_mechanics/FoodStorage")
     require("global_mechanics/RiotEvents")
     require("global_mechanics/Bandits")
     require("global_mechanics/CitiesLandmarks")
     require("global_mechanics/VikingRaiders")
     require("global_mechanics/Endgame")
-    require("global_mechanics/building_effects")
-    require("global_mechanics/skill_effects")
     --manpower
     require("global_mechanics/PeasantManpower")
     require("global_mechanics/NobleManpower")
     require("global_mechanics/Monks")
     require("global_mechanics/Foreigners")
+    require("global_mechanics/ForeignWarriorEvents")
     --culture mechanics
     require("culture_mechanics/burghal")
     require("culture_mechanics/here_king")
