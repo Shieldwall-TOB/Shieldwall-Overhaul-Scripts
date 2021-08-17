@@ -181,8 +181,7 @@ local function invasions_turn_start(faction_key)
     local target = closest_faction
     dev.log("closest human to spawn was ["..closest_human..","..tostring(h).."]", "RAIDER")
     dev.log("closest faction to spawn was ["..closest_faction..","..tostring(f).."]", "RAIDER")
-    if closest_faction == closest_human or h*0.60 < f then
-        target = closest_human
+    if closest_faction == closest_human or dev.get_faction(closest_faction):is_vassal_of(dev.get_faction(closest_human)) or h*0.60 < f then
         --is this human on dilemma CD?
         if not (invaders[closest_human].cooldown > 0) and dev.get_faction(closest_human):treasury() > 1100 then
             --queue dilemma
@@ -205,10 +204,12 @@ local function invasions_turn_start(faction_key)
             end)
             dev.Events.trigger_turnstart_dilemma(dilemma, closest_human)
         else
-            create_invasion_force(faction_key, location_key, x, y, intensity, (h < 3*f)) --only show a message when the human's distance is less than 3x the distance to the target.
+            create_invasion_force(faction_key, location_key, x, y, intensity, true) --only show a message when the human's distance is less than 3x the distance to the target.
+            active_raiders[faction_key] = {state = -1, target = closest_human}
         end
     else
-        create_invasion_force(faction_key, location_key, x, y, intensity, false)
+        create_invasion_force(faction_key, location_key, x, y, intensity, (h < 3*f))
+        active_raiders[faction_key] = {state = -1, target = closest_faction}
     end
 end
 
@@ -258,19 +259,24 @@ dev.first_tick(function(context)
             local viking_leader = vikings:faction_leader()
             local target = dev.get_faction(active_raiders[vikings:name()].target)
             local state = active_raiders[vikings:name()].state
+            dev.log("Active Viking Raid by ["..vikings:name().."] is starting its turn with target: ["..target:name().."] and state ["..tostring(state).."] ", "RAIDER")
             if target:is_dead() then
-                local settlement = dev.closest_settlement_to_char(viking_leader)
+                dev.log("Target is dead! Long Live the Target")
+                local settlement = dev.closest_settlement_to_char(viking_leader, true)
                 state = -1
                 target = dev.get_region(settlement):owning_faction()
                 active_raiders[vikings:name()].target = target:name()
             end
             if state < 0 and not vikings:at_war_with(target) then
+                dev.log("Forcing raid to DOW target", "RAIDER")
                 cm:force_declare_war(vikings:name(), target:name())
-            elseif state > 0 then
+            elseif target:is_human() and state > 0 then
                 if not vikings:is_vassal_of(target) then
+                    dev.log("Forcing raid to be Vassalized by target", "RAIDER")
                     cm:force_make_vassal(target:name(), vikings:name())
                 end
                 local is_at_war = false --:boolean
+                dev.log("Checking if Raider Ally is at war", "RAIDER")
                 for i = 0, target:factions_at_war_with():num_items() - 1 do
                     is_at_war = true 
                     if target:factions_at_war_with():item_at(i):subculture() == "vik_sub_cult_anglo_viking" then
@@ -284,6 +290,7 @@ dev.first_tick(function(context)
                 end
                 if not is_at_war then
                     active_raiders[vikings:name()].state = active_raiders[vikings:name()].state - 1
+                    dev.log("Incrementing Raider Boredom", "RAIDER")
                     if state == 0 then
                         --time to betray!
                         active_raiders[vikings:name()] = {state = -1, target = target:name()}
