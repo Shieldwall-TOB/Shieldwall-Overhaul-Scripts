@@ -1,11 +1,9 @@
 MANPOWER_FOREIGN = {} --:map<string, FACTION_RESOURCE>
 FOREIGN_WARRIORS = {
-    hostility = 20,
+    hostility = 0,
     last_foreigner_event_turn = -1,
-    faction_details = {
-
-    }
-} --:{hostility: int, last_foreigner_event_turn: int, faction_details: map<string, {}>}
+    provinces_with_foreigners = {}
+} --:{hostility: int, last_foreigner_event_turn: int, provinces_with_foreigners: map<string, boolean>}
 dev.Save.persist_table(FOREIGN_WARRIORS, "FOREIGN_WARRIORS_T", function(t) FOREIGN_WARRIORS = t end)
 
 --v function(t: string)
@@ -13,12 +11,6 @@ local function log(t)
     dev.log(tostring(t), "FW_POP")
 end
 
---v function(faction_key: string)
-local function add_blank_faction_details(faction_key)
-    FOREIGN_WARRIORS.faction_details[faction_key] = {
-
-    }
-end
 
 local hostility_decay = 1
 local hostility_major_war = 30
@@ -49,12 +41,12 @@ local trait_to_foreigner_popcaps = {
 } --:map<string, int>
 
 local building_foreigner_effects = {
-    ["vik_borough"] = {240, "foreigners_borough"},
-    ["vik_foreigners"] = {80, "foreigners_village"},
+    ["vik_borough"] = {{160, 200, 240, 300, 450}, "foreigners_borough"},
+    ["vik_foreigners"] = {{80, 120, 160}, "foreigners_village"},
     ["vik_alehouse"] = {30, "foreigners_alehouse"},
-    ["vik_longphort"] = {120, "foreigners_longphorts"},
+    ["vik_longphort"] = {{80, 100, 120, 160, 200}, "foreigners_longphorts"},
     ["vik_hof"] = {60, "foreigners_hof", "vik_sub_cult_viking_gael"}
-}--:map<string, {int, string, string?}>
+}--:map<string, {int|vector<int>, string, string?}>
 
 local here_king_to_foreigner_popcaps = {
     [1] = 0,
@@ -91,10 +83,23 @@ local function process_turn_start(faction)
             if slot:has_building() then
                 local key  = slot:building():superchain()
                 if building_foreigner_effects[key] then
-                    local quantity = building_foreigner_effects[key][1]
+                    local quantities = building_foreigner_effects[key][1]
+                    local quantity --:int
+                    if is_table(quantities) then
+                        --# assume quantities: map<number, int>
+                        local level = tonumber(dev.get_numbers_from_text(slot:building():name()))
+                        quantity = quantities[level]
+                        if not quantities[level] then
+                            quantity = 0
+                        end
+                    else
+                        --# assume quantities: int
+                        quantity = quantities
+                    end
                     local factor = building_foreigner_effects[key][2]
                     log(key.. " at "..region:name().. " worth "..tostring(quantity) .. " in "..factor)
                     if from_buildings[factor] then
+                        FOREIGN_WARRIORS.provinces_with_foreigners[region:province_name()] = true
                         from_buildings[factor] = (from_buildings[factor]) + quantity
                     end
                 end
