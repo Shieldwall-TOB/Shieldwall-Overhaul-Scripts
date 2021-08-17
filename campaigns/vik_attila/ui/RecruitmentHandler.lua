@@ -276,7 +276,9 @@ local function add_recruitment_resource(resource, resource_getter, resource_mod,
             --is our clicked component a unit?
             if string.find(unit_component_ID, "_mercenary") then
                 local unitID = string.gsub(unit_component_ID, "_mercenary", "")
-                if UIComponent(context.component):CurrentState() == "active" and (not UIComponent(context.component):GetTooltipText():find("col:red")) then
+                if UIComponent(context.component):CurrentState() == "active" 
+                and (not UIComponent(context.component):GetTooltipText():find("col:red"))
+                and (not UIComponent(context.component):GetTooltipText():find("cannot")) then
                     instance:add_unit_to_queue(unitID)
                 else
                     dev.callback(function()
