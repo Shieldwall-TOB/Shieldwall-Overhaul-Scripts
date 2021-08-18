@@ -6,7 +6,7 @@ function game_event_manager.log(self, t)
 end
 
 local queue_times = {
-    "FactionTurnStart", "CharacterTurnStart", "RegionTurnStart", "CharacterCompletedBattle"
+    "FactionTurnStart", "CharacterTurnStart", "RegionTurnStart", "CharacterCompletedBattle", "CharacterRetreatedFromBattle", "CharacterEntersGarrison"
 } --:vector<GAME_EVENT_QUEUE_TIMES>
 
 local default_groups = {"dilemma", "incident", "mission"}
@@ -26,6 +26,9 @@ function game_event_manager.new()
     self.queue_map = {} --:map<string, int>
     --holds the actual queue
     self.event_queue = {} --:vector<QUEUED_GAME_EVENT>
+
+    --holds which settlements the human factions have already visited with which characters to prevent doubling up events.
+    self.garrison_visits_cache = {} --:map<string, map<CA_CQI, boolean>>
 
     self.schedule = {} --:map<GAME_EVENT_QUEUE_TIMES, vector<EVENT_CONDITION_GROUP>>
     for i = 1, #queue_times do
@@ -74,6 +77,14 @@ function game_event_manager.create_event(self, name, event_type, event_trigger_k
     local new_event = game_event.new(self, name, type_group, event_trigger_kind)
     self.events[name] = new_event
     return new_event
+end
+
+--v function(self: GAME_EVENT_MANAGER, name: string) --> GAME_EVENT
+function game_event_manager.get_event(self, name)
+    if not self.events[name] then
+        self:log("Asked to get an event which doesn't exist: "..name)
+    end
+    return self.events[name]
 end
 
 --internals
@@ -349,6 +360,132 @@ function game_event_manager.start_player_turn(self, player_faction)
     self:log("Firing Queue")
     --fire the events waiting in the Queue
     self:fire_queued_events(player_faction)
+
+    --reset the garrison visits cache for the new turn
+    self.garrison_visits_cache = {}
+end
+
+--v function(self: GAME_EVENT_MANAGER, context: CA_CONTEXT)
+function game_event_manager.completed_battle(self, context)
+    local players_in_battle = {} --:map<CA_CQI, CA_FACTION>
+	local attacker_result = cm:model():pending_battle():attacker_battle_result();
+    local defender_result = cm:model():pending_battle():defender_battle_result();
+    local was_retreat = false --:boolean
+    local has_humans = false --:boolean
+    if attacker_result == "close_defeat" and defender_result == "close_defeat" then
+        was_retreat = true
+    end
+    for i = 1, cm:pending_battle_cache_num_attackers() do
+        local char_cqi, force_cqi, faction_key = cm:pending_battle_cache_get_attacker(i)
+        local faction = dev.get_faction(faction_key)
+        if faction:is_human() then
+            players_in_battle[char_cqi] = faction
+            has_humans = true
+        end 
+    end
+    if not was_retreat then
+        for i = 1, cm:pending_battle_cache_num_defenders() do
+            local char_cqi, force_cqi, faction_key = cm:pending_battle_cache_get_defender(i)
+            local faction = dev.get_faction(faction_key)
+            if faction:is_human() then
+                players_in_battle[char_cqi] = faction
+                has_humans = true
+            end 
+        end
+    end
+    if not has_humans then
+        return
+    end
+    local qt = "CharacterCompletedBattle" --:GAME_EVENT_QUEUE_TIMES
+    if was_retreat then
+        qt = "CharacterRetreatedFromBattle"
+    end
+    local scheduled_groups = self.schedule[qt]
+    self:log("Checking schedule: "..qt)
+    for i = 1, #scheduled_groups do
+        local this_group = scheduled_groups[i]
+        self:log("Checking group: "..this_group.name)
+        for event_key, event_object in pairs(this_group.members) do
+            for character_cqi, player_faction in pairs(players_in_battle) do
+                local character = dev.get_character(character_cqi)
+                local character_context = self:build_context_for_event(player_faction, character, context:pending_battle())
+                if dev.is_char_normal_general(character) then
+                    local can_queue, displaces_event = self:can_queue_event(this_group, event_object, character_context)
+                    if can_queue and displaces_event then
+                        if self:remove_event_from_queue(displaces_event, true) then
+                            self:queue_event(event_object, character_context)
+                        end
+                    elseif can_queue then
+                        self:queue_event(event_object, character_context)
+                    end
+                end   
+            end
+        end
+    end
+    self:log("Firing Queue")
+    for character_cqi, player_faction in pairs(players_in_battle) do
+        --fire the events waiting in the Queue
+        self:fire_queued_events(player_faction)
+    end
+end
+
+--v function(self: GAME_EVENT_MANAGER, character: CA_CHAR, region: CA_REGION)
+function game_event_manager.player_character_entered_garrison(self, character, region)
+    --prevent doubling up events
+    if self.garrison_visits_cache[region:name()] then
+        if self.garrison_visits_cache[region:name()][character:command_queue_index()] then
+            return
+        else
+            self.garrison_visits_cache[region:name()][character:command_queue_index()] = true
+        end
+    else
+        self.garrison_visits_cache[region:name()] = {}
+        self.garrison_visits_cache[region:name()][character:command_queue_index()] = true
+    end
+
+    local qt = "CharacterEntersGarrison" --:GAME_EVENT_QUEUE_TIMES
+    local scheduled_groups = self.schedule[qt]
+    local player_faction = character:faction()
+    self:log("Checking schedule: "..qt)
+    for i = 1, #scheduled_groups do
+        local this_group = scheduled_groups[i]
+        self:log("Checking group: "..this_group.name)
+        for event_key, event_object in pairs(this_group.members) do
+            local character_context = self:build_context_for_event(player_faction, character, region)
+            if dev.is_char_normal_general(character) then
+                local can_queue, displaces_event = self:can_queue_event(this_group, event_object, character_context)
+                if can_queue and displaces_event then
+                    if self:remove_event_from_queue(displaces_event, true) then
+                        self:queue_event(event_object, character_context)
+                    end
+                elseif can_queue then
+                    self:queue_event(event_object, character_context)
+                end
+            end   
+        end
+    end
+    self:log("Firing Queue")
+    self:fire_queued_events(player_faction)
+end
+
+--v function(self: GAME_EVENT_MANAGER) --> boolean
+function game_event_manager.can_queue_dilemma(self)
+    local dilemma = self.condition_groups["dilemma"]
+    if not dilemma then
+        self:log("asked if a dilemma could be queued, but dilemma isn't set up?!")
+        return false
+    end
+    return dilemma:has_room_in_queue() and dilemma:is_off_cooldown()
+end
+
+--v function(self: GAME_EVENT_MANAGER) --> boolean
+function game_event_manager.can_queue_mission(self)
+    local mission = self.condition_groups["mission"]
+    if not mission then
+        self:log("asked if a mission could be queued, but mission isn't set up?!")
+        return false
+    end
+    return mission:has_room_in_queue() and mission:is_off_cooldown()
 end
 
 local active_manager = nil --:GAME_EVENT_MANAGER
@@ -365,7 +502,7 @@ local function initialize_game_events()
 
     local mission = condition_group.new("mission")
     mission.num_allowed_in_queue = 1
-    mission.cooldown = 5
+    mission.cooldown = 1
     active_manager:register_condition_group(mission)
 
     local incident = condition_group.new("incident")
@@ -379,6 +516,29 @@ local function initialize_game_events()
             end,
             function(context)
                 active_manager:start_player_turn(context:faction())
+            end,
+            true
+        )
+        dev.eh:add_listener(
+            "EventsCore",
+            "BattleCompleted",
+            true,
+            function(context)
+                active_manager:completed_battle(context)
+            end,
+            true
+        )
+        dev.eh:add_listener(
+            "EventsCore",
+            "CharacterEntersGarrison",
+            function(context)
+                return context:character():faction():is_human()
+            end,
+            function(context)
+                local character = context:character() --:CA_CHAR
+                local region = context:garrison_residence():region() --:CA_REGION
+
+                active_manager:player_character_entered_garrison(character, region)
             end,
             true
         )

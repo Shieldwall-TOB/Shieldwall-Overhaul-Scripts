@@ -88,7 +88,7 @@ function game_event.join_group(self, group_name)
         self.manager:log("Attempted to add "..self.key.." to event group: ".. group_name .." which does not exist!")
         return
     end
-    dev.insert(self.groups, 2, group)
+    dev.insert(self.groups, #self.groups+1, group)
     group:add_event(self)
 end
 

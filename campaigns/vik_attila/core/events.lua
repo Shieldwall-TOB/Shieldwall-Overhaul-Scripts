@@ -1,3 +1,6 @@
+--no longer used, being phased out of the rest of the scripts
+--replaced by story folder scripts
+
 --a universally called helper.
 --used to coordinate the trigger of dilemmas.
 local game_events = {}

@@ -6,7 +6,7 @@ dev = require("core/dev")
 dev.log("Development library loaded, starting to load gameplay scripts")
 local ok, err = pcall(function()
     dev.Save = require("core/save")
-    dev.Events = require("core/Events")
+    --dev.Events = require("core/Events")
     dev.Check = require("core/checks")
 
     dev.GameEvents = require("story/Events")

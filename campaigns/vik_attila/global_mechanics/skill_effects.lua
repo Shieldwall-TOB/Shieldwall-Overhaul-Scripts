@@ -42,7 +42,7 @@ end
 ----------------------------
 --Henchmen Rewards Raiding--
 ----------------------------
-
+--TODO henchmen rewards
 dev.first_tick(function(context) 
     
 
@@ -54,6 +54,8 @@ end)
 --Bard Rewards Postbattle--
 ----------------------------
 dev.first_tick(function(context) 
+    --TODO move to new events system
+    --[[
     dev.Events.add_post_battle_event("sw_heroism_bard", function(context)
         return context:character():faction():is_human() and dev.Check.does_char_have_bard(context:character()) and not not PettyKingdoms.FactionResource.get("vik_heroism", context:character():faction())
     end, 3, 12, function(context)
@@ -79,8 +81,16 @@ dev.first_tick(function(context)
     dev.Events.add_post_battle_event("sw_fame_bard", function(context)
         return context:character():faction():is_human() and dev.Check.does_char_have_bard(context:character())
     end, 3, 16)
-    
+    --]]
 end)
+
+
+
+------------------------------
+--------Blacksmith Items------
+------------------------------
+--TODO blacksmith items
+--on turn start, if we have a blacksmith and we don't have a blacksmith item yet, give us a dilemma to get one.
 
 
 

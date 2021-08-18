@@ -66,7 +66,7 @@ local active_raiders = {
 }--:map<string, {state: number, target: string}>
 
 
-
+local events = dev.GameEvents
 
 
 --get the faction who is closest the spawn point. 
@@ -183,7 +183,7 @@ local function invasions_turn_start(faction_key)
     dev.log("closest faction to spawn was ["..closest_faction..","..tostring(f).."]", "RAIDER")
     if closest_faction == closest_human or dev.get_faction(closest_faction):is_vassal_of(dev.get_faction(closest_human)) or h*0.60 < f then
         --is this human on dilemma CD?
-        if not (invaders[closest_human].cooldown > 0) and dev.get_faction(closest_human):treasury() > 1100 then
+        if events:can_queue_dilemma() and (not (invaders[closest_human].cooldown > 0)) and dev.get_faction(closest_human):treasury() > 1100 then
             --queue dilemma
             --shield_invasion_danegeld	or _GVA
             local dilemma = "shield_invasion_danegeld"
@@ -199,10 +199,17 @@ local function invasions_turn_start(faction_key)
                 elseif context:choice() == 3 then
                     create_invasion_force(faction_key, location_key, x, y, intensity, false)
                     active_raiders[faction_key] = {state = vassal_boredom_time, target = closest_human}
+                else
+                    local cd = raider_cd_base - dev.mround(dev.clamp(cd_intensity_scale*intensity, 0, raider_cd_reduction_max), 1)
+                    if cm:model():is_multiplayer() then
+                        cd = cd*2
+                    end
+                    invaders[faction_key].cooldown = cd
                 end
                 invaders[closest_human].cooldown = dilemma_cd
             end)
-            dev.Events.trigger_turnstart_dilemma(dilemma, closest_human)
+            local event_context = events:build_context_for_event(dilemma, dev.get_faction(closest_human))
+            events:force_check_and_queue_event(dilemma, event_context)
         else
             create_invasion_force(faction_key, location_key, x, y, intensity, true) --only show a message when the human's distance is less than 3x the distance to the target.
             active_raiders[faction_key] = {state = -1, target = closest_human}
@@ -222,6 +229,9 @@ dev.first_tick(function(context)
             invaders[humans[i]] = {cooldown = dev.mround(dilemma_cd/4, 1), army = "", spawns = {}}
         end
     end
+
+    local danegeld_basic = events:create_event("shield_invasion_danegeld", "dilemma", "standard")
+    local danegeld_gva = events:create_event("shield_invasion_danegeld_GVA", "dilemma", "standard")
 
     dev.eh:add_listener(
         "VikingRaidersTurnStartCooldowns",

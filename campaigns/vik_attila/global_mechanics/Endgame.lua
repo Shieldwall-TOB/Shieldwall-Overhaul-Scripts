@@ -91,6 +91,8 @@ local armies = {
     }
 }--:map<string, map<string, {int, int, int}>>
 
+local events = dev.GameEvents
+
 --v function(t: any)
 local function log(t)
     dev.log(tostring(t), "ENDGAME-INVADERS")
@@ -161,8 +163,9 @@ local function check_norman_invasion(human_faction)
     end
     END_GAME_INVASIONS["vik_fact_normaunds"].delay = entry.delay - 1
     log("Cooldown on vik_fact_normaunds endgame invasion is: "..tostring(END_GAME_INVASIONS["vik_fact_normaunds"].delay))
-    if entry.delay <= normans_prelude_turn and not dev.Events.has_event_occured(normans_warning) then
-        dev.Events.trigger_incident(normans_warning, human_faction)
+    if entry.delay <= normans_prelude_turn and not events:get_event(normans_warning):is_off_cooldown() then
+        local event_context = events:build_context_for_event(normans_warning, human_faction)
+        events:force_check_and_trigger_event_immediately(normans_warning, event_context)
     end
     if entry.delay <= 0 then
         local location_key = entry.spawns[cm:random_number(#entry.spawns)]
@@ -170,11 +173,13 @@ local function check_norman_invasion(human_faction)
         local x, y = Gamedata.spawn_locations.VikingRaiders[location_key]["x1"], Gamedata.spawn_locations.VikingRaiders[location_key]["y1"] 
         local rf, dist = get_closest_target(x, y, norman_locations, human_faction)
         if dist > norman_far_away_distance or (not norman_locations[rf]) then
-            dev.Events.trigger_incident(norman_far_away_event, human_faction)
+            local event_context = events:build_context_for_event(norman_far_away_event, human_faction)
+            events:force_check_and_trigger_event_immediately(norman_far_away_event, event_context)
         elseif norman_locations[rf] then
             local region = norman_locations[rf]
             local incident = norman_region_prefix .. string.gsub(region, "vik_reg_", "")
-            dev.Events.trigger_incident(incident, human_faction)
+            local event_context = events:build_context_for_event(incident, human_faction)
+            events:force_check_and_trigger_event_immediately(incident, event_context)
         end
     end
 end
@@ -195,13 +200,25 @@ local function check_norse_invasion(human_faction)
             cm:force_declare_war("vik_fact_norse", jorvik_owner:name())
         end
         if human_faction:name() == jorvik_owner:name() then
-            dev.Events.trigger_incident(norse_invader_hostile, human_faction)
+            local event_context = events:build_context_for_event(norse_invader_hostile, human_faction)
+            events:force_check_and_trigger_event_immediately(norse_invader_hostile, event_context)
         else
-            dev.Events.trigger_incident(norse_invader_arrival, human_faction)
+            local event_context = events:build_context_for_event(norse_invader_arrival, human_faction)
+            events:force_check_and_trigger_event_immediately(norse_invader_arrival, event_context)
         end
     end
 end
 dev.first_tick(function(context) 
+    events:create_event(norman_far_away_event, "incident", "standard"):set_cooldown(99)
+    events:create_event(norse_invader_hostile, "incident", "standard"):set_cooldown(99)
+    events:create_event(norse_invader_arrival, "incident", "standard"):set_cooldown(99)
+    events:create_event(normans_warning, "incident", "standard"):set_cooldown(99)
+    for i = 1, #norman_locations do
+        local norman_arrival_event = norman_region_prefix .. string.gsub(norman_locations[i], "vik_reg_", "")
+        events:create_event(norman_arrival_event, "incident", "standard"):set_cooldown(99)
+    end
+    
+
     dev.eh:add_listener(
         "EndGameInvasionsTurnStart",
         "KingdomTurnStart",

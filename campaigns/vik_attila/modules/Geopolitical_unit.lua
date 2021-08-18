@@ -36,6 +36,8 @@ local region_defection_ally_gift_levels = 3
 local region_defection_ally_time_between_requests = 4;
 local region_defection_ally_time_between_requests_scaling = 2;
 
+local events = dev.GameEvents
+
 
 local event_functions = {} --:map<string, function(geo: GEOPOLITICS, faction_considering: string, region_being_considered: string, previous_owner: string, is_human_victory_region: boolean, whose_victory_region: string)>
 
@@ -242,6 +244,8 @@ end
 --v function(self: GEOPOLITICS)
 function geopolitics.activate(self)
 
+    --TODO initialize events
+
     for i = 1, #self.regions do self.regions_active[self.regions[i]] = true end
     for faction_key, region_list in pairs(self.faction_kingdom_regions) do
         for j = 0, dev.get_faction(faction_key):region_list():num_items() - 1 do
@@ -413,7 +417,8 @@ function event_functions.sw_gifts_region_to_ally_(geo, faction_considering, regi
                             geo.faction_anger[ally][faction_considering] = 0
                         end
                     end)
-                    dev.Events.trigger_turnstart_dilemma(event_key, faction_considering, true)
+                    --TODO dilemma
+                    --dev.Events.trigger_turnstart_dilemma(event_key, faction_considering, true)
                 end
                 return
             end
