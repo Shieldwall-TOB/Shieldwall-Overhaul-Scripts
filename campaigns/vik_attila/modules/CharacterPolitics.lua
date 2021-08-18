@@ -10,6 +10,16 @@ local subcultures_to_title_sets = {
     vik_sub_cult_welsh = "welsh"
 } --:map<string, string>
 
+local startpos_skills = {
+   ["vik_fact_dyflin"] = "vik_follower_champion_dyflin",
+   ["vik_fact_east_engle"] = "vik_follower_champion_east_engle",
+   ["vik_fact_sudreyar"] = "vik_follower_bard_sudreyar",
+   ["vik_fact_strat_clut"] = "vik_follower_bard_strat_clut",
+   ["vik_fact_west_seaxe"] = "vik_follower_scribe_west_seaxe",
+   ["vik_fact_circenn"] = "vik_follower_champion_circenn"
+} --:map<string, string>
+
+
 local factions_with_trait_overrides = {
     ["vik_fact_gwined"] = true,
     ["vik_fact_strat_clut"] = true,
@@ -51,10 +61,11 @@ function character_politics.new(cqi)
     self.last_title = "none" --:string
     self.home_region = "none" --:string
     self.traits = {} --:vector<string>
+    self.skills = {} --:map<string, number>
 
     self.save = {
         name = "politics_"..tostring(self.cqi), 
-        for_save = {"last_governorship", "friendship_level", "general_level", "title", "last_title", "plot_vulnerability"}
+        for_save = {"last_governorship", "friendship_level", "general_level", "title", "last_title", "plot_vulnerability", "skills"}
     }--:SAVE_SCHEMA
     --dev.Save.attach_to_object(self)
     return self
@@ -226,26 +237,30 @@ function character_politics.update_general_trait(self, character)
         if character:military_force():unit_list():num_items() > 15 then
             local old_bundle = general_level_trait..tostring(self.general_level-1)
             local new_bundle = general_level_trait.."1"
-            if character:has_trait(old_bundle) then
-                self:log("Removing old general trait "..old_bundle)
-                dev.remove_trait(character, old_bundle)
-            end
-            if old_bundle ~= new_bundle and not character:has_trait(new_bundle) then
-                self:log("adding new general trait "..new_bundle)
-                dev.add_trait(character, new_bundle, true)
+            if old_bundle ~= new_bundle then
+                if character:has_trait(old_bundle) then
+                    self:log("Removing old general trait "..old_bundle)
+                    dev.remove_trait(character, old_bundle)
+                end
+                if not character:has_trait(new_bundle) then
+                    self:log("adding new general trait "..new_bundle)
+                    dev.add_trait(character, new_bundle, true)
+                end
             end
             self.general_level = 2
         else
             local old_bundle = general_level_trait..tostring(self.general_level-1)
             local new_bundle = general_level_trait.."0"
-            if old_bundle ~= new_bundle and character:has_trait(old_bundle) then
-                self:log("Removing old general trait "..old_bundle)
-                dev.remove_trait(character, old_bundle)
-                changed_trait = true
-            end
-            if old_bundle ~= new_bundle and not character:has_trait(new_bundle) then
-                self:log("adding new general trait "..new_bundle)
-                dev.add_trait(character, new_bundle, true)
+            if old_bundle ~= new_bundle then
+                if character:has_trait(old_bundle) then
+                    self:log("Removing old general trait "..old_bundle)
+                    dev.remove_trait(character, old_bundle)
+                    changed_trait = true
+                end
+                if  not character:has_trait(new_bundle) then
+                    self:log("adding new general trait "..new_bundle)
+                    dev.add_trait(character, new_bundle, true)
+                end
             end
             self.general_level = 1
         end
@@ -287,6 +302,13 @@ dev.first_tick(function(context)
                 instances[current:command_queue_index()]:log("Created pols char")
             end
             if dev.is_new_game() and instances[current:command_queue_index()] then
+                local sp_skills = startpos_skills[humans[i]]
+                if sp_skills then
+                    if current:has_skill(sp_skills) then
+                        instances[current:command_queue_index()].skills[sp_skills] = 1
+                        instances[current:command_queue_index()]:log("\tcreated character had startpos skill ["..sp_skills.."]")
+                    end
+                end
                 instances[current:command_queue_index()]:turn_start()
             end
         end
@@ -354,6 +376,23 @@ dev.first_tick(function(context)
                 end
                 instances[char:command_queue_index()].traits[#instances[char:command_queue_index()].traits+1] = context.string
                 instances[char:command_queue_index()]:log("Gained trait: "..context.string)
+            end,
+            true)
+        dev.eh:add_listener(
+            "CharacterSkillPointAllocatedPolitics",
+            "CharacterSkillPointAllocated",
+            function(context)
+                return context:character():faction():is_human()
+            end,
+            function(context)
+                local char = context:character() --:CA_CHAR
+                if not instances[char:command_queue_index()] then
+                    instances[char:command_queue_index()] = character_politics.new(char:command_queue_index())
+                end
+                local instance = instances[char:command_queue_index()]
+                local skill = context:skill_point_spent_on()
+                instance.skills[skill] = (instance.skills[skill] or 0) + 1
+                instance:log("Human Character skilled ["..skill.."] and has ["..tostring(instance.skills[skill]).."] skill points")
             end,
             true)
 
