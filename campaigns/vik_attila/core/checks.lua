@@ -116,7 +116,7 @@ local function check_is_char_from_viking_faction(char)
     return not not viking_sc[char:faction():subculture()]
 end
 
---v function(character: CA_CHAR) --> boolean
+--v function(character: CA_CHAR) --> (boolean, string)
 local function check_does_char_have_household_guard(character)
 	local faction_to_follower_trait = {
 		["vik_fact_circenn"] = "vik_follower_champion_circenn",
@@ -139,10 +139,10 @@ local function check_does_char_have_household_guard(character)
 	if skill_key == nil then
 		skill_key = faction_to_follower_trait["nil"]
     end
-	return character:has_skill(skill_key) 
+	return character:has_skill(skill_key), skill_key
 end
 
---v function(character: CA_CHAR) --> boolean
+--v function(character: CA_CHAR) --> (boolean, string)
 local function check_does_char_have_bard(character)
 	local faction_to_follower_trait = {
 		["vik_fact_circenn"] = "vik_follower_bard_circenn",
@@ -161,10 +161,10 @@ local function check_does_char_have_bard(character)
 	if skill_key == nil then
 		skill_key = faction_to_follower_trait["nil"]
 	end
-	return character:has_skill(skill_key) 
+	return character:has_skill(skill_key), skill_key
 end
 
---v function(character: CA_CHAR) --> boolean
+--v function(character: CA_CHAR) --> (boolean, string)
 local function check_does_char_have_scribe(character)
     local faction_to_follower_trait = {
 		["vik_fact_circenn"] = "vik_follower_scribe_circenn",
@@ -186,10 +186,10 @@ local function check_does_char_have_scribe(character)
 		skill_key = faction_to_follower_trait["nil"]
 	end
 	
-	return character:has_skill(skill_key) 
+	return character:has_skill(skill_key), skill_key
 end
 
---v function(character: CA_CHAR) --> boolean
+--v function(character: CA_CHAR) --> (boolean, string)
 local function check_does_char_have_skald(character)
     local faction_to_follower_trait = {
 		["vik_fact_circenn"] = "vik_follower_bard_circenn",
@@ -212,10 +212,10 @@ local function check_does_char_have_skald(character)
 	if skill_key == nil then
 		skill_key = faction_to_follower_trait["nil"]
 	end
-	return character:has_skill(skill_key) 
+	return character:has_skill(skill_key), skill_key
 end
 
---v function(character: CA_CHAR) --> boolean
+--v function(character: CA_CHAR) --> (boolean, string)
 local function check_does_char_have_gothi(character)
     local faction_to_follower_trait = {
 		["vik_fact_east_engle"]  = "vik_follower_quartermaster_east_engle",
@@ -227,12 +227,12 @@ local function check_does_char_have_gothi(character)
 	local faction_name = character:faction():name()
 	local skill_key = faction_to_follower_trait[faction_name]
 	if skill_key == nil then
-		return false
+		return false, ""
 	end
-	return character:has_skill(skill_key) 
+	return character:has_skill(skill_key), skill_key
 end
 
---v function(character: CA_CHAR) --> boolean
+--v function(character: CA_CHAR) --> (boolean, string)
 local function check_does_char_have_quartermaster(character)
 	local faction_to_follower_trait = {
 		["vik_fact_circenn"] = "vik_follower_quartermaster_circenn",
@@ -253,11 +253,10 @@ local function check_does_char_have_quartermaster(character)
 	if skill_key == nil then
 		skill_key = faction_to_follower_trait["nil"]
 	end
-	log("Checking char: "..tostring(character:command_queue_index()).." for skill "..skill_key)
-	return character:has_skill(skill_key) 
+	return character:has_skill(skill_key), skill_key
 end
 
---v function(character: CA_CHAR) --> boolean
+--v function(character: CA_CHAR) --> (boolean, string)
 local function check_does_char_have_henchmen(character)
 	local faction_to_follower_trait = {
 		["vik_fact_circenn"] = "vik_follower_pillager_circenn",
@@ -280,11 +279,10 @@ local function check_does_char_have_henchmen(character)
 	if skill_key == nil then
 		skill_key = faction_to_follower_trait["nil"]
 	end
-	log("Checking char: "..tostring(character:command_queue_index()).." for skill "..skill_key)
-	return character:has_skill(skill_key) 
+	return character:has_skill(skill_key), skill_key
 end
 
---v function(character: CA_CHAR) --> boolean
+--v function(character: CA_CHAR) --> (boolean, string)
 local function check_does_char_have_priest(character)
     local faction_to_follower_trait = {
 		["vik_fact_circenn"] = "vik_follower_priest_circenn",
@@ -307,37 +305,25 @@ local function check_does_char_have_priest(character)
 	if skill_key == nil then
 		skill_key = faction_to_follower_trait["nil"]
 	end
-	log("Checking char: "..tostring(character:command_queue_index()).." for skill "..skill_key)
-	return character:has_skill(skill_key) 
+	return character:has_skill(skill_key), skill_key
 end
 
---v function(character: CA_CHAR) --> boolean
+--v function(character: CA_CHAR) --> (boolean, string)
 local function check_does_char_have_sailor(character)
     local faction_to_follower_trait = {
-		["vik_fact_circenn"] = "vik_follower_bard_circenn",
-		["vik_fact_west_seaxe"] = "vik_follower_bard_west_seaxe",
-		["vik_fact_mierce"] = "vik_follower_bard_mierce",
-		["vik_fact_mide"]  = "vik_follower_bard_mide",
-		["vik_fact_east_engle"]  = "vik_follower_bard_east_engle",
-		["vik_fact_northymbre"]  = "vik_follower_bard_northymbre",
-		["vik_fact_strat_clut"]  = "vik_follower_bard_strat_clut",
-		["vik_fact_gwined"]  = "vik_follower_bard_gwined",
-		["vik_fact_dyflin"]  = "vik_follower_bard_dyflin",
-		["vik_fact_sudreyar"]  = "vik_follower_bard_sudreyar",
-		["vik_fact_northleode"]  = "vik_follower_bard",
-		["vik_fact_caisil"]  = "vik_follower_bard",
-		["nil"] = "vik_follower_bard"
+		["vik_fact_dyflin"]  = "vik_follower_siege_engineer_dyflin",
+		["vik_fact_sudreyar"]  = "vik_follower_siege_engineer_sudreyar",
 	} --:map<string, string>
 
 	local faction_name = character:faction():name()
 	local skill_key = faction_to_follower_trait[faction_name]
 	if skill_key == nil then
-		skill_key = faction_to_follower_trait["nil"]
+		return false, ""
 	end
-	return character:has_skill(skill_key) 
+	return character:has_skill(skill_key), skill_key
 end
 
---v function(character: CA_CHAR) --> boolean
+--v function(character: CA_CHAR) --> (boolean, string)
 local function check_does_char_have_champion(character)
     local faction_to_follower_trait = {
 		["vik_fact_strat_clut"]  = "vik_follower_siege_engineer_strat_clut",
@@ -347,9 +333,9 @@ local function check_does_char_have_champion(character)
 	local faction_name = character:faction():name()
 	local skill_key = faction_to_follower_trait[faction_name]
 	if skill_key == nil then
-		return false
+		return false, ""
 	end
-	return character:has_skill(skill_key) 
+	return character:has_skill(skill_key), skill_key
 end
 
 --v function(faction: CA_FACTION) --> boolean
