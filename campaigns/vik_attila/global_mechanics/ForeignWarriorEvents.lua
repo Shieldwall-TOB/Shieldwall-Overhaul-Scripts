@@ -64,7 +64,7 @@ dev.first_tick(function(context)
         local event = event_manager:create_event(event_info.name, event_type, "concatenate_region")
         event:set_number_allowed_in_queue(1)
         event:add_queue_time_condition(function(context) 
-            return fw.hostility >= event_info.required_hostility and event_info.condition(context)
+            return (fw.hostility >= event_info.required_hostility) and event_info.condition(context)
         end)
         if CONST.__testcases.__test_foreigner_events then
             event:add_queue_time_condition(function(context)

@@ -1,3 +1,4 @@
+local riot_soldiers_arrive = "sw_rebellion_soldiers_arrive_"
 local riot_events = {
     {
         name = "sw_rebellion_rioting_household_guard_",
@@ -7,8 +8,9 @@ local riot_events = {
         end,
         response = function(context) --:WHATEVER
             local region = context:region() --:CA_REGION
+            local region_manpower = PettyKingdoms.RegionManpower.get(region:name())
             if context:choice() == 1 then
-                --TODO reduce peasant manpower
+                region_manpower:mod_population_through_region(-20, "manpower_riots", true, false)
             end
         end,
         is_dilemma = true
@@ -21,6 +23,9 @@ local riot_events = {
         end,
         response = function(context) --:WHATEVER
             local region = context:region() --:CA_REGION
+            if not region:has_governor() then
+                return --when we run this with the test variable we don't want crashes due to lack of governors.
+            end
             local gov = region:governor():command_queue_index()
             cm:kill_character("character_cqi:"..tostring(gov), false, true)
         end,
@@ -41,12 +46,19 @@ local riot_events = {
     {
         name = "sw_rebellion_lost_clergy_",
         condition = function(context) --:WHATEVER
-            local region = PettyKingdoms.RegionManpower.get(context:region():name())
-            return region.monk_pop > 0 
+            local all_regions_in_province = Gamedata.regions.get_regions_in_regions_province(context:region():name())
+            local retval = false --:boolean
+            for i = 1, #all_regions_in_province do
+                local region = PettyKingdoms.RegionManpower.get(context:region():name())
+                if region.monk_pop and region.monk_pop > 0 then
+                    return true
+                end
+            end
+            return retval
         end,
         response = function(context) --:WHATEVER
             local region = context:region() --:CA_REGION
-            local loss = dev.clamp(PettyKingdoms.RegionManpower.get(region:name()).monk_pop * -0.5, -40, 0)
+            local loss = dev.clamp(PettyKingdoms.RegionManpower.get(region:name()).monk_pop * -1, -40, 0)
             PettyKingdoms.RegionManpower.get(region:name()):mod_monks(dev.mround(loss, 1), true, "monk_riots")
         end,
         is_dilemma = false
@@ -75,13 +87,16 @@ local riot_events = {
     {
         name = "shield_rebellion_corruption_",
         condition = function(context) --:WHATEVER
-            local region = context:region()
+            local region = context:region() --:CA_REGION
             local eligible = region:has_governor() and not region:governor():has_trait("shield_brute_corrupt") 
             local allegiance = (region:majority_religion() == "vik_religion_banditry") or (not not string.find(region:majority_religion(), "usurper"))
             return eligible and allegiance
         end,
         response = function(context) --:WHATEVER
             local region = context:region() --:CA_REGION
+            if not region:has_governor() then
+                return --when we run this with the test variable we don't want crashes due to lack of governors.
+            end
             if not region:governor():has_trait("shield_brute_corrupt")  then
                 dev.add_trait(region:governor(), "sheild_brute_corrupt", true)
             end
@@ -92,8 +107,11 @@ local riot_events = {
         name = "shield_rebellion_become_berserker_",
         condition = function(context) --:WHATEVER
             local region = context:region() --:CA_REGION
-            local governor = context:governor() --: CA_CHAR
-            local governor_eligible = governor and governor:has_trait("shield_heathen_pagan")
+            if not region:has_governor() then
+                return 
+            end
+            local governor = region:governor() 
+            local governor_eligible = governor:has_trait("shield_heathen_pagan")
             local chance = 25
             if governor_eligible and (region:governor():has_trait("shield_warrior_champion") or region:governor():has_trait("shield_warrior_proven_warrior")) then
                 chance = chance + 25
@@ -108,6 +126,9 @@ local riot_events = {
         end,
         response = function(context) --:WHATEVER
             local region = context:region() --:CA_REGION
+            if not region:has_governor() then
+                return --when we run this with the test variable we don't want crashes due to lack of governors.
+            end
             local trait = "shield_heathen_legendary_wolfskin"
             if region:owning_faction():subculture() == "vik_sub_cult_anglo_viking" then
                 trait = "shield_heathen_legendary_bearskin"
@@ -126,6 +147,9 @@ local riot_events = {
         end,
         response = function(context) --:WHATEVER
             local region = context:region() --:CA_REGION
+            if not region:has_governor() then
+                return --when we run this with the test variable we don't want crashes due to lack of governors.
+            end
             local trait = "shield_tyrant_opressor"
             if context:choice() == 0 then
                 local region_manpower = PettyKingdoms.RegionManpower.get(region:name())
@@ -154,6 +178,10 @@ local riot_events = {
         end,
         response = function(context) --:WHATEVER
             local region = context:region() --:CA_REGION
+            if not region:has_governor() then
+                return --when we run this with the test variable we don't want crashes due to lack of governors.
+            end
+
             local trait = "shield_elder_beloved"
             local governor_cqi = region:governor():command_queue_index()
             dev.remove_trait(governor_cqi, "shield_elder_beloved")
@@ -184,7 +212,8 @@ dev.first_tick(function(context)
         local rm = riot_manager.get(context:region():name())
         local is_rioting = rm.riot_in_progress
         local is_off_cd = rm.riot_event_cooldown == 0 
-        return is_rioting and (is_off_cd or CONST.__testcases.__test_riots)
+        local no_armies_near = not rm:is_army_in_region()
+        return is_rioting and (is_off_cd or CONST.__testcases.__test_riots) and no_armies_near
     end) 
     StandardRiotEvents:set_number_allowed_in_queue(3)
     StandardRiotEvents:add_callback(function(context)
@@ -204,7 +233,7 @@ dev.first_tick(function(context)
         event:add_queue_time_condition(event_info.condition)
         if CONST.__testcases.__test_riots then
             event:add_queue_time_condition(function(context)
-                local result = events_info.condition(context)
+                local result = event_info.condition(context)
                 dev.log("Test for riot event: "..event_info.name.." resulted in ".. tostring(result), "__test_riots")
                 return true
             end)
@@ -212,4 +241,23 @@ dev.first_tick(function(context)
         event:add_callback(event_info.response)
         event:join_groups("ProvinceCapitals", "StandardRiotEvent")
     end
+
+    local soldiers_arrive_group = event_manager:create_new_condition_group("RiotSoldiersArriveGroup", function(context)
+        local region = context:region() --:CA_REGION
+        local rm = riot_manager.get(region:name())
+        if rm then
+            return rm.riot_in_progress
+        else
+            return false
+        end
+    end)
+    event_manager:register_condition_group(soldiers_arrive_group, "CharacterEntersGarrison")
+    local soldiers_arrive = event_manager:create_event(riot_soldiers_arrive, "dilemma", "concatenate_region")
+    soldiers_arrive:add_callback(function(context)
+        if context:choice() == 0 then
+            local region_manpower = PettyKingdoms.RegionManpower.get(context:region():name())
+            region_manpower:mod_population_through_region(-20, "manpower_riots", true, false)
+        end
+    end)
+    soldiers_arrive:join_groups("ProvinceCapitals", "RiotSoldiersArriveGroup")
 end)

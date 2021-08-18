@@ -4,7 +4,7 @@ FOREIGN_WARRIORS = {
     last_foreigner_event_turn = -1,
     provinces_with_foreigners = {}
 } --:{hostility: int, last_foreigner_event_turn: int, provinces_with_foreigners: map<string, boolean>}
-dev.Save.persist_table(FOREIGN_WARRIORS, "FOREIGN_WARRIORS_T", function(t) FOREIGN_WARRIORS = t end)
+dev.Save.persist_table(FOREIGN_WARRIORS, "FOREIGN_WARRIORS_INFO", function(t) FOREIGN_WARRIORS = t end)
 
 --v function(t: string)
 local function log(t)
@@ -12,11 +12,10 @@ local function log(t)
 end
 
 
-local hostility_decay = 1
-local hostility_major_war = 30
-local hostility_capital_captured = 10
-local hostility_threshold_low = 60
-local hostility_threshold_high = 100
+local hostility_major_war = 5
+local hostility_capital_captured = 5
+local hostility_threshold_low = 5
+local hostility_threshold_high = 30
 
 local per_turn_change_limit = 20
 local per_turn_change_limit_negative = -40
