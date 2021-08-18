@@ -206,7 +206,7 @@ function decree.update_alert(self)
     local can_afford = self:can_owner_afford(effective_gold)
     local is_locked = self.is_locked
 
-    if is_off_cd and can_afford and is_locked then
+    if is_off_cd and can_afford and not is_locked then
         UIScript.decree_panel.set_alert(true)
     end
 end
