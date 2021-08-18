@@ -69,6 +69,28 @@ local function get_food_effect(total_food)
     return 3, "Food Surplus"
 end
 
+--v function(self: RIOT_MANAGER) --> bool
+function riot_manager.is_army_in_region(self)
+    local faction = dev.get_region(self.key):owning_faction()
+    local is_human = faction:is_human()
+    local character_list = faction:character_list()
+    for i = 0, character_list:num_items() - 1 do
+        local character = character_list:item_at(i)
+        if dev.is_char_normal_general(character) and (not character:region():is_null_interface()) and character:region():name() == self.key then
+            local size = 0 --:number
+            local army = character:military_force()
+            for j = 0, army:unit_list():num_items() - 1 do
+                size = size + army:unit_list():item_at(j):percentage_proportion_of_full_strength()
+            end
+            self:log("Character with army ["..size.."] found in region", is_human)
+            if size > 100 then
+                return true --cannot rebel if an army of 2 or more units is around.
+            end
+        end
+    end
+    return false
+end
+
 --v function(self: RIOT_MANAGER, public_order: number) --> boolean
 function riot_manager.should_riot_start(self, public_order)
     local faction = dev.get_region(self.key):owning_faction()
@@ -80,21 +102,9 @@ function riot_manager.should_riot_start(self, public_order)
 	self:log("Checking if region can rebel with a -PO ["..public_order.."]. They rolled ["..roll.."] ", is_human)
 	if public_order > roll then -- public order / 100 chance
 		self:log("Chance check passed", is_human)
-		local character_list = faction:character_list()
-		for i = 0, character_list:num_items() - 1 do
-			local character = character_list:item_at(i)
-			if dev.is_char_normal_general(character) and (not character:region():is_null_interface()) and character:region():name() == self.key then
-				local size = 0 --:number
-				local army = character:military_force()
-				for j = 0, army:unit_list():num_items() - 1 do
-					size = size + army:unit_list():item_at(j):percentage_proportion_of_full_strength()
-				end
-				self:log("Character with army ["..size.."] found in region", is_human)
-				if size > 100 then
-					return false --cannot rebel if an army of 2 or more units is around.
-				end
-			end
-		end
+		if self:is_army_in_region() then
+            return false
+        end
 		self:log("Checks passed, region can rebel", is_human)
 		return true
 	end
@@ -108,7 +118,6 @@ function riot_manager.start_riot(self, region)
     self.riot_timer = riot_duration
     self.riot_event_cooldown = 2
     if region:owning_faction():is_human() then
-        --dev.Events.trigger_event(riot_begins_event, owning_faction, self.key)
         local context = events:build_context_for_event(riot_begins_event, region, region:owning_faction())
         events:force_check_and_queue_event(riot_begins_event, context)
     end
@@ -120,7 +129,6 @@ function riot_manager.end_riot(self, region, skip_event)
     self.riot_event_cooldown = 0
     self.riot_timer = 0
     if region:owning_faction():is_human() and not skip_event then
-        --dev.Events.trigger_event(riot_ends_event, owning_faction, self.key)
         local context = events:build_context_for_event(riot_ends_event, region, region:owning_faction())
         events:force_check_and_queue_event(riot_ends_event, context)
     end
@@ -140,12 +148,14 @@ function riot_manager.new_turn(self)
     if self.riot_in_progress then
         --we are rioting!
         self.riot_timer = self.riot_timer - 1 
+        self:log("Riot is active with "..tostring(self.riot_timer).." turns remaining", owning_faction:is_human())
         if (public_order >= 0 or self.riot_timer <= 0) then
-
+            self:log("Public order is 0 or better, Ending riot", owning_faction:is_human())
             self:end_riot(region)
-       elseif self.riot_event_cooldown > 1 then
+       elseif self.riot_event_cooldown > 0 then
             --riot should reduce cooldowns and continue with no event.
             self.riot_event_cooldown = self.riot_event_cooldown - 1
+            self:log("Riot event cooldown is "..tostring(self.riot_event_cooldown), owning_faction:is_human())
         end
     elseif public_order < 0 and self:should_riot_start(-1*public_order) then
         --no riot present, and check passed
@@ -189,6 +199,9 @@ dev.pre_first_tick(function(context)
         true)
     events:create_event(riot_begins_event, "incident", "concatenate_region")
     events:create_event(riot_ends_event, "incident", "concatenate_region")
+    
+
+
 end)
 
 --v function(key: string) --> RIOT_MANAGER

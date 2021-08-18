@@ -9,15 +9,10 @@ local function log(text)
     dev.log(tostring(text), "DecrUI")
 end
 
-dev.eh:add_listener(
-    "PanelOpenedCampaignDecrees",
-    "PanelOpenedCampaign",
-    function(context) return context.string == "decrees_panel" end,
-    function(context) 
-        dev.eh:trigger_event("UpdateDecrees", dev.get_faction(cm:get_local_faction(true)))
-    end,
-    true
-)
+
+
+
+
 --v function() --> CA_UIC
 local function get_decree_panel()
     local uic = dev.get_uic(cm:ui_root(), "decrees_panel")
@@ -46,7 +41,10 @@ end
 
 --v function(alert: boolean)
 local function update_alert_icon(alert)
-    dev.get_uic(cm:ui_root(), "decrees_alert_icon"):SetVisible(alert);
+    local alert_icon = dev.get_uic(cm:ui_root(), "decrees_alert_icon")
+    if alert_icon then
+        alert_icon:SetVisible(alert);
+    end
 end
 
 --v function(index: number, effective_cooldown: number, global_cooldown: boolean, effective_gold_cost: number, currency_cost: number, currency_type: string, duration: number, can_afford: boolean, is_locked: boolean)
@@ -139,14 +137,73 @@ end
 
 dev.post_first_tick(function(context)
     if local_faction_decrees[1] == nil then
+        local button = dev.get_uic(cm:ui_root(), "button_group_management", "button_decrees")
+        if button then
+            button:SetVisible(false)
+        end
+        dev.eh:add_listener(
+            "PanelClosedCampaignDecrees",
+            "PanelClosedCampaign",
+            true,
+            function(context) 
+                local button = dev.get_uic(cm:ui_root(), "button_group_management", "button_decrees")
+                if button then
+                    button:SetVisible(false)
+                end
+            end,
+            true)
+        dev.eh:add_listener(
+            "FactionTurnStartDecrees",
+            "FactionTurnStart",
+            function(context) return context:faction():name() == cm:get_local_faction(true) end,
+            function(context) 
+                local button = dev.get_uic(cm:ui_root(), "button_group_management", "button_decrees")
+                if button then
+                    button:SetVisible(false)
+                end
+            end,
+            true
+        )
+    else
         dev.eh:add_listener(
             "PanelOpenedCampaignDecrees",
             "PanelOpenedCampaign",
             function(context) return context.string == "decrees_panel" end,
             function(context) 
-                --TODO hide decrees
+                dev.eh:trigger_event("UpdateDecrees", dev.get_faction(cm:get_local_faction(true)))
             end,
-            true)
+            true
+        )
+        dev.eh:add_listener(
+            "PanelClosedCampaignDecrees",
+            "PanelClosedCampaign",
+            true,
+            function(context) 
+                update_alert_icon(false)
+                dev.eh:trigger_event("UpdateDecreeAlert", dev.get_faction(cm:get_local_faction(true)))
+            end,
+            true
+        )
+        dev.eh:add_listener(
+            "FactionTurnStartDecrees",
+            "FactionTurnStart",
+            function(context) return context:faction():name() == cm:get_local_faction(true) end,
+            function(context) 
+                update_alert_icon(false)
+                dev.eh:trigger_event("UpdateDecreeAlert", dev.get_faction(cm:get_local_faction(true)))
+            end,
+            true
+        )
+        dev.eh:add_listener(
+            "BuildingConstructionIssuedByPlayerDecrees",
+            "BuildingConstructionIssuedByPlayer",
+            true,
+            function(context) 
+                update_alert_icon(false)
+                dev.eh:trigger_event("UpdateDecreeAlert", dev.get_faction(cm:get_local_faction(true))) 
+            end,
+            true
+        )
     end
 end)
 
