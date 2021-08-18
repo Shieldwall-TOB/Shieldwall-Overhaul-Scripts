@@ -192,7 +192,9 @@
 --# assume CM.modify_next_autoresolve_battle: method(attacker_win_chance: number, defender_win_chance: number, attacker_losses_modifier: number, defender_losses_modifier: number, wipe_out_loser: boolean)
 --pending battles
 --# assume CM.pending_battle_cache_get_attacker: method(number) --> (CA_CQI, CA_CQI, string)
+--# assume CM.pending_battle_cache_num_attackers: method() --> int
 --# assume CM.pending_battle_cache_get_defender: method(number) --> (CA_CQI, CA_CQI, string)
+--# assume CM.pending_battle_cache_num_defenders: method() --> int
 --shroud
 --# assume CM.make_sea_region_seen_in_shroud: method(region: string) 
 --# assume CM.make_region_seen_in_shroud: method(faction_key: string, region_key: string)
