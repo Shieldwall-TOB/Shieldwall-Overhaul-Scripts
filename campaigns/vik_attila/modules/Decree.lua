@@ -199,6 +199,17 @@ function decree.update_panel(self)
 end
 
 
+--v function(self: DECREE) 
+function decree.update_alert(self)
+    local is_off_cd = self.handler.current_global == 0 and self.current_cooldown == 0
+    local effective_gold = self:get_effective_gold_cost()
+    local can_afford = self:can_owner_afford(effective_gold)
+    local is_locked = self.is_locked
+
+    if is_off_cd and can_afford and is_locked then
+        UIScript.decree_panel.set_alert(true)
+    end
+end
 
 --v function(faction_name: string, index: number, event: string, duration: number, cooldown: number, gold_cost: number, currency: string?, currency_cost: number?, is_dilemma: boolean?) --> DECREE
 local function new_decree(faction_name, index, event, duration, cooldown, gold_cost, currency, currency_cost, is_dilemma)
@@ -257,6 +268,17 @@ local function new_decree(faction_name, index, event, duration, cooldown, gold_c
         end,
         function(context)
             instance:update_panel()
+        end,
+        true
+    )
+    dev.eh:add_listener(
+        instance.key.."_alert",
+        "UpdateDecreeAlert",
+        function(context)
+            return context:faction():name() == instance.owning_faction
+        end,
+        function(context)
+            instance:update_alert()
         end,
         true
     )
