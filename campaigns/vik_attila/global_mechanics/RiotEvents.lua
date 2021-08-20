@@ -58,8 +58,14 @@ local riot_events = {
         end,
         response = function(context) --:WHATEVER
             local region = context:region() --:CA_REGION
-            local loss = dev.clamp(PettyKingdoms.RegionManpower.get(region:name()).monk_pop * -1, -40, 0)
-            PettyKingdoms.RegionManpower.get(region:name()):mod_monks(dev.mround(loss, 1), true, "monk_riots")
+            local all_regions_in_province = Gamedata.regions.get_regions_in_regions_province(region:name())
+            for i = 1, #all_regions_in_province do
+                local mp_region = PettyKingdoms.RegionManpower.get(region:name())
+                if mp_region.monk_pop and mp_region.monk_pop > 0 then
+                    local loss = dev.clamp(PettyKingdoms.RegionManpower.get(region:name()).monk_pop * -1, -40, 0)
+                    PettyKingdoms.RegionManpower.get(region:name()):mod_monks(dev.mround(loss, 1), true, "monk_riots")
+                end
+            end
         end,
         is_dilemma = false
     },
@@ -79,8 +85,14 @@ local riot_events = {
         end,
         response = function(context) --:WHATEVER
             local region_key = context:region():name() --:string
-            local region = PettyKingdoms.RegionManpower.get(region_key)
-            region:mod_population_through_region(-20, "manpower_riots", false, true)
+            local all_regions_in_province = Gamedata.regions.get_regions_in_regions_province(region_key)
+            local retval = false --:boolean
+            for i = 1, #all_regions_in_province do
+                local region = PettyKingdoms.RegionManpower.get(context:region():name())
+                if region.estate_lord_bonus and region.estate_lord_bonus > 0 then
+                    region:mod_population_through_region(-20, "manpower_riots", false, true)
+                end
+            end
         end,
         is_dilemma = false
     },
@@ -216,9 +228,13 @@ dev.first_tick(function(context)
         return is_rioting and (is_off_cd or CONST.__testcases.__test_riots) and no_armies_near
     end) 
     StandardRiotEvents:set_number_allowed_in_queue(3)
-    StandardRiotEvents:add_callback(function(context)
+    StandardRiotEvents:add_callback_on_queue(function(context)
         local rm = riot_manager.get(context:region():name())
         rm.riot_event_cooldown = 2
+    end)
+    StandardRiotEvents:add_callback_on_unqueue(function(context)
+        local rm = riot_manager.get(context:region():name())
+        rm.riot_event_cooldown = 0
     end)
     event_manager:register_condition_group(StandardRiotEvents, "RegionTurnStart")
 

@@ -18,7 +18,7 @@ function force_tracker.new()
              "forces_cache", "force_casualties", "force_replenishment"
         }, 
     }
-
+    dev.Save.attach_to_object(self)
     return self
 end
 
@@ -60,6 +60,7 @@ dev.pre_first_tick(function(context)
             local cache_temp = dev.generate_force_cache_entry(char)
             local old_cache = instance.forces_cache[tostring(char:command_queue_index())]
             local casualties_cache = {} --:map<string, number>
+
             for unit_key, old_val in pairs(old_cache) do
                 local new_val = cache_temp[unit_key] or 0
                 casualties_cache[unit_key] = new_val - old_val

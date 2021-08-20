@@ -68,7 +68,7 @@ dev.first_tick(function(context)
         end)
         if CONST.__testcases.__test_foreigner_events then
             event:add_queue_time_condition(function(context)
-                local result = events_info.condition(context)
+                local result = hostility.condition(context)
                 dev.log("Test for foreigner event: "..event_info.name.." resulted in ".. tostring(result).." (tests ignore hostility req)", "__test_foreigner_events")
                 return true
             end)
