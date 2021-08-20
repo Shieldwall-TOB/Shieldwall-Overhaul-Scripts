@@ -141,7 +141,7 @@ local function spawn_invasion(invading_faction, location_key)
             table.insert(spawns, {x, y})
         end
     end
-    local royal_armies = -2 + entry.size
+    local royal_armies = -2 + entry.size 
     for i = 1, #spawns do
         local is_royal = i <= royal_armies
         if is_royal then
@@ -217,7 +217,11 @@ dev.first_tick(function(context)
         local norman_arrival_event = norman_region_prefix .. string.gsub(norman_locations[i], "vik_reg_", "")
         events:create_event(norman_arrival_event, "incident", "standard"):set_cooldown(99)
     end
-    
+    for key, entry in pairs(END_GAME_INVASIONS) do
+        local size = entry.size
+        local difficulty = cm:model():difficulty_level()
+        entry.size = size + difficulty*-1
+    end
 
     dev.eh:add_listener(
         "EndGameInvasionsTurnStart",
