@@ -2,7 +2,213 @@
 local function log(t) dev.log(tostring(t), "SKILLS") end
 --household guard is handled by other mechanics.
 
---v function(char: CA_CHAR, required_skill_checks: vector<(function(CA_CHAR) --> boolean)>,required_not_skills: vector<(function(CA_CHAR) --> boolean)>?) --> boolean
+local event_manager = dev.GameEvents
+local check = dev.Check
+
+
+
+local skill_events_post_battle = {
+    {
+        key = "sw_heroism_bard", 
+        checks = {check.does_char_have_bard},
+        levels = {1}, 
+        condition = function(context) --:WHATEVER
+            return context:character():faction():is_human() and dev.chance(50) and not not PettyKingdoms.FactionResource.get("vik_heroism", context:character():faction())
+        end, 
+        callback = function(context) --:WHATEVER
+            PettyKingdoms.FactionResource.get("vik_heroism", context:character():faction()):change_value(2) 
+            --TODO heroism
+        end,
+        cooldown = 3
+    },
+    {
+        key = "sw_heroism_bard_2", 
+        checks = {check.does_char_have_bard},
+        levels = {1}, 
+        condition = function(context) --:WHATEVER
+            return context:character():faction():is_human() and dev.chance(30) and not not PettyKingdoms.FactionResource.get("vik_heroism", context:character():faction())
+        end, 
+        callback = function(context) --:WHATEVER
+            PettyKingdoms.FactionResource.get("vik_heroism", context:character():faction()):change_value(2) 
+            --TODO heroism
+        end,
+        cooldown = 3
+    },
+    {
+        key = "sw_heroism_bard_3", 
+        checks = {check.does_char_have_bard},
+        levels = {1}, 
+        condition = function(context) --:WHATEVER
+            return context:character():faction():is_human() and dev.chance(20) and not not PettyKingdoms.FactionResource.get("vik_heroism", context:character():faction())
+        end, 
+        callback = function(context) --:WHATEVER
+            PettyKingdoms.FactionResource.get("vik_heroism", context:character():faction()):change_value(2) 
+            --TODO heroism
+        end,
+        cooldown = 3
+    },
+    {
+        key = "sw_fame_bard", 
+        checks = {check.does_char_have_bard},
+        levels = {1}, 
+        condition = function(context) --:WHATEVER
+            return context:character():faction():is_human() and dev.chance(50)
+        end, 
+        callback = function(context) --:WHATEVER
+            local character = context:character() --:CA_CHAR
+            local pol_char = PettyKingdoms.CharacterPolitics.get(character:command_queue_index())
+            pol_char:increase_personal_fame()
+        end,
+        cooldown = 3
+    }
+}--:vector<{key: string, checks: vector<(function(CA_CHAR) --> (boolean, string))>, levels:vector<int>, condition: function(context: WHATEVER) --> boolean, callback: function(context: WHATEVER), cooldown: int?}>
+
+local character_retreats = {} --:map<CA_CQI, int>
+dev.Save.persist_table(character_retreats, "skils_character_retreats", function(t) character_retreats = t end)
+local skill_events_post_retreat = {
+    {
+        key = "sw_bard_retreat", 
+        checks = {check.does_char_have_bard},
+        levels = {1}, 
+        condition = function(context) --:WHATEVER
+            local character = context:character()--:CA_CHAR
+            if not character_retreats[character:command_queue_index()] then
+                character_retreats[character:command_queue_index()] = 0 
+                return false
+            end
+            character_retreats[character:command_queue_index()] = character_retreats[character:command_queue_index()] + 1
+            return dev.chance(character_retreats[character:command_queue_index()] * 10)
+        end, 
+        callback = function(context) --:WHATEVER
+    
+        end,
+        cooldown = 999
+    },
+    {
+        
+        key = "sw_skald_retreat", 
+        checks = {check.does_char_have_skald},
+        levels = {1}, 
+        condition = function(context) --:WHATEVER
+            local character = context:character()--:CA_CHAR
+            if not character_retreats[character:command_queue_index()] then
+                character_retreats[character:command_queue_index()] = 0 
+                return false
+            end
+            character_retreats[character:command_queue_index()] = character_retreats[character:command_queue_index()] + 1
+            return dev.chance(character_retreats[character:command_queue_index()] * 10)
+        end, 
+        callback = function(context) --:WHATEVER
+    
+        end,
+        cooldown = 999
+    }
+}--:vector<{key: string, checks: vector<(function(CA_CHAR) --> (boolean, string))>, levels:vector<int>, condition: function(context: WHATEVER) --> boolean, callback: function(context: WHATEVER), cooldown: int?}>
+
+
+
+local skill_events_character_turn_start = {
+    {
+        key = "sw_skills_henchmen_1", 
+        checks = {check.does_char_have_henchmen},
+        levels = {1}, 
+        condition = function(context) --:WHATEVER
+            local character = context:character() --:CA_CHAR
+            local region = character:region() --:CA_REGION
+            local force = character:military_force()
+            if region:is_null_interface() or force:is_null_interface() then
+                return false
+            end
+            local character_is_raiding = force:active_stance() == "MILITARY_FORCE_ACTIVE_STANCE_TYPE_LAND_RAID" and region:owning_faction():name() ~= character:faction():name()
+            local has_slaves = not not  PettyKingdoms.FactionResource.get("vik_dyflin_slaves", character:faction())
+            return character_is_raiding and has_slaves 
+        end, 
+        callback = function(context) --:WHATEVER
+            local character = context:character() --:CA_CHAR
+            local region = character:region() --:CA_REGION
+            if region:is_null_interface() then
+                return --this happens when using the testing variable sometimes since the result of the condition is ignored.
+            end
+            local slaves =  PettyKingdoms.FactionResource.get("vik_dyflin_slaves", character:faction())
+            slaves:change_value(100) 
+            --TODO Slaves factors
+        end,
+        cooldown = 3
+    },
+    {
+        key = "sw_skills_henchmen_2", 
+        checks = {check.does_char_have_henchmen},
+        levels = {1}, 
+        condition = function(context) --:WHATEVER
+            local character = context:character() --:CA_CHAR
+            local region = character:region() --:CA_REGION
+            local force = character:military_force()
+            if region:is_null_interface() or force:is_null_interface() then
+                return false
+            end
+            local character_is_raiding = force:active_stance() == "MILITARY_FORCE_ACTIVE_STANCE_TYPE_LAND_RAID" and region:owning_faction():name() ~= character:faction():name()
+            return character_is_raiding 
+        end, 
+        callback = function(context) --:WHATEVER
+
+        end,
+        cooldown = 3
+    },
+    {
+        key = "sw_skills_henchmen_3", 
+        checks = {check.does_char_have_henchmen},
+        levels = {1}, 
+        condition = function(context) --:WHATEVER
+            local character = context:character() --:CA_CHAR
+            local region = character:region() --:CA_REGION
+            local force = character:military_force()
+            if region:is_null_interface() or force:is_null_interface() then
+                return false
+            end
+            local character_is_raiding = force:active_stance() == "MILITARY_FORCE_ACTIVE_STANCE_TYPE_LAND_RAID" and region:owning_faction():name() ~= character:faction():name()
+            local is_irish = character:faction():subculture() == "vik_sub_cult_irish"
+            return character_is_raiding and is_irish and region:building_superchain_exists("vik_pasture")
+        end, 
+        callback = function(context) --:WHATEVER
+
+        end,
+        cooldown = 3
+    },
+    {
+        key = "sw_skills_henchmen_4", 
+        checks = {check.does_char_have_henchmen},
+        levels = {1}, 
+        condition = function(context) --:WHATEVER
+            local character = context:character() --:CA_CHAR
+            local region = character:region() --:CA_REGION
+            local force = character:military_force()
+            if region:is_null_interface() or force:is_null_interface() then
+                return false
+            end
+            local mp_region = PettyKingdoms.RegionManpower.get(region:name())
+            local character_is_raiding = force:active_stance() == "MILITARY_FORCE_ACTIVE_STANCE_TYPE_LAND_RAID" and region:owning_faction():name() ~= character:faction():name()
+            local not_trait = not character:has_trait("shield_faithful_friend_of_the_church")
+            return character_is_raiding and not_trait and (mp_region.monk_pop and mp_region.monk_pop > 0)
+        end, 
+        callback = function(context) --:WHATEVER
+            local character = context:character() --:CA_CHAR
+            local region = character:region() --:CA_REGION
+            if region:is_null_interface() then
+                return --this happens when using the testing variable sometimes since the result of the condition is ignored.
+            end
+            local loss = dev.clamp(PettyKingdoms.RegionManpower.get(region:name()).monk_pop * -1, -40, 0)
+            PettyKingdoms.RegionManpower.get(region:name()):mod_monks(dev.mround(loss, 1), true, "monk_riots")
+        end,
+        cooldown = 3
+    }
+}--:vector<{key: string, checks: vector<(function(CA_CHAR) --> (boolean, string))>, levels:vector<int>, condition: function(context: WHATEVER) --> boolean, callback: function(context: WHATEVER), cooldown: int?}>
+
+
+
+ 
+
+
+--v function(char: CA_CHAR, required_skill_checks: vector<(function(CA_CHAR) --> (boolean, string))>,required_not_skills: vector<(function(CA_CHAR) --> (boolean, string))>?) --> boolean
 function has_required_skills(char, required_skill_checks, required_not_skills)
     local retval = true --:boolean
     for i = 1, #required_skill_checks do
@@ -22,7 +228,7 @@ function has_required_skills(char, required_skill_checks, required_not_skills)
     return retval
 end
 
---v function(name: string, required_skill_checks: vector<(function(CA_CHAR) --> boolean)>, callback: function(context: WHATEVER), required_not_skills: vector<(function(CA_CHAR) --> boolean)>?)
+--v function(name: string, required_skill_checks: vector<(function(CA_CHAR) --> (boolean, string))>, callback: function(context: WHATEVER), required_not_skills: vector<(function(CA_CHAR) --> (boolean, string))>?)
 local function add_skill_effect_callback(name, required_skill_checks, callback, required_not_skills) 
     dev.eh:add_listener(
         "SkillEffectsCharTurnStart",
@@ -50,39 +256,6 @@ dev.first_tick(function(context)
 
 end)
 
-----------------------------
---Bard Rewards Postbattle--
-----------------------------
-dev.first_tick(function(context) 
-    --TODO move to new events system
-    --[[
-    dev.Events.add_post_battle_event("sw_heroism_bard", function(context)
-        return context:character():faction():is_human() and dev.Check.does_char_have_bard(context:character()) and not not PettyKingdoms.FactionResource.get("vik_heroism", context:character():faction())
-    end, 3, 12, function(context)
-        PettyKingdoms.FactionResource.get("vik_heroism", context:character():faction()):change_value(2) 
-        --TODO factors
-    end)
-    
-    dev.Events.add_post_battle_event("sw_heroism_bard_2", function(context)
-        return context:character():faction():is_human() and dev.Check.does_char_have_bard(context:character()) and not not PettyKingdoms.FactionResource.get("vik_heroism", context:character():faction())
-    end, 3, 16, function(context)
-        PettyKingdoms.FactionResource.get("vik_heroism", context:character():faction()):change_value(3) 
-        --TODO factors
-    end)
-    
-
-    dev.Events.add_post_battle_event("sw_heroism_bard_3", function(context)
-        return context:character():faction():is_human() and dev.Check.does_char_have_bard(context:character()) and not not PettyKingdoms.FactionResource.get("vik_heroism", context:character():faction())
-    end, 3, 24, function(context)
-        PettyKingdoms.FactionResource.get("vik_heroism", context:character():faction()):change_value(5) 
-        --TODO factors
-    end)
-
-    dev.Events.add_post_battle_event("sw_fame_bard", function(context)
-        return context:character():faction():is_human() and dev.Check.does_char_have_bard(context:character())
-    end, 3, 16)
-    --]]
-end)
 
 
 
@@ -94,10 +267,9 @@ end)
 
 
 
-------------------------------
---Gothi and Priest Blessings--
-------------------------------
+
 local blessings = {} --:map<string, {string, int, int, string?}>
+dev.Save.persist_table(blessings, "skills_blessings", function(t) blessings = t end)
 --v function(char: CA_CHAR, bundle: string, turn_to_apply: int, last_bundle: int, region: string?)
 local function set_blessing_entry(char, bundle, turn_to_apply, last_bundle, region)
     blessings[tostring(char:command_queue_index())] = {bundle, turn_to_apply, last_bundle, region}
@@ -119,7 +291,134 @@ local function get_next_bundle(prefix, entry)
 end
 
 
+
+
+----------------------------
+--Bard Rewards Postbattle--
+----------------------------
+
+local character_event_last_happened = {} --:map<CA_CQI, number>
+dev.Save.persist_table(character_event_last_happened, "skills_character_event_last_happened", function(t) character_event_last_happened = t end)
+
 dev.first_tick(function(context) 
+
+    local PostBattleSkillEvents = event_manager:create_new_condition_group("SkillEventsPostBattle")
+    PostBattleSkillEvents:set_number_allowed_in_queue(1)
+    event_manager:register_condition_group(PostBattleSkillEvents, "CharacterCompletedBattle")
+
+    for i = 1, #skill_events_post_battle do
+        local event_info = skill_events_post_battle[i]
+        local event = event_manager:create_event(event_info.key, "incident", "standard")
+        if CONST.__testcases.__test_skill_events then
+            event:set_cooldown(#skill_events_post_battle)
+        end
+        event:add_queue_time_condition(function(context)
+            local character = context:character() --:CA_CHAR
+            local pol_char = PettyKingdoms.CharacterPolitics.get(character:command_queue_index())
+                local last = character_event_last_happened[character:command_queue_index()] or 0
+                if (not CONST.__testcases.__test_skill_events) and (dev.turn() <= last + (event_info.cooldown or 0)) then
+                    return false
+                end
+            for j = 1, #event_info.checks do 
+                local passed, skill_key = event_info.checks[j](character)
+                if (not passed) or pol_char:get_skill_points(skill_key) < event_info.levels[j] then 
+                    passed_checks = false
+                end
+
+            end
+            if CONST.__testcases.__test_skill_events then
+                local cond = event_info.condition(context)
+                log("Skill events test: ["..event_info.key.."] passed checks: ["..tostring(passed_checks).."], condition returned ["..tostring(cond).."]")
+                return true
+            end
+            return passed_checks and event_info.condition(context)
+        end)
+        event:add_callback(function(context)
+            local character = context:character() --:CA_CHAR
+            character_event_last_happened[character:command_queue_index()] = dev.turn()
+            event_info.callback(context)
+        end)
+        event:join_groups("SkillEventsPostBattle")
+    end
+
+    local RetreatSkillEvents = event_manager:create_new_condition_group("SkillEventsRetreat")
+    RetreatSkillEvents:set_number_allowed_in_queue(1)
+    event_manager:register_condition_group(RetreatSkillEvents, "CharacterRetreatedFromBattle")
+    for i = 1, #skill_events_post_retreat do
+        local event_info = skill_events_post_retreat[i]
+        local event = event_manager:create_event(event_info.key, "incident", "standard")
+
+        event:set_cooldown(event_info.cooldown or 0)
+        
+        event:add_queue_time_condition(function(context)
+            local character = context:character() --:CA_CHAR
+            local pol_char = PettyKingdoms.CharacterPolitics.get(character:command_queue_index())
+                local last = character_event_last_happened[character:command_queue_index()] or 0
+            for j = 1, #event_info.checks do 
+                local passed, skill_key = event_info.checks[j](character)
+                if (not passed) or pol_char:get_skill_points(skill_key) < event_info.levels[j] then 
+                    passed_checks = false
+                end
+            end
+            if CONST.__testcases.__test_skill_events then
+                local cond = event_info.condition(context)
+                log("Skill events test: ["..event_info.key.."] passed checks: ["..tostring(passed_checks).."], condition returned ["..tostring(cond).."]")
+                return true
+            end
+            return passed_checks and event_info.condition(context)
+        end)
+        event:add_callback(function(context)
+            local character = context:character() --:CA_CHAR
+            character_event_last_happened[character:command_queue_index()] = dev.turn()
+            event_info.callback(context)
+        end)
+        event:join_groups("SkillEventsRetreat")
+    end
+
+
+    local TurnStartSkillEvents = event_manager:create_new_condition_group("SkillEventsTurnstart")
+    TurnStartSkillEvents:set_number_allowed_in_queue(1)
+    event_manager:register_condition_group(TurnStartSkillEvents, "CharacterTurnStart")
+    for i = 1, #skill_events_character_turn_start do
+        local event_info = skill_events_character_turn_start[i]
+        local event = event_manager:create_event(event_info.key, "incident", "standard")
+        if CONST.__testcases.__test_skill_events then
+            event:set_cooldown(#skill_events_character_turn_start)
+        end
+        event:add_queue_time_condition(function(context)
+            local character = context:character() --:CA_CHAR
+            local pol_char = PettyKingdoms.CharacterPolitics.get(character:command_queue_index())
+                local last = character_event_last_happened[character:command_queue_index()] or 0
+            if (not CONST.__testcases.__test_skill_events) and (dev.turn() <= last + (event_info.cooldown or 0)) then
+                return false
+            end
+            for j = 1, #event_info.checks do 
+                local passed, skill_key = event_info.checks[j](character)
+                if (not passed) or pol_char:get_skill_points(skill_key) < event_info.levels[j] then 
+                    passed_checks = false
+                end
+            end
+            if CONST.__testcases.__test_skill_events then
+                local cond = event_info.condition(context)
+                log("Skill events test: ["..event_info.key.."] passed checks: ["..tostring(passed_checks).."], condition returned ["..tostring(cond).."]")
+                return true
+            end
+            return passed_checks and event_info.condition(context)
+        end)
+        event:add_callback(function(context)
+            local character = context:character() --:CA_CHAR
+            character_event_last_happened[character:command_queue_index()] = dev.turn()
+            event_info.callback(context)
+        end)
+        event:join_groups("SkillEventsTurnstart")
+    end
+
+
+    ------------------------------
+    --Gothi and Priest Blessings--
+    ------------------------------
+
+
     add_skill_effect_callback(gothi_bundle, {dev.Check.does_char_have_gothi}, function(context)
         local char = context:character() --:CA_CHAR
         local turn = cm:model():turn_number()
@@ -190,6 +489,7 @@ dev.first_tick(function(context)
             set_blessing_entry(char, bundle, turn + change_turns, bnum)
         end
     end, {dev.Check.does_char_have_gothi})
+
 end)
 
-dev.Save.persist_table(blessings, "skills_blessings", function(t) blessings = t end)
+

@@ -41,6 +41,8 @@ local admin_level_trait = "vik_gov_province_" --:string
 local loyalty_trait = "shield_trait_loyal" --:string
 local disloyalty_trait = "shield_trait_disloyal" --:string
 local friendship_level_trait = "shield_friendship_" --:string
+local fame_trait = "shield_fame_"
+local fame_family_trait = "shield_family_fame_"
 
 local character_politics = {} --# assume character_politics:CHARACTER_POLITICS
 
@@ -61,11 +63,12 @@ function character_politics.new(cqi)
     self.last_title = "none" --:string
     self.home_region = "none" --:string
     self.traits = {} --:vector<string>
-    self.skills = {} --:map<string, number>
+    self.skills = {} --:map<string, int>
+    self.personal_fame = 0
 
     self.save = {
         name = "politics_"..tostring(self.cqi), 
-        for_save = {"last_governorship", "friendship_level", "general_level", "title", "last_title", "plot_vulnerability", "skills"}
+        for_save = {"last_governorship", "friendship_level", "general_level", "title", "last_title", "plot_vulnerability", "skills", "personal_fame"}
     }--:SAVE_SCHEMA
     --dev.Save.attach_to_object(self)
     return self
@@ -270,6 +273,73 @@ function character_politics.update_general_trait(self, character)
         self.general_level = 0
     end
 end
+
+
+--v function(self: CHARACTER_POLITICS)
+function character_politics.refresh_fame_traits(self)
+    local character = dev.get_character(self.cqi)
+    if not character:faction():is_human() then
+        return
+    end
+    self:log("Refreshing fame trait")
+
+    local daddy_issues = 0
+    local own_fame = self.personal_fame
+    --note to self: you have to use "has_father" to avoid crashes here. FamilyMember:father() returns an interface that isn't null but crashes when used.
+    if character:family_member():has_father() then 
+        local dad = character:family_member()
+        self:log("Dad exists")
+        for i = 1, 5 do
+            --self:log("About to ask if dad has "..fame_trait..i)
+            if dad:has_trait(fame_trait..i) then
+                self:log("Father has fame trait level "..i)
+                daddy_issues = i
+            end
+        end
+    end
+    local fam_trait = fame_family_trait..daddy_issues
+    local own_trait = fame_trait..own_fame
+    self:log("Own trait should be "..own_trait.." family trait should be "..fam_trait)
+    if daddy_issues > own_fame then
+        --when dad is more famous than you
+        if not character:has_trait(own_trait) then
+            dev.add_trait(character, own_trait, true)
+        end
+        if character:has_trait(own_trait) then
+            dev.remove_trait(character, own_trait) 
+        end
+    elseif own_fame > 0 then
+        --when you are known personally.
+        for i = 1, 5 do
+            local old_trait = fame_trait..i
+            if character:has_trait(old_trait) then
+                if i ~= own_fame then
+                    dev.remove_trait(character, old_trait)
+                end
+            end
+        end
+        if character:has_trait(fam_trait) then
+            dev.remove_trait(character, fam_trait)
+        end
+        if not character:has_trait(own_trait) then
+            dev.add_trait(character, own_trait, true)
+        end
+    end
+end
+
+
+
+--v function(self: CHARACTER_POLITICS)
+function character_politics.increase_personal_fame(self)
+    if self.personal_fame == 5 then
+        self:log("Asked to increase personal fame, but it is already at 5! This should be checked for on personal-fame-granting events")
+        return
+    end
+    self.personal_fame = self.personal_fame + 1
+    self:refresh_fame_traits()
+end
+
+
 --v function(self: CHARACTER_POLITICS)
 function character_politics.turn_start(self)
     local character = dev.get_character(self.cqi)
@@ -279,14 +349,23 @@ function character_politics.turn_start(self)
         return
     end
     self:refresh_plot_vulnerability()
+    self:refresh_fame_traits()
     self:log("Checking faction leader status")
     if character:is_faction_leader() then
         self:update_king_traits(character)
     else 
         self:update_loyalty_traits(character)
     end
-    self:update_general_trait(character)
-        
+    self:update_general_trait(character) 
+end
+
+
+
+
+
+--v function(self: CHARACTER_POLITICS, skill: string) --> int
+function character_politics.get_skill_points(self, skill)
+    return self.skills[skill] or 0
 end
 
 local instances = {} --:map<CA_CQI, CHARACTER_POLITICS>
