@@ -279,15 +279,17 @@ dev.pre_first_tick(function (context)
             and (char:military_force():active_stance() == "MILITARY_FORCE_ACTIVE_STANCE_TYPE_LAND_RAID")
         end,
         function(context)
-            local rmp = instances[context:character():region():name()]
+            local raiding_character = context:character() --:CA_CHAR
+            local rmp = instances[raiding_character:region():name()]
             local lost_perc = rmp:mod_loss_cap(raid_loss)
-            local owning_faction = context:character():region():owning_faction()
+            local owning_faction = raiding_character:region():owning_faction()
+
             if owning_faction:is_human() then
                 if mod_functions.serf then
                     local loss = dev.mround(rmp.base_serf()*lost_perc, 1)
                     mod_functions.serf(owning_faction:name(), "manpower_region_raided", loss)
-                    if context:character():faction():is_human() and Gamedata.base_pop.slaves_factions[context:character():faction():name()] and mod_functions.slave then
-                        mod_functions.slave(context:chracter():faction(), "monk_sacking", loss*-1*slave_taking_rate)
+                    if raiding_character:faction():is_human() and Gamedata.base_pop.slaves_factions[raiding_character:faction():name()] and mod_functions.slave then
+                        mod_functions.slave(raiding_character:faction():name(), "manpower_region_raided", loss*-1*slave_taking_rate)
                     end
                 end
                 if mod_functions.lord then
@@ -299,12 +301,12 @@ dev.pre_first_tick(function (context)
                 end
                 if Gamedata.base_pop.slaves_factions[owning_faction:name()] and mod_functions.slave then
                     if context:character():region():is_province_capital() then
-                        local slaves_lost = dev.mround(dev.clamp(rmp.base_serf()/10, 0, PettyKingdoms.FactionResource.get("vik_dyflin_slaves", context:character():faction()).value/3), 1)
-                        mod_functions.slave(owning_faction:name(), "monk_lost_settlements", slaves_lost*-1)
+                        local slaves_lost = dev.mround(dev.clamp(rmp.base_serf()/10, 0, PettyKingdoms.FactionResource.get("vik_dyflin_slaves", raiding_character:faction()).value/3), 1)
+                        mod_functions.slave(owning_faction:name(), "manpower_region_raided", slaves_lost*-1)
                     end
                 end
-            elseif context:character():faction():is_human() and Gamedata.base_pop.slaves_factions[context:character():faction():name()] and mod_functions.slave then
-                mod_functions.slave(context:chracter():faction(), "monk_sacking", dev.mround(rmp.base_serf()*lost_perc, 1)*-1*slave_taking_rate)
+            elseif raiding_character:faction():is_human() and Gamedata.base_pop.slaves_factions[raiding_character:faction():name()] and mod_functions.slave then
+                mod_functions.slave(raiding_character:faction():name(), "manpower_region_raided", dev.mround(rmp.base_serf()*lost_perc, 1)*-1*slave_taking_rate)
             end
         end,
         true

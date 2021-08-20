@@ -38,7 +38,7 @@ dev.first_tick(function(context)
                 rec_handler:set_cost_of_unit(entry.unit_key, dev.mround(entry.num_men*unit_size_mode_scalar, 1))
             end
         end
-        rec_handler:set_resource_tooltip("Thrall units require Thrall population to recruit")
+        rec_handler:set_resource_tooltip("Thrall units require slave population to recruit")
         rec_handler.image_state = "slaves"
     end
 
