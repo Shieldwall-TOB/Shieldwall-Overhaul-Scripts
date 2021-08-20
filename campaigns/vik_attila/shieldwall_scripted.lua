@@ -71,8 +71,7 @@ end
 --require mechanics scripts
 local ok, err = pcall( function()
     --global mechanics; 
-    building_effects = require("global_mechanics/building_effects")
-    require("global_mechanics/skill_effects")
+
     require("global_mechanics/CampaignVictories")
     require("global_mechanics/Shroud")
     --require("global_mechanics/SeasonalEffects")
@@ -104,6 +103,10 @@ local ok, err = pcall( function()
     require("decrees/WestSeaxeDecrees")
     require("decrees/MierceDecrees")
     require("decrees/NorthleodeDecrees")
+
+    require("global_mechanics/tech_effects")
+    building_effects = require("global_mechanics/building_effects")
+    require("global_mechanics/skill_effects")
 end) 
 if not ok then
     dev.log("Error loading mechanics scripts!")

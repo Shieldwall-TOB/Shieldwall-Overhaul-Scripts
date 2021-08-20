@@ -362,6 +362,11 @@ local function add_recruitment_resource(resource, resource_getter, resource_mod,
     return instance
 end
 
+--v function(resource: string) --> RECRUITMENT_HANDLER
+local function get_handler_for_faction_resource(resource)
+    return instances[resource]
+end
+
 --v function(faction: string, icon_name: string)
 local function disable_recruitment_cost_type_for_faction(faction, icon_name)
     dev.eh:add_listener(
@@ -380,6 +385,7 @@ local function disable_recruitment_cost_type_for_faction(faction, icon_name)
 end
 
 return {
+    get_handler_for_faction_resource = get_handler_for_faction_resource,
     add_resource = add_recruitment_resource,
     disable_recruitment_cost_type_for_faction = disable_recruitment_cost_type_for_faction
 }
