@@ -109,6 +109,16 @@ function game_event.add_callback(self, callback)
     self.own_group.callback  = callback
 end
 
+--v function(self: GAME_EVENT, callback: function(context: WHATEVER))
+function game_event.add_callback_on_queue(self, callback)
+    self.own_group.queued_callback  = callback
+end
+
+--v function(self: GAME_EVENT, callback: function(context: WHATEVER))
+function game_event.add_callback_on_unqueue(self, callback)
+    self.own_group.unqueued_callback  = callback
+end
+
 
 --v function(self: GAME_EVENT, cooldown: int)
 function game_event.set_cooldown(self, cooldown)

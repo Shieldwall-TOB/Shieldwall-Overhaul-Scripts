@@ -12,11 +12,12 @@ function condition_group.new(name)
     self.name = name
     self.members = {} --:map<string, GAME_EVENT>
 
-    self.last_turn_occured = 0
+    self.last_turn_occured = -99
 
     --flags how many currently in queue, and how many allowed in queue.
     self.num_allowed_queued = 0
     self.currently_in_queue = 0
+    self.ignore_queue_room_during_own_turn = false --:boolean
     self.last_queued_event = "" --:string 
 
     --allows for controlling a shared cooldown for a group of events.
@@ -30,6 +31,8 @@ function condition_group.new(name)
     --queue time conditons
     --allows events in the same group to share conditions for queue time.
     self.queue_time_condition = function(context) return true end --:function(context: WHATEVER) --> boolean
+    self.queued_callback = function(context) end --:function(context: WHATEVER)
+    self.unqueued_callback = function(context) end --:function(context: WHATEVER)
 
     self.callback = function(context) end --:function(context: WHATEVER)
 
@@ -81,6 +84,16 @@ end
 --v function(self: EVENT_CONDITION_GROUP, callback: function(context: WHATEVER))
 function condition_group.add_callback(self, callback)
     self.callback  = callback
+end
+
+--v function(self: EVENT_CONDITION_GROUP, callback: function(context: WHATEVER))
+function condition_group.add_callback_on_queue(self, callback)
+    self.queued_callback  = callback
+end
+
+--v function(self: EVENT_CONDITION_GROUP, callback: function(context: WHATEVER))
+function condition_group.add_callback_on_unqueue(self, callback)
+    self.unqueued_callback  = callback
 end
 
 --system
