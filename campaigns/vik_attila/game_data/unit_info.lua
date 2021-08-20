@@ -275,13 +275,14 @@ local mercenary_units = {
 	["eng_royal_huscarles"] = true,
 	--Gealic: Foreign Warriors
 	["iri_foreign_warriors"] = true, 
-	--Actual mercenaries
+	--Foreign mercenaries
 	["dan_mailed_horsemen"] = true,
 	["dan_anglian_marauders"] = true,
 	["dan_northumbrian_mailed_thegns"] = true,
 	["eng_mailed_thegns"] = true,
 	["vik_jomsvikings"] = true,
 	["dan_jarls_huscarls"] = true,
+	-- vikingar and sailors
 	["wel_mailed_axemen"] = true,
 	["vik_thrall_axemen"] = true
 }--:map<string, boolean>

@@ -33,6 +33,8 @@ local victory_cutscenes = {
 local victories = {
 
 } --:map<string, {bool, bool, string, string}>
+dev.Save.persist_table(victories, "victory_cnd", function(t) victories = t end)
+
 
 --v function(faction: CA_FACTION, kingdom: string, long_victory: boolean, no_message:boolean?)
 function KingdomSetFounderFaction(faction, kingdom, long_victory, no_message)
@@ -132,7 +134,7 @@ dev.first_tick(function(context)
                 KingdomSetFounderFaction(faction,Gamedata.kingdoms.faction_nations[faction:name()], false, true)
             end 
         end
-        if (not victories[cm:get_local_faction(true)]) or victories[cm:get_local_faction(true)][1] == false then
+        if (victories[cm:get_local_faction(true)][1] == false) then
             cm:lock_technology(cm:get_local_faction(true), "vik_mil_cap_1")
         end
         
@@ -229,4 +231,3 @@ dev.first_tick(function(context)
 end )
 
 
-dev.Save.persist_table(victories, "victory_cnd", function(t) victories = t end)

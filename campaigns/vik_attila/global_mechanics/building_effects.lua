@@ -1,5 +1,5 @@
 
-local time_to_event_processors = {
+local event_to_event_processors = {
     ["TurnStart"] = {"RegionTurnStart", function(context, --:WHATEVER
         chain_key) --:string
         return context:region():building_superchain_exists(chain_key), context:region()
@@ -10,31 +10,45 @@ local time_to_event_processors = {
     end}
 }--:map<string, {string, function(context: WHATEVER, building_key: string)-->(boolean, CA_REGION)}>
 
+local building_effects = {} --:map<string,vector<string>>
+
+
 --v function(t: any)
 local function log(t)
     dev.log(tostring(t), "BUILD")
 end
 
 
---v function(chain_key: string, time: string, callback: function(region: CA_REGION))
-local function add_building_effect(chain_key, time, callback)
-    if time_to_event_processors[time] == nil then
+--v function(chain_key: string, event: string, callback: function(region: CA_REGION))
+local function add_building_effect(chain_key, event, callback)
+    if event_to_event_processors[event] == nil then
         log("Unrecognized building event")
         return
     end
-    dev.eh:add_listener(chain_key..time,
-        time_to_event_processors[time][1],
+    dev.eh:add_listener(chain_key..event,
+    event_to_event_processors[event][1],
         function(context)
             return true
         end,
         function(context)
-            local ok, region = time_to_event_processors[time][2](context, chain_key)
+            local ok, region = event_to_event_processors[event][2](context, chain_key)
             if ok then
                 callback(region)
             end
         end, true)
+        if not building_effects[chain_key] then building_effects[chain_key] = {} end
+        table.insert(building_effects[chain_key], "")
 end
 
+--v function(chain_key: string)
+local function clear_building_effects_for_chain(chain_key)
+    if building_effects[chain_key] then
+        for i = 1, #building_effects[chain_key] do
+            dev.eh:remove_listener(building_effects[chain_key][i])
+        end
+    end
+    building_effects[chain_key] = {}
+end
 
 local kings_court_check = function(region) --:CA_REGION
     local owner = region:owning_faction()
@@ -61,3 +75,9 @@ end
 
 
 add_building_effect("vik_konungsgurtha", "TurnStart", kings_court_check)
+
+
+return {
+    add_building_effect = add_building_effect,
+    clear_building_effects_for_chain = clear_building_effects_for_chain
+}
