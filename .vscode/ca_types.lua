@@ -417,6 +417,7 @@
 --# assume CA_FORCE.faction: method() --> CA_FACTION
 --# assume CA_FORCE.is_army: method() --> boolean
 --# assume CA_FORCE.is_armed_citizenry: method() --> boolean
+--# assume CA_FORCE.is_null_interface: method() --> boolean
 --CA_FORCE_LIST
 --# assume CA_FORCE_LIST.num_items: method() --> number
 --# assume CA_FORCE_LIST.item_at: method(i: number) --> CA_FORCE

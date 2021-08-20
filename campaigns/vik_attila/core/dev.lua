@@ -473,6 +473,9 @@ end
 
 --v function(chance: int) --> boolean
 local function dev_chance(chance)
+    if CONST.__always_succeed_chance_checks then
+        return true
+    end
     return cm:random_number(100) <= chance
 end
 
@@ -717,8 +720,8 @@ local function dev_turn_start(faction_name, callback)
     callback, true)
 end
 
---v function(event_key: string, callback: function(context: WHATEVER))
-local function dev_respond_to_incident(event_key, callback)
+--v function(event_key: string, callback: function(context: WHATEVER), persist: boolean?)
+local function dev_respond_to_incident(event_key, callback, persist)
     get_eh():add_listener(
 		event_key.."_response",
 		"IncidentOccuredEvent",
@@ -729,12 +732,12 @@ local function dev_respond_to_incident(event_key, callback)
             MODLOG("Responding to incident: "..event_key)
 			callback(context)
 		end,
-		false
+		not not persist
 	)
 end
 
---v function(event_key: string, callback: function(context: WHATEVER))
-local function dev_respond_to_dilemma(event_key, callback)
+--v function(event_key: string, callback: function(context: WHATEVER), persist: boolean?)
+local function dev_respond_to_dilemma(event_key, callback, persist)
     get_eh():add_listener(
 		event_key.."_response",
 		"DilemmaChoiceMadeEvent",
@@ -745,7 +748,7 @@ local function dev_respond_to_dilemma(event_key, callback)
             MODLOG("Responding to dilemma: "..event_key)
 			callback(context)
 		end,
-		false
+		not not persist
 	)
 end
 
@@ -849,6 +852,9 @@ local function dev_create_army(unit_table, region_intensity, army_type)
     local force_key = force_vector[1]
     for i = 2, #force_vector do
         --# assume i: int
+        if i > 19 then
+            break
+        end
         force_key = force_key .. "," .. force_vector[i]
     end
     return force_key
@@ -896,6 +902,87 @@ local function dev_remove_trait(character_lookup, trait_key)
     end
 end
 
+
+
+
+
+
+local PB_army_locations = {} --:map<CA_CQI, {int, int}>
+local did_retreat = {} --:map<CA_CQI, boolean>
+
+dev_first_tick(function(context)
+    local eh = get_eh()
+    eh:add_listener("PendingBattle", "PendingBattle", true, function(context)
+        local attacker = context:pending_battle():attacker() --:CA_CHAR
+        local defender = context:pending_battle():defender() --:CA_CHAR
+        PB_army_locations[attacker:command_queue_index()] = {attacker:logical_position_x(), attacker:logical_position_y()}
+        PB_army_locations[defender:command_queue_index()] = {defender:logical_position_x(), defender:logical_position_y()}
+    end, true)
+    eh:add_listener("BattleCompleted", "BattleCompleted", true, function(context)
+        local attacker_result = cm:model():pending_battle():attacker_battle_result();
+        local defender_result = cm:model():pending_battle():defender_battle_result();
+
+        if attacker_result == "close_defeat" and defender_result == "close_defeat" then
+            local largest_distance = 0 --:number
+            local who_retreated = -1 --# assume who_retreated: CA_CQI
+            for i = 1, cm:pending_battle_cache_num_attackers() do
+                local char_cqi, force_cqi, faction_key = cm:pending_battle_cache_get_attacker(i)
+                if PB_army_locations[char_cqi] then
+                    local character = dev_get_character(char_cqi)
+                    local pos_x, pos_y = character:logical_position_x(), character:logical_position_y()
+                    local old_pos_x, old_pos_y = PB_army_locations[char_cqi][1], PB_army_locations[char_cqi][2]
+                    MODLOG("Character "..tostring(char_cqi).." had the pre-battle positions ["..old_pos_x.." "..old_pos_y.."].", "RETREATS")
+                    MODLOG("Character "..tostring(char_cqi).." had the post-battle positions ["..pos_x.." "..pos_y.."].", "RETREATS")
+                    local distance = dev_distance_2D(pos_x, pos_y, old_pos_x, old_pos_y)
+                    MODLOG("Character "..tostring(char_cqi).." ended the battle ["..distance.."] from where they started it.", "RETREAT")
+                    if distance > largest_distance then
+                        largest_distance = distance
+                        who_retreated = char_cqi
+                    end
+                else
+                    MODLOG("Character "..tostring(char_cqi).." was in the post battle but didn't have a pre battle position saved.", "RETREATS")
+                end
+            end
+            for i = 1, cm:pending_battle_cache_num_defenders() do
+                local char_cqi, force_cqi, faction_key = cm:pending_battle_cache_get_defender(i)
+                if PB_army_locations[char_cqi] then
+                    local character = dev_get_character(char_cqi)
+                    local pos_x, pos_y = character:logical_position_x(), character:logical_position_y()
+                    local old_pos_x, old_pos_y = PB_army_locations[char_cqi][1], PB_army_locations[char_cqi][2]
+                    MODLOG("Character "..tostring(char_cqi).." had the pre-battle positions ["..old_pos_x.." "..old_pos_y.."].", "RETREATS")
+                    MODLOG("Character "..tostring(char_cqi).." had the post-battle positions ["..pos_x.." "..pos_y.."].", "RETREATS")
+                    local distance = dev_distance_2D(pos_x, pos_y, old_pos_x, old_pos_y)
+                    MODLOG("Character "..tostring(char_cqi).." ended the battle ["..distance.."] from where they started it.", "RETREAT")
+                    if distance > largest_distance then
+                        largest_distance = distance
+                        who_retreated = char_cqi
+                    end
+                else
+                    MODLOG("Character "..tostring(char_cqi).." was in the post battle but didn't have a pre battle position saved.", "RETREATS")
+                end
+            end
+            if largest_distance > 0 then
+                MODLOG("Character "..tostring(who_retreated).." retreated from the battle ["..largest_distance.."]", "RETREAT")
+                did_retreat[who_retreated] = true
+            end
+        end
+    end, true)
+end)
+--v function(character: CA_CHAR)--> boolean
+function dev_did_character_retreat_from_last_battle(character)
+    return did_retreat[character:command_queue_index()] or false
+end
+
+--[[ this functionality is currently only used for detecting character retreats, 
+so saving and loading are unncessary.
+cm:register_loading_game_callback(function(context)
+    PB_army_locations = cm:load_value("PB_army_locations", {}, context)
+end)
+
+cm:register_saving_game_callback(function(context)
+    cm:save_value("PB_army_locations", PB_army_locations, context)
+end)
+--]]
 local SPAWN_BLOCKERS = {}--:  map<int, map<int, int>>
 local function dev_clear_spawn_blockers()
     local turn = cm:model():turn_number()
@@ -907,6 +994,7 @@ local function dev_clear_spawn_blockers()
         end
     end
 end
+
 cm:register_loading_game_callback(function(context)
     SPAWN_BLOCKERS = cm:load_value("SPAWN_BLOCKERS", {}, context)
 end)
@@ -985,6 +1073,7 @@ return {
     create_army = dev_create_army,
     distance = dev_distance_2D,
     is_character_near_region = dev_is_character_near_region, 
+    did_character_retreat_from_last_battle = dev_did_character_retreat_from_last_battle,
     spawn_blockers = SPAWN_BLOCKERS,
     clear_spawn_blockers = dev_clear_spawn_blockers,
     set_factions_hostile =  dev_SetFactionsHostile,

@@ -192,25 +192,17 @@ end
 --v function(character: CA_CHAR) --> (boolean, string)
 local function check_does_char_have_skald(character)
     local faction_to_follower_trait = {
-		["vik_fact_circenn"] = "vik_follower_bard_circenn",
-		["vik_fact_west_seaxe"] = "vik_follower_bard_west_seaxe",
-		["vik_fact_mierce"] = "vik_follower_bard_mierce",
-		["vik_fact_mide"]  = "vik_follower_bard_mide",
+
 		["vik_fact_east_engle"]  = "vik_follower_bard_east_engle",
 		["vik_fact_northymbre"]  = "vik_follower_bard_northymbre",
-		["vik_fact_strat_clut"]  = "vik_follower_bard_strat_clut",
-		["vik_fact_gwined"]  = "vik_follower_bard_gwined",
 		["vik_fact_dyflin"]  = "vik_follower_bard_dyflin",
 		["vik_fact_sudreyar"]  = "vik_follower_bard_sudreyar",
-		["vik_fact_northleode"]  = "vik_follower_bard",
-		["vik_fact_caisil"]  = "vik_follower_bard",
-		["nil"] = "vik_follower_bard"
 	} --:map<string, string>
 
 	local faction_name = character:faction():name()
 	local skill_key = faction_to_follower_trait[faction_name]
 	if skill_key == nil then
-		skill_key = faction_to_follower_trait["nil"]
+		return false, ""
 	end
 	return character:has_skill(skill_key), skill_key
 end
@@ -372,6 +364,7 @@ return {
 	does_char_have_henchmen = check_does_char_have_henchmen,
 	does_char_have_quartermaster = check_does_char_have_quartermaster,
     does_char_have_bard  = check_does_char_have_bard,
+	does_char_have_skald = check_does_char_have_skald,
     does_char_have_priest = check_does_char_have_priest,
     does_char_have_gothi = check_does_char_have_gothi
 }
