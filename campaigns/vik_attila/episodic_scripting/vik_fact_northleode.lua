@@ -5,7 +5,7 @@ local faction_key = "vik_fact_northleode"
 --v function(t: any)
 local function log(t) dev.log(tostring(t), faction_key) end
 local rivals = {
-    {"vik_fact_northumbria"},
+    {"vik_fact_northymbre"},
     {"vik_fact_mide", "vik_fact_dyflin"},
     {"vik_fact_east_engle", "vik_fact_west_seaxe"},
     {"vik_fact_mierce", "vik_fact_hellirborg"},
@@ -41,7 +41,7 @@ EVENTS_NORTHLEODE_STRAT_CLUT = false --:boolean
 EVENTS_NORTHLEODE_WESTMORINGAS = false--:boolean
 EVENTS_NORTHLEODE_BETRAYAL = false--:boolean
 EVENTS_NORTHLEODE_BOOKS = 0--:int
-EVENTS_NORTHLEODE_KING_OF_NOTHING = false--:boolean
+EVENTS_NORTHLEODE_KING_OF_NOTHING = true--:boolean
 dev.Save.save_value("EVENTS_NORTHLEODE_STRAT_CLUT", EVENTS_NORTHLEODE_STRAT_CLUT, function(t) EVENTS_NORTHLEODE_STRAT_CLUT = t end)
 dev.Save.save_value("EVENTS_NORTHLEODE_WESTMORINGAS", EVENTS_NORTHLEODE_WESTMORINGAS, function(t) EVENTS_NORTHLEODE_WESTMORINGAS = t end)
 dev.Save.save_value("EVENTS_NORTHLEODE_BETRAYAL", EVENTS_NORTHLEODE_BETRAYAL, function(t) EVENTS_NORTHLEODE_BETRAYAL = t end)
@@ -61,10 +61,11 @@ local function EventsNorthleode(turn)
             dev.log("Checking northleode faction events!")
             local is_still_vassal = northleode:is_vassal_of(dev.get_faction("vik_fact_northymbre"))
             dev.log("vassal status: ["..tostring(is_still_vassal).."]")
-            if is_still_vassal and not northleode:has_effect_bundle("sw_northleode_king_of_nothing") then
+            if is_still_vassal and (not northleode:has_effect_bundle("sw_northleode_king_of_nothing")) then
                 cm:apply_effect_bundle("sw_northleode_king_of_nothing", "vik_fact_northleode", 0)
-            elseif not is_still_vassal and northleode:has_effect_bundle("sw_northleode_king_of_nothing") then
+            elseif (not is_still_vassal) and northleode:has_effect_bundle("sw_northleode_king_of_nothing") then
                 cm:remove_effect_bundle("sw_northleode_king_of_nothing", "vik_fact_northleode")
+                EVENTS_NORTHLEODE_KING_OF_NOTHING = false
                 if not dev.get_faction("vik_fact_northymbre"):is_human() then
                     for region, location in pairs(spawns) do
                         local army = dev.create_army(armies, 5, region)
@@ -111,7 +112,7 @@ local function EventsNorthleode(turn)
                 end
             end
         end
-    else
+    elseif turn == 0 then
         local leader = northleode:faction_leader()
         cm:grant_unit(dev.lookup(leader), "eng_thegns")
         cm:grant_unit(dev.lookup(leader), "eng_thegns")
@@ -195,6 +196,22 @@ dev.first_tick(function(context)
         function(context) EventsNorthleode(cm:model():turn_number()) end,
         true
     );
+    if EVENTS_NORTHLEODE_KING_OF_NOTHING then
+        dev.eh:add_listener(
+            "NegativeDiplomaticEvent",
+            "NegativeDiplomaticEvent",
+            function(context) return (context:proposer():name() == faction_key) or (context:recipient():name() == faction_key) end,
+            function(context) 
+                if dev.get_faction(faction_key):is_vassal_of(dev.get_faction("vik_fact_northymbre")) then
+
+                elseif dev.get_faction(faction_key):has_effect_bundle("sw_northleode_king_of_nothing") then
+                    cm:remove_effect_bundle("sw_northleode_king_of_nothing", faction_key)
+                    EVENTS_NORTHLEODE_KING_OF_NOTHING = false
+                end
+            end,
+            true
+        );
+    end
     dev.eh:add_listener(
         "DilemmaChoiceMadeEvent_Events",
         "DilemmaChoiceMadeEvent",
@@ -205,7 +222,7 @@ dev.first_tick(function(context)
     dev.eh:add_listener(
         "CharacterCompletedBattle_Events",
         "CharacterCompletedBattle",
-        function(context) return context:faction():name() == faction_key end,
+        function(context) return context:character():faction():name() == faction_key end,
         function(context) EventCharacterCompletesBattleNorthleode(context, cm:model():turn_number()) end,
         true
     );
