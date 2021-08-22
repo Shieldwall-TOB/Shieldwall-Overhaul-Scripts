@@ -1,15 +1,15 @@
 local building_storage_effects = {
-    vik_granary_1 = 75,
-    vik_granary_2 = 150,
-    vik_souterrain_1 = 100,
-    vik_souterrain_2 = 150,
-    vik_souterrain_3 = 200,
-    vik_warehouse_1 = 100,
-    vik_warehouse_2 = 150,
-    vik_warehouse_3 = 200,
-    vik_fogou_1 = 100,
-    vik_fogou_2 = 150,
-    vik_fogou_3 = 200
+    vik_granary_1 = 40,
+    vik_granary_2 = 80,
+    vik_souterrain_1 = 50,
+    vik_souterrain_2 = 75,
+    vik_souterrain_3 = 100,
+    vik_warehouse_1 = 25,
+    vik_warehouse_2 = 50,
+    vik_warehouse_3 = 75,
+    vik_fogou_1 = 50,
+    vik_fogou_2 = 75,
+    vik_fogou_3 = 100
 }--: map<string, number>
 
 
