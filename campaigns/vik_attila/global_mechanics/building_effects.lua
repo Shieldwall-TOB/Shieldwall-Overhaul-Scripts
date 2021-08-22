@@ -11,7 +11,8 @@ local event_to_event_processors = {
 }--:map<string, {string, function(context: WHATEVER, building_key: string)-->(boolean, CA_REGION)}>
 
 local building_effects = {} --:map<string,vector<string>>
-
+local check = dev.Check
+local event_manager = dev.GameEvents
 
 --v function(t: any)
 local function log(t)
@@ -73,9 +74,124 @@ local kings_court_check = function(region) --:CA_REGION
     end
 end
 
+local characters_resupplied = {}--:map<CA_CQI, {last_bundle: string, off_cooldown_on_turn: int}>
+dev.Save.persist_table(characters_resupplied, "characters_resupplied", function(t) characters_resupplied = t end)
 
-add_building_effect("vik_konungsgurtha", "TurnStart", kings_court_check)
+local resupply_events = {
+    sw_resupply_governor_ = {1, false, true, false},
+    sw_resupply_warehouse_ = {1, false, false, true},
+    sw_resupply_general_ = {1, true, false, false},
+    sw_resupply_general_governor_ = {2, true, true, false},
+    sw_resupply_general_warehouse_ = {2, true, false, true},
+    sw_resupply_governor_warehouse_ = {2, false, true, true},
+    sw_resupply_general_governor_warehouse_ = {3, true, true, true}
+}--:map<string, {int, boolean, boolean, boolean}>
+local resupply_key = "sw_warehouse_resupply_"
+local resupply_skill_higher_level_effect = 3
+local resupply_building_levels = {
+    vik_warehouse_2 = 2,
+    vik_warehouse_3 = 4
+} --:map<string, int>
 
+local resupply_level_base_durations = {1, 4, 10} --:vector<int>
+
+--v function(context: WHATEVER) --> (boolean, boolean, boolean)
+local function check_resupply_event(context)
+    local region = context:region() --:CA_REGION
+    local character = context:character()
+    if region:owning_faction():name() ~= character:faction():name() then
+        log("Resupply station not owned by the same faction, this is a region being captured.")
+        return false, false, false
+    end
+    local gen_check = check.does_char_have_quartermaster(character)
+    local gov_check = region:has_governor() and check.does_char_have_quartermaster(region:governor())
+    local building_check = region:building_superchain_exists("vik_warehouse")
+
+    return gen_check, gov_check, building_check
+end
+
+--v function(character:CA_CHAR, region: CA_REGION, level: int)
+local function apply_resupply_effect(character, region, level)
+    local turn = dev.turn()
+    local gen_pol = PettyKingdoms.CharacterPolitics.get(character:command_queue_index())
+    local gov_check = region:has_governor()
+    local duration = resupply_level_base_durations[level]
+    local gen_pass, skill_key = check.does_char_have_quartermaster(character)
+    if gen_pass then
+        local skill_level = gen_pol.skills[skill_key]
+        if skill_level > 1 then
+            duration = duration + resupply_skill_higher_level_effect
+        end
+    end
+    if gov_check then
+        local gov_pass, skill_key = check.does_char_have_quartermaster(region:governor())
+        local gov_pol = PettyKingdoms.CharacterPolitics.get(region:governor():command_queue_index())
+        if gov_pass then
+            local skill_level = gov_pol.skills[skill_key]
+            if skill_level > 1 then
+                duration = duration + resupply_skill_higher_level_effect
+            end
+        end
+    end
+    for building_key, effect in pairs(resupply_building_levels) do
+        if region:building_exists(building_key) then
+            duration = duration + effect
+        end
+    end
+    local bundle_key = resupply_key..level
+    local cd_turn = turn  + duration
+    --if we aren't off cooldown, don't reset the cooldown.
+    if characters_resupplied[character:command_queue_index()] and characters_resupplied[character:command_queue_index()].off_cooldown_on_turn > turn then
+        cd_turn = characters_resupplied[character:command_queue_index()].off_cooldown_on_turn
+    end
+    
+    characters_resupplied[character:command_queue_index()] = {last_bundle = bundle_key, off_cooldown_on_turn = cd_turn}
+    cm:apply_effect_bundle_to_characters_force(bundle_key, character:command_queue_index(), duration, true)
+end
+
+--v function(context: WHATEVER) 
+local function apply_resupply_effects_using_context(context)
+    local region = context:region() --:CA_REGION
+    local character = context:character() --:CA_CHAR
+    local event = context:game_event() --:GAME_EVENT
+
+    local level = resupply_events[event.key][1]
+    apply_resupply_effect(character, region, level)
+end
+
+dev.first_tick(function(context)
+    add_building_effect("vik_konungsgurtha", "TurnStart", kings_court_check)
+
+    local resupply_group = event_manager:create_new_condition_group("ResupplyGroup", function(context)
+        local character = context:character() --:CA_CHAR
+        if not characters_resupplied[character:command_queue_index()] then
+            return true
+        else
+            if dev.turn() >= characters_resupplied[character:command_queue_index()].off_cooldown_on_turn then   
+                return true
+            end
+        end   
+        return false
+    end)
+
+    resupply_group:add_callback(function(context)
+        apply_resupply_effects_using_context(context)
+    end)
+    event_manager:register_condition_group(resupply_group, "CharacterEntersGarrison")
+
+    for key, info in pairs(resupply_events) do
+        local event = event_manager:create_event(key, "incident", "concatenate_region")
+        event:add_queue_time_condition(function(context)
+ 
+            local needs_general, needs_governor, needs_warehouse = info[2], info[3], info[4]
+            local has_general, has_governor, has_warehouse = check_resupply_event(context)
+            return (needs_general == has_general) and (needs_governor == has_governor) and (needs_warehouse == has_warehouse)
+        end)
+        event:join_groups("ProvinceCapitals", "ResupplyGroup")
+    end
+
+
+end)
 
 return {
     add_building_effect = add_building_effect,
