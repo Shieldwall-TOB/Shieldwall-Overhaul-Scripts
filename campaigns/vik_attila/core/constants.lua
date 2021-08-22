@@ -1,4 +1,5 @@
 return {
+    __script_version = 1, --used to help maintain save compatibility when I have to make changes to saved tables.
     __write_output_to_logfile = true, -- write log files
     __allow_test_buttons = true, --allows the pressing of the F9-F12 key scripted test functions
     __should_output_ui = false, --outputs UI object details on click. Spams the log a bit so leave it off when not doing UI work.
@@ -14,7 +15,8 @@ return {
         __test_riots = false, 
         __test_foreigner_events = false, 
         __test_endgame_invasions = false,
-        __test_skill_events = false
+        __test_skill_events = false,
+        __test_decree_payloads = true
     },
     __utilities = { --coded cheats or data creation scripts.
         __create_land_spawns = false

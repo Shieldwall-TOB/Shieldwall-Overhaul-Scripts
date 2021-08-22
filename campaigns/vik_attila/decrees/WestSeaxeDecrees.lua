@@ -1,5 +1,5 @@
 local faction_key = "vik_fact_west_seaxe"
-local global_cooldown = 0
+local global_cooldown = 10
 local decrees = {
     [1] = {
         ["event"] = "sw_decree_wessex_ad_hoc_levy",
