@@ -27,7 +27,7 @@ local game_interface_by_type = {
     end
 } --:map<string, function(faction_key: string, event_key: string)>
 
-condition_contructor = nil --:function(string) --> EVENT_CONDITION_GROUP
+local condition_contructor = nil --:function(string) --> EVENT_CONDITION_GROUP
 
 
 --v function(manager: GAME_EVENT_MANAGER, key: string, type_group: EVENT_CONDITION_GROUP, trigger_kind: GAME_EVENT_TRIGGER_KIND) --> GAME_EVENT
@@ -43,10 +43,10 @@ function game_event.new(manager, key, type_group, trigger_kind)
     self.trigger_kind = trigger_kind
     self.context_data = "shieldwall_game_event"
     if not condition_contructor then
-        --not initialized
-        --TODO log
+        self.manager:log("NO CONDITION CONSTRUCTOR FOUND")
     end
     self.own_group = condition_contructor(key)
+    self.manager:register_condition_group(self.own_group)
     self.groups = {
         type_group,
         self.own_group
@@ -89,12 +89,13 @@ function game_event.join_group(self, group_name)
         return
     end
     dev.insert(self.groups, #self.groups+1, group)
+    self.manager:log("Added "..self.key.. " to group "..group_name)
     group:add_event(self)
 end
 
 --v function(self: GAME_EVENT, ...: string)
 function game_event.join_groups(self, ...)
-    for i = 1, #arg do
+    for i = 1, arg.n do
         self:join_group(arg[i])
     end
 end
@@ -155,6 +156,10 @@ local trigger_by_kind = {
         custom_event_context) --:WHATEVER
         local actual_event_key = event_object.key .. custom_event_context:region():name()
         local turn = dev.turn()
+        --[[dev.log("DEBUG:")
+        for k, v in pairs(custom_event_context) do
+            dev.log("context has data on "..k)
+        end--]]
         callback_by_type[event_object.event_type]()(actual_event_key, function(context)
             if event_object.event_type == "dilemma" then
                 custom_event_context.choice_data = context:choice()

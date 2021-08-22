@@ -31,6 +31,7 @@ function game_event_manager.new()
     self.garrison_visits_cache = {} --:map<string, map<CA_CQI, boolean>>
 
     self.whose_turn = "" --:string
+    self.block_visit_events = {} --:map<string, CA_CQI>
 
     self.schedule = {} --:map<GAME_EVENT_QUEUE_TIMES, vector<EVENT_CONDITION_GROUP>>
     for i = 1, #queue_times do
@@ -38,7 +39,7 @@ function game_event_manager.new()
     end
     self.save = {
         name = "GAME_EVENT_MANAGER", 
-        for_save = {"event_queue", "queue_map"}
+        for_save = {"event_queue", "queue_map", "block_visit_events"}
     }--:SAVE_SCHEMA
     dev.Save.attach_to_object(self)
     return self
@@ -187,7 +188,7 @@ end
 function game_event_manager.can_queue_event(self, main_group, event_object, event_context)
     --self:log("Checking if "..event_object.key.." is queueable")
     if not event_context.game_event_data then
-        event_context.game_event_data = event_object
+        event_context:add_data(event_object)
     end
     local is_own_turn = self.whose_turn == event_context:faction():name()
     local groups_to_check = event_object.groups
@@ -202,17 +203,21 @@ function game_event_manager.can_queue_event(self, main_group, event_object, even
                     end)
                     if not ok then
                         condition_result = false
-                        self:log("Event "..event_object.key .. " has errored on conditions given by group: "..group.name)
+                        --self:log("Event "..event_object.key .. " has errored on conditions given by group: "..group.name)
                         self:log(err)
-                    end
-                    if condition_result then
+                    elseif condition_result then
                         --self:log("Event "..event_object.key .. " has passed conditions given by group: "..group.name)
                     else
+                        --self:log("Event "..event_object.key .. " has failed conditions given by group: "..group.name)
                         return false
                     end
                 else
+                    --self:log("Event "..event_object.key .. " cannot fit in queue due to group: "..group.name)
                     return false
                 end
+            else
+                --self:log("Event "..event_object.key .. " is on a cooldown given by group: "..group.name)
+                return false
             end
         end
     end
@@ -337,7 +342,7 @@ function game_event_manager.start_player_turn(self, player_faction)
         for event_key, event_object in pairs(this_group.members) do
             self:log("Checking event: "..event_key)
             for j = 0, region_list:num_items() - 1 do
-                local region_context = self:build_context_for_event(player_faction, region_list:item_at(j))
+                local region_context = self:build_context_for_event(event_object, player_faction, region_list:item_at(j))
                 local can_queue, displaces_event = self:can_queue_event(this_group, event_object, region_context)
                 if can_queue and displaces_event then
                     --# assume displaces_event: string
@@ -365,7 +370,7 @@ function game_event_manager.start_player_turn(self, player_faction)
                 local character = character_list:item_at(j)
                 if dev.is_char_normal_general(character) then
                     self:log("checking event on char: "..tostring(character:command_queue_index()))
-                    local character_context = self:build_context_for_event(player_faction, character)
+                    local character_context = self:build_context_for_event(event_object, player_faction, character)
                     local can_queue, displaces_event = self:can_queue_event(this_group, event_object, character_context)
                     if can_queue and displaces_event then
                         if self:remove_event_from_queue(displaces_event, true) then
@@ -391,6 +396,7 @@ end
 --v function(self: GAME_EVENT_MANAGER, context: CA_CONTEXT)
 function game_event_manager.completed_battle(self, context)
     local players_in_battle = {} --:map<CA_CQI, CA_FACTION>
+    local characters_died_in_battle = {} --:map<CA_CQI, CA_FACTION>
 	local attacker_result = cm:model():pending_battle():attacker_battle_result();
     local defender_result = cm:model():pending_battle():defender_battle_result();
     local was_retreat = false --:boolean
@@ -402,9 +408,14 @@ function game_event_manager.completed_battle(self, context)
         local char_cqi, force_cqi, faction_key = cm:pending_battle_cache_get_attacker(i)
         local faction = dev.get_faction(faction_key)
         if faction:is_human() then
-            players_in_battle[char_cqi] = faction
             self:log("Found a human with char_cqi "..tostring(char_cqi))      
-            has_humans = true
+            if dev.get_character(char_cqi) then 
+                players_in_battle[char_cqi] = faction
+                has_humans = true
+            else
+                self:log("Character "..char_cqi.." was returned by the pending battle cache, but no longer exists. They died in battle.")
+                characters_died_in_battle[char_cqi] = faction
+            end
         end 
     end
 
@@ -413,8 +424,13 @@ function game_event_manager.completed_battle(self, context)
         local faction = dev.get_faction(faction_key)
         if faction:is_human() then
             self:log("Found a human with char_cqi "..tostring(char_cqi))
-            players_in_battle[char_cqi] = faction
-            has_humans = true
+            if dev.get_character(char_cqi) then 
+                players_in_battle[char_cqi] = faction
+                has_humans = true
+            else
+                self:log("Character "..char_cqi.." was returned by the pending battle cache, but no longer exists. They died in battle.")
+                characters_died_in_battle[char_cqi] = faction
+            end
         end 
     end
 
@@ -434,7 +450,7 @@ function game_event_manager.completed_battle(self, context)
             for character_cqi, player_faction in pairs(players_in_battle) do
                 local character = dev.get_character(character_cqi)
                 if (not was_retreat) or dev.did_character_retreat_from_last_battle(character) then
-                    local character_context = self:build_context_for_event(player_faction, character)
+                    local character_context = self:build_context_for_event(event_object, player_faction, character)
                     if dev.is_char_normal_general(character) then
                         local can_queue, displaces_event = self:can_queue_event(this_group, event_object, character_context)
                         if can_queue and displaces_event then
@@ -478,7 +494,7 @@ function game_event_manager.player_character_entered_garrison(self, character, r
         local this_group = scheduled_groups[i]
         self:log("Checking group: "..this_group.name)
         for event_key, event_object in pairs(this_group.members) do
-            local character_context = self:build_context_for_event(player_faction, character, region)
+            local character_context = self:build_context_for_event(event_object, player_faction, character, region)
             if dev.is_char_normal_general(character) then
                 local can_queue, displaces_event = self:can_queue_event(this_group, event_object, character_context)
                 if can_queue and displaces_event then
@@ -561,10 +577,41 @@ local function initialize_game_events()
         )
         dev.eh:add_listener(
             "EventsCore",
+            "PendingBattle",
+            function(context)
+                return context:pending_battle():has_contested_garrison()
+            end,
+            function(context)       
+                local garrison = context:pending_battle():contested_garrison() --:CA_GARRISON_RESIDENCE
+                local attacker = context:pending_battle():attacker() --:CA_CHAR
+                active_manager:log("Pending battle has contested garrison: locking visit evens for "..garrison:region():name())
+                active_manager.block_visit_events[garrison:region():name()] = attacker:command_queue_index()
+            end,
+            true
+        )
+        dev.eh:add_listener(
+            "EventsCore",
             "BattleCompleted",
             true,
             function(context)
                 active_manager:completed_battle(context)
+            end,
+            true
+        )
+        dev.eh:add_listener(
+            "EventsCore",
+            "CharacterCompletedBattle",
+            function(context)
+                local character = context:character() --:CA_CHAR
+                return not character:won_battle()
+            end,
+            function(context)
+                local character = context:character() --:CA_CHAR
+                for region, cqi in pairs(active_manager.block_visit_events) do
+                    if cqi == character:command_queue_index() then
+                        active_manager.block_visit_events[region] = nil
+                    end
+                end
             end,
             true
         )
@@ -577,8 +624,23 @@ local function initialize_game_events()
             function(context)
                 local character = context:character() --:CA_CHAR
                 local region = context:garrison_residence():region() --:CA_REGION
-
-                active_manager:player_character_entered_garrison(character, region)
+                if not active_manager.block_visit_events[region:name()] then
+                    active_manager:player_character_entered_garrison(character, region)
+                end
+            end,
+            true
+        )
+        dev.eh:add_listener(
+            "EventsCore",
+            "CharacterLeavesGarrison",
+            function(context)
+                local region = context:garrison_residence():region() --:CA_REGION
+                return not not active_manager.block_visit_events[region:name()]
+            end,
+            function(context)
+                local region = context:garrison_residence():region() --:CA_REGION
+                active_manager:log("re-enabled visit events for "..region:name())
+                active_manager.block_visit_events[region:name()] = nil    
             end,
             true
         )

@@ -12,7 +12,7 @@ function condition_group.new(name)
     self.name = name
     self.members = {} --:map<string, GAME_EVENT>
 
-    self.last_turn_occured = -99
+    self.last_turn_occured = -10000
 
     --flags how many currently in queue, and how many allowed in queue.
     self.num_allowed_queued = 0
