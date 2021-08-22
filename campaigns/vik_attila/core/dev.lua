@@ -645,6 +645,18 @@ end
 
 cm:register_first_tick_callback(function(context)
     _G.game_created = true
+
+    local version = cm:get_saved_value("shieldwall_script_version")
+    if not version then
+        cm:set_saved_value("shieldwall_script_version", CONST.__script_version)
+    end
+    local faction_list = cm:model():world():faction_list()
+    for i = 0, faction_list:num_items() - 1 do
+        local faction = faction_list:item_at(i)
+        if faction:has_effect_bundle(faction:name().."_startpos") then
+            cm:remove_effect_bundle(faction:name().."_startpos", faction:name())
+        end
+    end
     cm:add_listener(
         "DeselectOnTurnStart",
         "FactionBeginTurnPhaseNormal",
@@ -652,11 +664,71 @@ cm:register_first_tick_callback(function(context)
             return context:faction():is_human() and context:faction():name() == cm:get_local_faction(true)
         end,
         function(context)
-        	CampaignUI.ClearSelection();
+            CampaignUI.ClearSelection();
         end,
         true)
-
-
+    local is_first_turn = cm:model():turn_number() == 1
+    if is_first_turn then
+        local panel = nil --:CA_UIC
+        cm:add_listener(
+            "RecHandlerPanelOpenedCampaign",
+            "PanelOpenedCampaign",
+            function(context)
+                return context.string == "recruitment"
+            end,
+            function(context)
+                local is_first_turn = cm:model():turn_number() == 1
+                if is_first_turn then
+                panel = UIComponent(context.component)
+                local list_box = find_uicomponent(panel, "recuitment_list", "listview", "list_clip", "list_box")
+                    if list_box then
+                        for i = 0, list_box:ChildCount() - 1 do
+                            local recruitmentCategory = UIComponent(list_box:Find(i))
+                            local units_box = find_uicomponent(recruitmentCategory, "units_box")
+                            for j = 0, units_box:ChildCount() - 1 do
+                                local UnitCard = UIComponent(units_box:Find(j))
+                                local max = find_uicomponent(UnitCard, "max_units")
+                                if max then
+                                    local new_text = string.gsub(max:GetStateText(), "/100", " ")
+                                    max:SetStateText(new_text)
+                                end
+                            end
+                        end
+                    end
+                end
+            end, true)
+        cm:add_listener(
+            "RecHandlerComponentLClickUp",
+            "ComponentLClickUp",
+            true,
+            function(context)
+                local is_first_turn = cm:model():turn_number() == 1
+                if is_first_turn and panel then
+                    local component = UIComponent(context.component)
+                    local component_ID = tostring(component:Id())
+                    if string.find(component_ID, "temp_merc_") or string.find(component_ID, "_mercenary") then
+                        dev_callback(function()
+                            local list_box = find_uicomponent(panel, "recuitment_list", "listview", "list_clip", "list_box")
+                            if list_box then
+                                for i = 0, list_box:ChildCount() - 1 do
+                                    local recruitmentCategory = UIComponent(list_box:Find(i))
+                                    local units_box = find_uicomponent(recruitmentCategory, "units_box")
+                                    for j = 0, units_box:ChildCount() - 1 do
+                                        local UnitCard = UIComponent(units_box:Find(j))
+                                        local max = find_uicomponent(UnitCard, "max_units")
+                                        if max then
+                                            local new_text = string.gsub(max:GetStateText(), "/100", " ")
+                                            max:SetStateText(new_text)
+                                        end
+                                        
+                                    end
+                                end
+                            end
+                        end, 0.1)
+                    end
+                end
+            end, true)
+    end
     MODLOG("===================================================================================", "FTC")
     MODLOG("===================================================================================", "FTC")
     MODLOG("===============THE GAME IS STARTING: RUNNING FIRST TICK CALLBACK===================", "FTC")
