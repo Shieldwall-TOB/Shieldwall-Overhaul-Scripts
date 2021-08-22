@@ -58,7 +58,7 @@ local ok, err = pcall( function()
     PettyKingdoms.Rivals = require("modules/RivalFactions")
     PettyKingdoms.Geopolitics = require("modules/Geopolitical_unit")
     PettyKingdoms.RegionManpower = require("modules/RegionManpower")
-    PettyKingdoms.Traits = require("modules/Traits")
+    --PettyKingdoms.Traits = require("modules/Traits")
     PettyKingdoms.CharacterPolitics = require("modules/CharacterPolitics")
 end) 
 if not ok then
