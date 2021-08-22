@@ -24,11 +24,10 @@ local secondary_factions = {
 
 
 
---v function(players: vector<string>, force: CA_FORCE) --> boolean
-local function CheckIfPlayerIsNearFaction(players, force)
+--v function(players: vector<string>, character: CA_CHAR) --> boolean
+local function CheckIfPlayerIsNearFaction(players, character)
     local result = false;
-    local force_general = force:general_character();
-    if force:faction():is_human() then
+    if character:faction():is_human() then
         return true
     end
     local radius = 20;
@@ -37,7 +36,7 @@ local function CheckIfPlayerIsNearFaction(players, force)
         local j = 0;
         while (result == false) and (j < player_force_list:num_items()) do
             local player_character = player_force_list:item_at(j):general_character();
-            local distance = dev.distance(force_general:logical_position_x(), force_general:logical_position_y(), player_character:logical_position_x(), player_character:logical_position_y());
+            local distance = dev.distance(character:logical_position_x(), character:logical_position_y(), player_character:logical_position_x(), player_character:logical_position_y());
             result = (distance < radius);
             j = j + 1;
         end
@@ -45,16 +44,14 @@ local function CheckIfPlayerIsNearFaction(players, force)
     return result;
 end
 
---v function(self: RIVAL, t: any)
-function rival.log(self, t)
-    dev.log(tostring(t), "RIVAL")
-end
+
 
 --v function(faction_key: string, kingdom: string, region_list: vector<string>, nation: string, region_list_national:vector<string>) --> RIVAL
 function rival.new(faction_key, kingdom, region_list, nation, region_list_national)
-    local self = {
+    local self = {}
+    setmetatable(self, {
         __index = rival
-    }--# assume self: RIVAL
+    })--# assume self: RIVAL
 
     self.faction_name = faction_key
     self.my_regions = {} --:map<string, true>
@@ -70,6 +67,13 @@ function rival.new(faction_key, kingdom, region_list, nation, region_list_nation
     return self
 
 end
+
+--v function(self: RIVAL, t: any)
+function rival.log(self, t)
+    dev.log(tostring(t), "RIVAL")
+end
+
+
 --v function(self: RIVAL, is_defender: boolean)
 function rival.autowin(self, is_defender)
     self:log("Rival: "..self.faction_name.." is autowinning a battle!")
@@ -81,6 +85,8 @@ function rival.autowin(self, is_defender)
         cm:modify_next_autoresolve_battle(0, 1, 20, 1, true);
     end
 end
+
+
 
 --v function(self: RIVAL, faction: CA_FACTION) --> boolean
 function rival.is_other_rival(self, faction)
@@ -244,7 +250,7 @@ dev.first_tick(function(context)
         function(context)
             local attacking_faction = context:pending_battle():attacker():faction() --:CA_FACTION
             local defending_faction = context:pending_battle():defender():faction() --:CA_FACTION
-            local defender_rival = instances[attacking_faction:name()]
+            local defender_rival = instances[defending_faction:name()]
             local buff_attacker, buff_defender = defender_rival:get_battle_info(context)
             if buff_defender then
                 defender_rival:autowin(true)

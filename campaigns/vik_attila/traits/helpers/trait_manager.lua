@@ -90,7 +90,8 @@ function trait_manager.add_trait_gained_dilemma(self, dilemma_key, additional_co
     event:add_queue_time_condition(function(context)
         local character = context:character() --:CA_CHAR
 
-        return (not self.already_triggered_choices[dilemma_key][tostring(character:command_queue_index())]) 
+        return (not self.already_triggered_choices[dilemma_key][tostring(character:command_queue_index())])
+        and (not character:is_faction_leader())
         and (not should_use_chance or dev.chance(self:get_chance(character))) 
         and (self:is_trait_valid_on_character(character) and additional_condition(character))
     end)
