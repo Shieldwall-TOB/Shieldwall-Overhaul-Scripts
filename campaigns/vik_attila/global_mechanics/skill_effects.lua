@@ -82,7 +82,7 @@ local skill_events_post_retreat = {
         callback = function(context) --:WHATEVER
     
         end,
-        cooldown = 999
+        cooldown = 250
     },
     {
         
@@ -101,7 +101,7 @@ local skill_events_post_retreat = {
         callback = function(context) --:WHATEVER
     
         end,
-        cooldown = 999
+        cooldown = 250
     }
 }--:vector<{key: string, checks: vector<(function(CA_CHAR) --> (boolean, string))>, levels:vector<int>, condition: function(context: WHATEVER) --> boolean, callback: function(context: WHATEVER), cooldown: int?}>
 
@@ -315,16 +315,19 @@ dev.first_tick(function(context)
         event:add_queue_time_condition(function(context)
             local character = context:character() --:CA_CHAR
             local pol_char = PettyKingdoms.CharacterPolitics.get(character:command_queue_index())
-                local last = character_event_last_happened[character:command_queue_index()] or 0
-                if (not CONST.__testcases.__test_skill_events) and (dev.turn() <= last + (event_info.cooldown or 0)) then
-                    return false
-                end
+            local passed_checks = true
+            local last = character_event_last_happened[character:command_queue_index()] or 0
+            if (not CONST.__testcases.__test_skill_events) and (dev.turn() <= last + (event_info.cooldown or 0)) then
+                return false
+            end
+            if not character:won_battle() then
+                return false
+            end
             for j = 1, #event_info.checks do 
                 local passed, skill_key = event_info.checks[j](character)
                 if (not passed) or pol_char:get_skill_points(skill_key) < event_info.levels[j] then 
                     passed_checks = false
                 end
-
             end
             if CONST.__testcases.__test_skill_events then
                 local cond = event_info.condition(context)
@@ -353,9 +356,11 @@ dev.first_tick(function(context)
         event:add_queue_time_condition(function(context)
             local character = context:character() --:CA_CHAR
             local pol_char = PettyKingdoms.CharacterPolitics.get(character:command_queue_index())
-                local last = character_event_last_happened[character:command_queue_index()] or 0
+            local last = character_event_last_happened[character:command_queue_index()] or 0
+            local passed_checks = true
             for j = 1, #event_info.checks do 
                 local passed, skill_key = event_info.checks[j](character)
+                log("SkillEventsRetreat check for event ["..event_info.key.."] number ["..j.."] returned ["..tostring(passed).."] and ["..tostring(skill_key).."] ")
                 if (not passed) or pol_char:get_skill_points(skill_key) < event_info.levels[j] then 
                     passed_checks = false
                 end
@@ -388,7 +393,8 @@ dev.first_tick(function(context)
         event:add_queue_time_condition(function(context)
             local character = context:character() --:CA_CHAR
             local pol_char = PettyKingdoms.CharacterPolitics.get(character:command_queue_index())
-                local last = character_event_last_happened[character:command_queue_index()] or 0
+            local last = character_event_last_happened[character:command_queue_index()] or 0
+            local passed_checks = true
             if (not CONST.__testcases.__test_skill_events) and (dev.turn() <= last + (event_info.cooldown or 0)) then
                 return false
             end

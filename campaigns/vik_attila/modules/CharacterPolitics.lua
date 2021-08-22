@@ -404,7 +404,7 @@ dev.first_tick(function(context)
         "CharacterPoliticsTurnStart",
         "CharacterTurnStart",
         function(context)
-            return context:character():faction():is_human()
+            return context:character():faction():is_human() and dev.is_char_normal_general(context:character())
         end,
         function(context)
             local char = context:character() --:CA_CHAR
@@ -446,7 +446,7 @@ dev.first_tick(function(context)
             "CharacterGainsTraitPolitics",
             "CharacterGainsTrait",
             function(context)
-                return context:character():faction():is_human()
+                return context:character():faction():is_human() and dev.is_char_normal_general(context:character())
             end,
             function(context)
                 local char = context:character() --:CA_CHAR
