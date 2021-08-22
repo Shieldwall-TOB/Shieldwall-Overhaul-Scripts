@@ -192,7 +192,6 @@ end
 --v function(character: CA_CHAR) --> (boolean, string)
 local function check_does_char_have_skald(character)
     local faction_to_follower_trait = {
-
 		["vik_fact_east_engle"]  = "vik_follower_bard_east_engle",
 		["vik_fact_northymbre"]  = "vik_follower_bard_northymbre",
 		["vik_fact_dyflin"]  = "vik_follower_bard_dyflin",
@@ -202,7 +201,7 @@ local function check_does_char_have_skald(character)
 	local faction_name = character:faction():name()
 	local skill_key = faction_to_follower_trait[faction_name]
 	if skill_key == nil then
-		return false, ""
+		return false, nil
 	end
 	return character:has_skill(skill_key), skill_key
 end
@@ -310,7 +309,7 @@ local function check_does_char_have_sailor(character)
 	local faction_name = character:faction():name()
 	local skill_key = faction_to_follower_trait[faction_name]
 	if skill_key == nil then
-		return false, ""
+		return false, nil
 	end
 	return character:has_skill(skill_key), skill_key
 end
@@ -325,7 +324,7 @@ local function check_does_char_have_champion(character)
 	local faction_name = character:faction():name()
 	local skill_key = faction_to_follower_trait[faction_name]
 	if skill_key == nil then
-		return false, ""
+		return false, nil
 	end
 	return character:has_skill(skill_key), skill_key
 end
