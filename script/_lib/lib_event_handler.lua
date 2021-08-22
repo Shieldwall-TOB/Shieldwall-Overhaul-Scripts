@@ -1,4 +1,4 @@
-
+should_log_eh = false
 
 -------------------------------------------------------
 -------------------------------------------------------
@@ -258,7 +258,20 @@ end;
 
 
 
-
+--v function(text: string, force: boolean?)
+local function EHLOG(text, force)
+	if (not should_log_eh) and (not force) then
+		return
+	end
+    local pre = "EH-CORE"
+    local logText = tostring(text)
+    local logTimeStamp = os.date("%d, %m %Y %X")
+    local popLog = io.open("sheildwall_logs.txt","a")
+    --# assume logTimeStamp: string
+    popLog :write(pre..":  [".. logTimeStamp .. "]:  "..logText .. "  \n")
+    popLog :flush()
+    popLog :close()
+end
 
 
 
@@ -270,7 +283,7 @@ end;
 custom_context = {};
 
 local additional_context_types = {
-	["sheildwall_game_event"] = "game_event_data"
+	["shieldwall_game_event"] = "game_event_data"
 }
 
 function custom_context:new()
@@ -298,61 +311,83 @@ end;
 --- @desc A limitation of the implementation is that only one object of each type may be placed on the custom context (except for characters, currently).
 --- @p object context data, Data object to add
 function custom_context:add_data(obj)
-	if is_boolean(obj) then
-		--no error, ignore this one
-		return
-	elseif is_string(obj) then
-		self.string = obj;
-	elseif is_number(obj) then
-		self.number = obj;
-	elseif is_region(obj) then
-		self.region_data = obj;
-		if obj:is_province_capital() and obj:has_governor() then
-			self.governor_data = obj:governor()
-		end
-	elseif is_character(obj) then
-		-- not such a nice construct - the first character will be accessible at "character", the second at "target_character"
-		if self.character_data then
-			self.target_character_data = obj;
+	EHLOG("Custom Context Add Data was called with obj "..tostring(obj))
+	local ok, err = pcall(function()
+		if is_boolean(obj) then
+			EHLOG("Result: boolean, ignored")
+			--no error, ignore this one
+			return
+		elseif is_string(obj) then
+			EHLOG("Result: string, added to self.string")
+			self.string = obj;
+		elseif is_number(obj) then
+			EHLOG("Result: number, added to self.number")
+			self.number = obj;
+		elseif is_region(obj) then
+			EHLOG("Result: region, added to self.region_data")
+			self.region_data = obj;
+			if obj:is_province_capital() and obj:has_governor() then
+				EHLOG("Result: had governor, added to self.governor_data")
+				self.governor_data = obj:governor()
+			end
+		elseif is_character(obj) then
+			EHLOG("Result: string, added to self.string")
+			-- not such a nice construct - the first character will be accessible at "character", the second at "target_character"
+			if self.character_data then
+				self.target_character_data = obj;
+			else
+				self.character_data = obj;
+			end;
+		elseif is_faction(obj) then
+			EHLOG("Result: had faction, added to self.faction_data")
+			self.faction_data = obj;
+		elseif is_component(obj) then
+			self.component_data = obj;
+		elseif is_militaryforce(obj) then
+			self.military_force_data = obj;
+		elseif is_pendingbattle(obj) then
+			EHLOG("Result: had pending battle, added to self.pending_battle_data")
+			self.pending_battle_data = obj;
+		elseif is_garrisonresidence(obj) then
+			self.garrison_residence_data = obj;
+		elseif is_building(obj) then
+			self.building_data = obj;
+		elseif is_vector(obj) then
+			self.vector_data = obj;
+		elseif is_table(obj) then			-- keep this check last, as script objects are tables and will erroneously return true here
+			if obj.context_data then
+				EHLOG("Result: additional context type "..obj.context_data)
+				if additional_context_types[obj.context_data] then
+					local field_name = additional_context_types[obj.context_data]
+					EHLOG("Result: additional context type "..obj.context_data .. " added to field name "..field_name)
+					self[field_name] = obj
+				else
+					EHLOG("ERROR: adding additional context type to custom context but couldn't recognise data [" .. tostring(obj) .. "] of type [" .. type(obj.context_data) .. "]", true);
+					script_error("ERROR: adding additional context type to custom context but couldn't recognise data [" .. tostring(obj) .. "] of type [" .. type(obj.context_data) .. "]");
+				end
+			else
+				EHLOG("Result: table, added to stored table")
+				self.stored_table = obj;
+			end
 		else
-			self.character_data = obj;
-		end;
-	elseif is_faction(obj) then
-		self.faction_data = obj;
-	elseif is_component(obj) then
-		self.component_data = obj;
-	elseif is_militaryforce(obj) then
-		self.military_force_data = obj;
-	elseif is_pendingbattle(obj) then
-		self.pending_battle_data = obj;
-	elseif is_garrisonresidence(obj) then
-		self.garrison_residence_data = obj;
-	elseif is_building(obj) then
-		self.building_data = obj;
-	elseif is_vector(obj) then
-		self.vector_data = obj;
-	elseif is_table(obj) then			-- keep this check last, as script objects are tables and will erroneously return true here
-		if obj.context_data and additional_context_types[obj.context_data] then
-			self[additional_context_types[obj.context_data]] = obj
-		end
-		self.stored_table = obj;
-	else
-		script_error("ERROR: adding data to custom context but couldn't recognise data [" .. tostring(obj) .. "] of type [" .. type(obj) .. "]");
-	end;	
+			script_error("ERROR: adding data to custom context but couldn't recognise data [" .. tostring(obj) .. "] of type [" .. type(obj) .. "]");
+		end;	
+	end)
+	if not ok then EHLOG(tostring(err), true) end
 end;
 
 function custom_context:choice()
 	return self.choice_data
 end
 function custom_context:game_event()
-	return self[additional_context_types["shieldwall_game_event"]]
+	return self["game_event_data"]
 end
 
 function custom_context:dilemma()
-	if not self[additional_context_types["shieldwall_game_event"]] then
+	if not self["game_event_data"] then
 		return nil
 	end
-	return self[additional_context_types["shieldwall_game_event"]].key
+	return self["game_event_data"].key
 end
 
 function custom_context:governor()
