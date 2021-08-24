@@ -160,6 +160,79 @@ local function apply_resupply_effects_using_context(context)
 end
 
 dev.first_tick(function(context)
+
+
+    local building_events = {
+        sw_foreign_warriors_trial_fair_ = {
+            building_superchains = {"vik_moot_hil", "vik_court"},
+            cooldown = 24
+        },
+        sw_religion_convert_church_ = {
+            building_superchains = {"vik_church"},
+            building_levels = {"vik_monastery_2", "vik_monastery_3", "vik_monastery_4", "vik_monastery_5"},
+            cooldown = 24,
+            condition = function(context) --:WHATEVER
+                local region = context:region() --:CA_REGION
+                if region:has_governor() then
+                    return region:governor():has_trait("shield_heathen_pagan") and dev.chance(33)
+                end
+                return false
+            end,
+            callback = function(context) --:WHATEVER
+                local region = context:region() --:CA_REGION
+                if region:has_governor() and context:choice() == 0 then
+                    dev.remove_trait(region:governor(), "shield_heathen_pagan")
+                end
+
+            end,
+            is_dilemma = true
+        }
+    }--:map<string, {building_superchains: vector<string>?, building_levels:vector<string>?, cooldown:int, condition:(function(context: WHATEVER)--> boolean)?, is_dilemma: boolean?, callback: (function(context:WHATEVER))?}>
+
+    local standard_building_event_group = event_manager:create_new_condition_group("BuildingEvents")
+    standard_building_event_group:set_cooldown(8)
+    standard_building_event_group:set_number_allowed_in_queue(1)
+    event_manager:register_condition_group(standard_building_event_group, "RegionTurnStart")
+    for event_key, event_info in pairs(building_events) do
+        local type_group = "incident" --:GAME_EVENT_TYPE
+        if event_info.is_dilemma then
+            type_group = "dilemma"
+        end
+        local event = event_manager:create_event(event_key, type_group, "concatenate_region")
+        event:add_queue_time_condition(function(context)
+            local region = context:region() --:CA_REGION
+            local has_building = false
+            if dev.turn() < 4 then
+                return false
+            end
+            for i = 1, #(event_info.building_superchains or {}) do
+                --# assume event_info.building_superchains: vector<string>
+                local chain = event_info.building_superchains[i]
+                if region:building_superchain_exists(chain) then
+                    has_building = true
+                end
+            end
+            if not has_building then
+                for i = 1, #(event_info.building_levels or {}) do
+                    --# assume event_info.building_levels: vector<string>
+                    local chain = event_info.building_levels[i]
+                    if region:building_exists(chain) then
+                        has_building = true
+                    end
+                end
+            end
+            --# assume event_info.condition: function(context: WHATEVER)--> boolean
+            local cond = (not event_info.condition) or event_info.condition(context)
+            return has_building and cond
+        end)
+        if event_info.callback then
+            --# assume event_info.callback: function(context:WHATEVER)
+            event:add_callback(event_info.callback)
+        end
+        event:set_cooldown(event_info.cooldown)
+        event:join_groups("BuildingEvents")
+    end
+
     add_building_effect("vik_konungsgurtha", "TurnStart", kings_court_check)
 
     local resupply_group = event_manager:create_new_condition_group("ResupplyGroup", function(context)

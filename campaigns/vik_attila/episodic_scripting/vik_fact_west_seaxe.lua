@@ -36,14 +36,30 @@ dev.first_tick(function(context)
     if not dev.get_faction(faction_key):is_human() then
         return
     end
+    if dev.is_new_game() then
+        cm:trigger_mission("vik_fact_west_seaxe", "sw_start_wessex", true);
+
+    end
+    if not cm:get_saved_value("start_mission_done_west_seaxe") then
+        dev.eh:add_listener(
+            "FactionDestroyed_WestSeaxe",
+            "FactionDestroyed",
+            function(context)
+                return context:faction():name() == "vik_fact_jorvik"
+            end,
+            function(context)
+                cm:set_saved_value("start_mission_done_west_seaxe", true)
+                cm:override_mission_succeeded_status("vik_fact_west_seaxe", "sw_start_wessex", true)
+            end,
+            false)
+    end 
     for k = 1, #rivals do
         local r = cm:random_number(#rivals[k])
         local rival_to_create = rivals[k][r]
         log("Adding Rival: "..rival_to_create)
-
-
-
-        PettyKingdoms.RivalFactions.new_rival(rival_to_create)
+        PettyKingdoms.Rivals.new_rival(rival_to_create, 
+        Gamedata.kingdoms.faction_kingdoms[rival_to_create],  Gamedata.kingdoms.kingdom_provinces(dev.get_faction(rival_to_create)),
+        Gamedata.kingdoms.faction_nations[rival_to_create], Gamedata.kingdoms.nation_provinces(dev.get_faction(rival_to_create)))
     end
 
 end)

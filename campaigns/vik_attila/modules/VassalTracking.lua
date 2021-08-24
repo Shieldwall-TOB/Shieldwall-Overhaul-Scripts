@@ -1,5 +1,5 @@
 local vassal_faction = {} --# assume vassal_faction: VASSAL_FACTION
-
+--TODO write diplomatic tracker
 --v function(key: string) --> VASSAL_FACTION
 function vassal_faction.new(key)
     local self = {}
@@ -18,8 +18,11 @@ end
 
 local instances = {} --:map<string, VASSAL_FACTION>
 
+
 local function refresh_vassal_list()
     local faction_list = dev.faction_list()
+    local old_vassals = {}
+    local old_allies = {}
     for i = 0, faction_list:num_items() - 1 do
         local faction = faction_list:item_at(i)
         local this_instance = instances[faction:name()]
@@ -30,6 +33,8 @@ local function refresh_vassal_list()
                     instances[other_faction:name()].is_vassal = true
                     instances[other_faction:name()].liege = this_instance.key
                     this_instance.vassals[other_faction:name()] = true
+                elseif this_instance.vassals[other_faction:name()] then
+                    dev.eh:trigger_event("FactionLostVassal", faction)
                 end
                 if other_faction:allied_with(faction) then
                     instances[other_faction:name()].allies[this_instance.key] = true
@@ -49,6 +54,14 @@ dev.pre_first_tick(function(context)
     refresh_vassal_list()
 
 
+    dev.eh:add_listener(
+        "VassalsNegativeDiplomaticEvent",
+        "PositiveDiplomaticEvent",
+        true,
+        function(context)
+            refresh_vassal_list()
+        end,
+        true)
     dev.eh:add_listener(
         "VassalsNegativeDiplomaticEvent",
         "NegativeDiplomaticEvent",

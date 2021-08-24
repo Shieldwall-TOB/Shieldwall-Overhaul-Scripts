@@ -167,14 +167,14 @@ function decree.can_owner_afford(self, effective_gold_cost)
     if faction:treasury() >= -1*effective_gold_cost then
         --we can afford gold
         if self.currency_cost == 0 then
-            log(self.owning_faction .. "can afford "..self.event)
+            --log(self.owning_faction .. "can afford "..self.event)
             return true
         elseif currency_cost_checkers[self.currency] and currency_cost_checkers[self.currency](faction:name()) >= (self.currency_cost*-1) then
-            log(self.owning_faction .. "can afford "..self.event)
+            --log(self.owning_faction .. "can afford "..self.event)
             return true
         end
     end
-    log(self.owning_faction .. " cannot afford "..self.event)
+    --log(self.owning_faction .. " cannot afford "..self.event)
     return false
 end
 

@@ -109,7 +109,13 @@ local function get_last_replenishment_for_character(character)
     return instance.force_replenishment[tostring(character:command_queue_index())]
 end
 
+--v function(character: CA_CHAR) --> map<string, number>
+local function get_force_for_character(character)
+    return instance.forces_cache[tostring(character:command_queue_index())]
+end
+
 return {
+    get_character_force_strength = get_force_for_character,
     get_character_casualties = get_last_casualties_for_character,
     get_character_replenishment = get_last_replenishment_for_character
 }

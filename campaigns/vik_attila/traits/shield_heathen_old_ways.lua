@@ -35,3 +35,23 @@ tm:add_trait_gained_dilemma("sw_traits_strange_friends", function(character)
     end
     return vikings_at_war_with == 0
 end, true)
+
+tm:add_trait_effect_condition("_loyalty_event", 10, function(context)
+    local faction = context:faction() --:CA_FACTION
+    local other_faction = context:other_faction() --:CA_FACTION
+    return dev.Check.is_faction_viking_faction(other_faction), faction
+end, "FactionVassalRebelled",
+"shield_loyalty_event_treaties_broken_vikings")
+
+tm:add_trait_effect_condition("_loyalty_event", 10, function(context)
+    local faction = context:faction() --:CA_FACTION
+    local other_faction = context:other_faction() --:CA_FACTION
+    return dev.Check.is_faction_viking_faction(other_faction), faction
+end, "FactionAllianceBroken",
+"shield_loyalty_event_treaties_broken_vikings")
+
+
+tm:set_start_pos_characters(
+    --northanhymbre viking sympathizer
+    "faction:vik_fact_northleode,forename:2147363531"
+)

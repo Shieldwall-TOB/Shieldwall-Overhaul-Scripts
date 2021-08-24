@@ -152,6 +152,30 @@ local riot_events = {
         is_dilemma = false
     },
     {
+        name = "sw_rebellion_tyrannical_",
+        condition = function(context) --:WHATEVER
+            local region = context:region() --:CA_REGION
+            if region:owning_faction():has_faction_leader() then
+                if region:has_governor() then
+                    return region:governor():is_faction_leader() and dev.chance(50) and dev.Check.does_char_have_henchmen(region:governor()) == true 
+                elseif region:owning_faction():faction_leader():is_politician() and region:owning_faction():has_home_region() then
+                    return region:owning_faction():home_region():name() == region:name()
+                end
+            end
+            return false 
+        end,
+        response = function(context) --:WHATEVER
+            if context:choice() == 0 then
+                local region = context:region() --:CA_REGION
+                local faction = region:owning_faction()
+                if faction:has_faction_leader() then
+                    dev.add_trait(faction:faction_leader(), "shield_tyrant_opressor", true)
+                end
+            end
+        end,
+        is_dilemma = true
+    },
+    {
         name = "sw_rebellion_henchmen_",
         condition = function(context) --:WHATEVER
             local region = context:region()
@@ -167,6 +191,24 @@ local riot_events = {
                 local region_manpower = PettyKingdoms.RegionManpower.get(region:name())
                 region_manpower:mod_population_through_region(-20, "manpower_riots", true, false)
                 dev.add_trait(region:governor(), trait, true)
+            end
+        end,
+        is_dilemma = true
+    },
+    {
+        name = "sw_rebellion_oppressor_",
+        condition = function(context) --:WHATEVER
+            local region = context:region() --:CA_REGION
+            return region:has_governor() and dev.chance(50) and region:governor():has_trait("shield_tyrant_opressor")
+        end,
+        response = function(context) --:WHATEVER
+            local region = context:region() --:CA_REGION
+            if not region:has_governor() then
+                return --when we run this with the test variable we don't want crashes due to lack of governors.
+            end
+            if context:choice() == 0 then
+                local region_manpower = PettyKingdoms.RegionManpower.get(region:name())
+                region_manpower:mod_population_through_region(-20, "manpower_riots", true, false)
             end
         end,
         is_dilemma = true
@@ -220,23 +262,27 @@ dev.first_tick(function(context)
     local riot_manager = PettyKingdoms.RiotManager
     local event_manager = dev.GameEvents
 
-    local StandardRiotEvents = event_manager:create_new_condition_group("StandardRiotEvent", function(context)
-        local rm = riot_manager.get(context:region():name())
+    local PanicOnTheStreetsOfLondon = event_manager:create_new_condition_group("StandardRiotEvent", function(context)
+        local region = Gamedata.regions.get_province_capital_of_regions_province(context:region():name())
+        if region:owning_faction():name() ~= context:region():owning_faction():name() then
+            return false
+        end
+        local rm = riot_manager.get(region:name())
         local is_rioting = rm.riot_in_progress
         local is_off_cd = rm.riot_event_cooldown == 0 
         local no_armies_near = not rm:is_army_in_region()
         return is_rioting and (is_off_cd or CONST.__testcases.__test_riots) and no_armies_near
     end) 
-    StandardRiotEvents:set_number_allowed_in_queue(3)
-    StandardRiotEvents:add_callback_on_queue(function(context)
+    PanicOnTheStreetsOfLondon:set_number_allowed_in_queue(3)
+    PanicOnTheStreetsOfLondon:add_callback_on_queue(function(context)
         local rm = riot_manager.get(context:region():name())
         rm.riot_event_cooldown = 2
     end)
-    StandardRiotEvents:add_callback_on_unqueue(function(context)
+    PanicOnTheStreetsOfLondon:add_callback_on_unqueue(function(context)
         local rm = riot_manager.get(context:region():name())
         rm.riot_event_cooldown = 0
     end)
-    event_manager:register_condition_group(StandardRiotEvents, "RegionTurnStart")
+    event_manager:register_condition_group(PanicOnTheStreetsOfLondon, "RegionTurnStart")
 
     for i = 1, #riot_events do
         local event_info = riot_events[i]
@@ -244,18 +290,18 @@ dev.first_tick(function(context)
         if event_info.is_dilemma then
             event_type = "dilemma" 
         end
-        local event = event_manager:create_event(event_info.name, event_type, "concatenate_region")
-        event:set_number_allowed_in_queue(1)
-        event:add_queue_time_condition(event_info.condition)
+        local PanicOnTheStreetsOfBirmingham = event_manager:create_event(event_info.name, event_type, "concatenate_region")
+        PanicOnTheStreetsOfBirmingham:set_number_allowed_in_queue(1)
+        PanicOnTheStreetsOfBirmingham:add_queue_time_condition(event_info.condition)
         if CONST.__testcases.__test_riots then
-            event:add_queue_time_condition(function(context)
+            PanicOnTheStreetsOfBirmingham:add_queue_time_condition(function(context)
                 local result = event_info.condition(context)
                 dev.log("Test for riot event: "..event_info.name.." resulted in ".. tostring(result), "__test_riots")
                 return true
             end)
         end
-        event:add_callback(event_info.response)
-        event:join_groups("ProvinceCapitals", "StandardRiotEvent")
+        PanicOnTheStreetsOfBirmingham:add_callback(event_info.response)
+        PanicOnTheStreetsOfBirmingham:join_groups("ProvinceCapitals", "StandardRiotEvent")
     end
 
     local soldiers_arrive_group = event_manager:create_new_condition_group("RiotSoldiersArriveGroup", function(context)

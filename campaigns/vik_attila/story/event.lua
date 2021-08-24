@@ -155,6 +155,7 @@ local trigger_by_kind = {
     concatenate_region = function(event_object, --:GAME_EVENT
         custom_event_context) --:WHATEVER
         local actual_event_key = event_object.key .. custom_event_context:region():name()
+        event_object.manager:log("Concatenated region to build key: "..actual_event_key)
         local turn = dev.turn()
         --[[dev.log("DEBUG:")
         for k, v in pairs(custom_event_context) do

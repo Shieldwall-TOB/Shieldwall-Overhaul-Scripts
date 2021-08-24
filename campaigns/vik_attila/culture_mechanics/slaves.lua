@@ -1,22 +1,61 @@
 local ui_state = "slaves"
 local unit_size_mode_scalar = CONST.__unit_size_scalar
 local recruitment_factor = "manpower_recruitment" --:string
+MANPOWER_SLAVES = {} --:map<string, FACTION_RESOURCE>
 
 --v function(resource: FACTION_RESOURCE) --> string
 local function value_converter(resource)
     return tostring(dev.clamp(math.ceil(resource.value/300), 0, 16))
 end
 
+--v function(faction:CA_FACTION)
+local function turn_start_slaves(faction)
+    local slaves = MANPOWER_SLAVES[faction:name()]
+    local region_list = faction:region_list()
+    for i = 0, region_list:num_items() - 1 do
+        if slaves.value < 20 then
+            break
+        end
+        if region_list:item_at(i):building_superchain_exists("vik_thrall") then
+            slaves:change_value(-20, "factor_sold_at_markets_slaves")
+        end
+    end
+
+end
+
 dev.first_tick(function(context)
     for faction_key, start_pos_slaves in pairs(Gamedata.base_pop.slaves_factions) do
         if dev.get_faction(faction_key):is_human() then
             local slaves = PettyKingdoms.FactionResource.new(faction_key, "vik_dyflin_slaves", "population", start_pos_slaves, 30000, {}, value_converter)
+            MANPOWER_SLAVES[faction_key] = slaves
             if dev.is_new_game() then
                 slaves:set_factor("manpower_region_raided", start_pos_slaves)
                 slaves:reapply()
             end
         end
     end
+    dev.eh:add_listener(
+        "SlavesTurnStart",
+        "FactionTurnStart",
+        function(context)
+            return not not MANPOWER_SLAVES[context:faction():name()]
+        end,
+        function(context)
+            turn_start_slaves(context:faction())
+        end,
+        true
+    )
+    dev.eh:add_listener( -- settlement sacking
+        "CharacterPerformsOccupationDecisionSackTribute",
+        "CharacterPerformsOccupationDecisionSack",
+        function(context)  return not not MANPOWER_SLAVES[context:character():faction():name()] end,
+        function(context)
+            MANPOWER_SLAVES[context:character():faction():name()]:change_value(120, "factor_looting_slaves")
+        end,
+        true
+    );
+
+
     if (not Gamedata.base_pop.slaves_factions[cm:get_local_faction(true)]) and (not cm:is_multiplayer()) then
         UIScript.recruitment_handler.disable_recruitment_cost_type_for_faction(cm:get_local_faction(true), "dy_pop_slaves")
     else

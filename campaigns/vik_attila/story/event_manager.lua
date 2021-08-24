@@ -256,11 +256,18 @@ function game_event_manager.force_check_and_queue_event(self, event_key, event_c
     end
 end
 
---v function(self: GAME_EVENT_MANAGER, event_key: string, event_context: WHATEVER) --> boolean
-function game_event_manager.force_check_and_trigger_event_immediately(self, event_key, event_context)
-    local event_object = self.events[event_key]
+--v function(self: GAME_EVENT_MANAGER, event_key_or_object: string|GAME_EVENT, event_context: WHATEVER) --> boolean
+function game_event_manager.force_check_and_trigger_event_immediately(self, event_key_or_object, event_context)
+    local event_object --:GAME_EVENT
+    if is_string(event_key_or_object) then
+        --# assume event_key_or_object: string
+        event_object = self.events[event_key_or_object]
+    else
+        --# assume event_key_or_object: GAME_EVENT
+        event_object = event_key_or_object
+    end
     if not event_object then
-        self:log("Tried to force check and trigger for an event: "..event_key.." but this event does not have any registry in the events manager")
+        self:log("Tried to force check and trigger for an event: "..tostring(event_key_or_object).." but this event does not have any registry in the events manager")
         return false
     end
     if event_object.type_group.name ~= "incident" then

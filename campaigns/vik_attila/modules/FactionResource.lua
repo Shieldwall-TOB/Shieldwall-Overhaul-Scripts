@@ -152,8 +152,8 @@ end
 --v function(self: FACTION_RESOURCE, ...:any)
 function faction_resource.set_new_value(self, ...)
     local arg = dev.arg(...)
-    --local argtext =  "" for k,v in pairs(arg) do argtext = argtext..tostring(k)..":"..tostring(v)..";" end 
-    --self:log("Set new value called with args: "..argtext)
+    local argtext =  "" for k,v in pairs(arg) do argtext = argtext..tostring(k)..":"..tostring(v)..";" end 
+    self:log("Set new value called with args: "..argtext)
     
     if not dev.is_game_created() then
         self:log("Cannot apply values before first tick has begun!")
@@ -175,7 +175,7 @@ end
 --v function(self: FACTION_RESOURCE, change_value: number, factor: string?)
 function faction_resource.change_value(self, change_value, factor)
     --round new value if it is not an integer, then clamp to maximum and 0.
-    local new_value = dev.clamp(dev.mround(self.value + change_value, 1), 0, self.cap_value)
+    local new_value = dev.mround(dev.clamp(self.value + change_value, 0, self.cap_value), 1)
     if factor then
         --# assume factor: string!
         self.breakdown_factors[factor] =( self.breakdown_factors[factor] or 0) + dev.mround(change_value, 1)
