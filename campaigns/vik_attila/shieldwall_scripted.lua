@@ -16,19 +16,6 @@ if not ok then
     dev.log(tostring(err))
     dev.log(debug.traceback())
 end
---require UI Libaries
-UIScript = {}
-local ok, err = pcall( function()
-    UIScript.effect_bundles = require("ui/EffectBundleBar")
-    UIScript.culture_mechanics = require("ui/CultureMechanics")
-    UIScript.decree_panel = require("ui/DecreePanel")
-    UIScript.recruitment_handler = require("ui/RecruitmentHandler")
-end) 
-if not ok then
-    dev.log("Error loading ui library")
-    dev.log(tostring(err))
-    dev.log(debug.traceback())
-end
 
 
 local ok, err = pcall( function()
@@ -46,12 +33,20 @@ if not ok then
 end
 
 
---require object models
+--require object models & UI Libaries
 PettyKingdoms = {} 
+UIScript = {}
 local ok, err = pcall( function()
-    PettyKingdoms.FactionResource = require("modules/FactionResource")
-    PettyKingdoms.VassalTracking = require("modules/VassalTracking")
+
     PettyKingdoms.ForceTracking = require("modules/ForceTracking")
+    UIScript.effect_bundles = require("ui/EffectBundleBar")
+    UIScript.culture_mechanics = require("ui/CultureMechanics")
+    UIScript.decree_panel = require("ui/DecreePanel")
+    UIScript.recruitment_handler = require("ui/RecruitmentHandler")
+
+    PettyKingdoms.FactionResource = require("modules/FactionResource")
+    PettyKingdoms.VassalTracking = require("modules/DiplomaticEvents")
+
     PettyKingdoms.RiotManager = require("modules/RiotManager")
     PettyKingdoms.FoodStorage = require("modules/FoodStorage")
     PettyKingdoms.Decree = require("modules/Decree")
@@ -118,6 +113,7 @@ end
 local ok, err = pcall(function()
     trait_manager = require("traits/helpers/trait_manager")
     require("traits/shield_heathen_old_ways")
+    require("traits/shield_heathen_pagan")
     require("traits/shield_elder_beloved")
 end)
 if not ok then
@@ -130,6 +126,8 @@ end
 local ok, err = pcall( function()
     --faction events
     require("episodic_scripting/vik_fact_northleode")
+    require("episodic_scripting/vik_fact_west_seaxe")
+    require("episodic_scripting/vik_fact_mierce")
 
     --geopols
     require("episodic_scripting/geopolitics_south_england")
