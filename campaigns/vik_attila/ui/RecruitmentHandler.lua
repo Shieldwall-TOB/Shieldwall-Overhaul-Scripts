@@ -341,6 +341,29 @@ local function add_recruitment_resource(resource, resource_getter, resource_mod,
             end
         end,
         true)
+       dev.eh:add_listener(
+        "RecHandlerUnitTrained",
+        "UnitDisbanded",
+        function(context)
+            local unit = context:unit() --:CA_UNIT
+            return unit:faction():is_human() and unit:military_force():has_general()
+        end,
+        function(context)
+            local unit = context:unit() --:CA_UNIT
+            local unit_key = unit:unit_key()
+            local character = unit:military_force():general_character()
+            if instance.unit_costs[unit_key] then
+                local force_tracker = PettyKingdoms.ForceTracking.get_character_force_strength(character)
+                local strength = (force_tracker[unit_key] or 100)
+                local returned_pop = dev.mround(instance.unit_costs[unit_key]*((strength/unit_recruit_percentage)/100), 1)
+                log("Character "..tostring(character:command_queue_index()).." disbanded "..unit_key.. " at "..strength.." strength worth "..returned_pop.." pop")
+                instance.mod(context:unit():faction():name(), returned_pop)
+            end
+            if context:unit():faction():name() == cm:get_local_faction(true) then
+                instance:clear_queue()
+            end
+        end,
+        true)
     dev.eh:add_listener(
         "SerfsCharacterReplenishmentCached",
         "CharacterReplenishmentCached",
