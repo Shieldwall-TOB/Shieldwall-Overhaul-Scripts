@@ -16,7 +16,8 @@ return {
         __test_foreigner_events = false, 
         __test_endgame_invasions = false,
         __test_skill_events = false,
-        __test_decree_payloads = true
+        __test_decree_payloads = false,
+        __test_tribute_events = false,
     },
     __utilities = { --coded cheats or data creation scripts.
         __create_land_spawns = false
