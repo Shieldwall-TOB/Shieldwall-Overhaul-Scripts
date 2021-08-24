@@ -192,8 +192,10 @@
 --# assume CM.modify_next_autoresolve_battle: method(attacker_win_chance: number, defender_win_chance: number, attacker_losses_modifier: number, defender_losses_modifier: number, wipe_out_loser: boolean)
 --pending battles
 --# assume CM.pending_battle_cache_get_attacker: method(number) --> (CA_CQI, CA_CQI, string)
+--# assume CM.pending_battle_cache_get_attacker_faction_name: method(number) --> string
 --# assume CM.pending_battle_cache_num_attackers: method() --> int
 --# assume CM.pending_battle_cache_get_defender: method(number) --> (CA_CQI, CA_CQI, string)
+--# assume CM.pending_battle_cache_get_defender_faction_name: method(number) --> string
 --# assume CM.pending_battle_cache_num_defenders: method() --> int
 --shroud
 --# assume CM.make_sea_region_seen_in_shroud: method(region: string) 
@@ -261,7 +263,7 @@
 --# assume CA_FACTION.is_trading_with: method(faction: CA_FACTION) --> boolean
 --# assume CA_FACTION.has_effect_bundle: method(bundle: string) --> boolean
 --# assume CA_FACTION.unused_international_trade_route: method() --> boolean
-
+--# assume CA_FACTION.has_faction_leader: method() --> boolean
 -- FACTION LIST
 --# assume CA_FACTION_LIST.num_items: method() --> number
 --# assume CA_FACTION_LIST.item_at: method(index: number) --> CA_FACTION
