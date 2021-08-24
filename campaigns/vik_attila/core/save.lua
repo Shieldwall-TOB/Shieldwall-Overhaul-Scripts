@@ -40,9 +40,22 @@ local function load_object(obj)
     local ok, err = pcall(function()
         local saved_table = load_data(obj.save.name)
         log("loading object: "..obj.save.name)
-        for k,v in pairs(saved_table) do
-            log("\tLoading field: "..k.." with type "..type(v))
-            obj[k] = v
+        if obj.save.is_tabsvr_dummy then
+            for k, v in pairs(saved_table.tabsvr or {}) do
+                log("\tLoading field: "..k.." with type "..type(v).." value "..tostring(v))
+                obj.tabsvr[k] = v
+            end
+        else
+            for k,v in pairs(saved_table) do
+                if CONST.__should_output_save_load then
+                    if type(v) == table then
+                        log("\tLoading field: "..k.." with type "..type(v))
+                    else
+                        log("\tLoading field: "..k.." with type "..type(v).." value "..tostring(v))
+                    end
+                end
+                obj[k] = v
+            end
         end
     end) 
     if not ok then
@@ -52,6 +65,8 @@ local function load_object(obj)
         log_tab = 0 
     end
 end
+
+
 
 
 --v function(obj: WHATEVER)
@@ -66,7 +81,7 @@ local function attach(obj)
             local savable_table = {} --:map<string, WHATEVER>
             log("Saving object: "..obj.save.name)
             for i = 1, #obj.save.for_save do
-                log("\tSaving field: ".. obj.save.for_save[i] .." of type "..type(obj.save.for_save[i]))
+                log("\tSaving field: ".. obj.save.for_save[i] .." of type "..type(obj[obj.save.for_save[i]]))
                 savable_table[obj.save.for_save[i]] = obj[obj.save.for_save[i]]
             end
             save_data(obj.save.name, savable_table, context)
@@ -111,6 +126,21 @@ if not CONST.__do_not_save_or_load then
     end)
 end
 
+--v function(t: WHATEVER, t_name: string)
+local function create_dummy_object_for_table_and_attach(t, t_name)
+    local dummy_object = {}
+
+    dummy_object.tabsvr = t
+    dummy_object.save = {
+            name = t_name,
+            for_save = {"tabsvr"},
+            is_tabsvr_dummy = true
+        }
+    attach(dummy_object)
+end
+
+
+
 --v [NO_CHECK] function(t:table, name: string, loadcall: function(t: WHATEVER))
 local function persist_table(t, name, loadcall)
     log("Registered persistant table: "..name)
@@ -139,5 +169,6 @@ end
 return {
     persist_table = persist_table,
     attach_to_object = attach,
+    attach_to_table = create_dummy_object_for_table_and_attach,
     save_value = save_value
 }
