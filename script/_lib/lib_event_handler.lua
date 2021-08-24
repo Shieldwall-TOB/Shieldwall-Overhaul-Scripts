@@ -340,7 +340,14 @@ function custom_context:add_data(obj)
 			end;
 		elseif is_faction(obj) then
 			EHLOG("Result: had faction, added to self.faction_data")
-			self.faction_data = obj;
+			--copying CA's "not such a nice construct" here for diplomacy events
+			if self.faction_data then
+				EHLOG("Result: had additional faction, added to self.other_faction_data")
+				self.other_faction_data = obj
+			else
+				EHLOG("Result: had faction, added to self.faction_data")
+				self.faction_data = obj;
+			end	
 		elseif is_component(obj) then
 			self.component_data = obj;
 		elseif is_militaryforce(obj) then
@@ -435,6 +442,13 @@ end;
 --- @return faction faction object
 function custom_context:faction()
 	return self.faction_data;
+end;
+
+--- @function faction
+--- @desc Called by the receiving script to retrieve the faction object placed on the custom context, were one specified by the script that created it.
+--- @return faction faction object
+function custom_context:other_faction()
+	return self.other_faction_data;
 end;
 
 
