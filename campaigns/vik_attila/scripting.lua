@@ -23,7 +23,6 @@ local function failure_log(text)
     popLog :close()
 end
 
-failure_log("test")
 -- change this to false to not load the script
 local load_script = true;
 
