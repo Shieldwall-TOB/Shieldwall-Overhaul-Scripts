@@ -1,18 +1,23 @@
 local faction_key = "vik_fact_northleode"
---Lategame Invasion: Norse Invade and they aren't very friendly.
---Lategame Invasion: Normans
+local wicing_key = "vik_fact_wicing"
+local jorvik_key = "vik_fact_northymbre"
 
+local event_manager = dev.GameEvents
+
+local westmoringas_event_turn = 14
+local strat_clut_event_turn = 3
+local betrayal_event_turn = 25
 
 
 --v function(t: any)
 local function log(t) dev.log(tostring(t), "NARR") end
 
-log("loaded faction script for "..faction_key)
+
 local rivals = {
     {"vik_fact_northymbre"},
     {"vik_fact_mide", "vik_fact_dyflin"},
     {"vik_fact_east_engle", "vik_fact_west_seaxe"},
-    {"vik_fact_mierce", "vik_fact_hellirborg"},
+    {"vik_fact_mierce"},
     {"vik_fact_circenn"},
     {"vik_fact_strat_clut"}
 } --:vector<vector<string>>
@@ -41,205 +46,188 @@ local armies = {
 -------------------------------------------
 ----------Events: Northleode!--------------
 -------------------------------------------
-local faction_narrative_events = {}
-faction_narrative_events.strat_clut = false --:boolean
-faction_narrative_events.westmoringas_event = false--:boolean
-faction_narrative_events.betrayal = false--:boolean
-faction_narrative_events.books = 0--:int
-faction_narrative_events.king_of_nothing = true--:boolean
 
-dev.Save.attach_to_table(faction_narrative_events, "northleode_story")
-
---v function(turn: number)
-local function EventsNorthleode(turn)
-    local northleode = dev.get_faction("vik_fact_northleode")
-
-
-    if northleode:is_human() then
-        if turn == 0 then
-            cm:trigger_mission("vik_fact_northleode", "sw_start_northleode", true);
-        end
-        if not dev.get_faction("vik_fact_northymbre"):is_dead() then
-            dev.log("Checking northleode faction events!")
-            local is_still_vassal = northleode:is_vassal_of(dev.get_faction("vik_fact_northymbre"))
-            dev.log("vassal status: ["..tostring(is_still_vassal).."]")
-            if is_still_vassal and (not northleode:has_effect_bundle("sw_northleode_king_of_nothing")) then
-                cm:apply_effect_bundle("sw_northleode_king_of_nothing", "vik_fact_northleode", 0)
-            elseif (not is_still_vassal) and northleode:has_effect_bundle("sw_northleode_king_of_nothing") then
-                cm:remove_effect_bundle("sw_northleode_king_of_nothing", "vik_fact_northleode")
-                faction_narrative_events.king_of_nothing = false
-                if not dev.get_faction("vik_fact_northymbre"):is_human() then
-                    for region, location in pairs(spawns) do
-                        local army = dev.create_army(armies, 5, region)
-                        cm:create_force("vik_fact_northymbre", army, region, location[1], location[2], "plot_invasions_"..dev.invasion_number(), true)
-                    end
-                    cm:apply_effect_bundle("sw_northumbria_free_army", "vik_fact_northymbre", 15)
-                end
-            end
-            if turn == 2 then
-                cm:force_diplomacy("vik_fact_westmoringas", "vik_fact_northymbre", "war", false, false)
-                cm:force_diplomacy("vik_fact_northymbre", "vik_fact_westmoringas", "war", false, false)
-            end
-            if is_still_vassal and (not faction_narrative_events.strat_clut) and dev.get_faction("vik_fact_strat_clut"):at_war_with(dev.get_faction("vik_fact_westernas")) then
-                dev.log("triggering northleode strat clut dilemma")
-                cm:trigger_dilemma("vik_fact_northleode", "sw_northleode_help_against_strat_clut", true)
-                faction_narrative_events.strat_clut = true
-            elseif turn >= 3 and (not faction_narrative_events.strat_clut) then
-                dev.log("forcing war between strat clut and westernas")
-                cm:force_declare_war("vik_fact_strat_clut", "vik_fact_westernas")
-            end
-            if turn > 14 and is_still_vassal and (not faction_narrative_events.westmoringas_event) then
-                faction_narrative_events.westmoringas_event = true
-                dev.log("triggering northleode westmoringas dilemma")
-                cm:force_diplomacy("vik_fact_westmoringas", "vik_fact_northymbre", "war", true, true)
-                cm:force_diplomacy("vik_fact_northymbre", "vik_fact_westmoringas", "war", true, true)
-                cm:trigger_dilemma("vik_fact_northleode", "sw_northleode_help_against_jorvik", true)
-            end
-            if turn > 25 and is_still_vassal and (not faction_narrative_events.betrayal) then
-                dev.log("checking northleode betrayal dilemma")
-                if (not dev.get_faction("vik_fact_east_engle"):is_dead()) and (not dev.get_faction("vik_fact_northleode"):at_war_with(dev.get_faction("vik_fact_east_engle"))) then
-                    dev.log("rolling for northleode east engle dilemma")
-                    if cm:random_number(25) > 15 then
-                        dev.log("triggering northleode mierce dilemma")
-                        cm:trigger_dilemma("vik_fact_northleode", "sw_northleode_betrayal_east_engle", true)
-                        faction_narrative_events.betrayal = true
-                    end
-                elseif (not dev.get_faction("vik_fact_mierce"):is_dead()) and (not dev.get_faction("vik_fact_northleode"):at_war_with(dev.get_faction("vik_fact_mierce"))) then
-                    dev.log("rolling for northleode mierce dilemma")
-                    if cm:random_number(25) > 15 then
-                        dev.log("triggering northleode mierce dilemma")
-                        cm:trigger_dilemma("vik_fact_northleode", "sw_northleode_betrayal_mierce", true)
-                        faction_narrative_events.betrayal = true
-                    end
-                end
-            end
-        end
-    elseif turn == 0 then
-        local leader = northleode:faction_leader()
-        cm:grant_unit(dev.lookup(leader), "eng_thegns")
-        cm:grant_unit(dev.lookup(leader), "eng_thegns")
-    end
-end
-
-
---v function(context: WHATEVER, turn: number, is_fail: boolean)
-local function EventsMissionsNorthleode(context, turn, is_fail)
-
-
-end
-
---v function(context: WHATEVER, turn: number)
-local function EventsDilemmasNorthleode(context, turn)
-	local dilemma = context:dilemma() --:string
-	local choice = context:choice() --:number
-	if dilemma == "sw_northleode_help_against_strat_clut" then
-		if choice == 0 then
-			cm:force_declare_war("vik_fact_northymbre", "vik_fact_strat_clut")
-		end
-	end
-	if dilemma == "sw_northleode_help_against_jorvik" then
-		if choice == 0 then
-			cm:force_declare_war("vik_fact_northleode", "vik_fact_northymbre")
-            cm:force_declare_war("vik_fact_northymbre", "vik_fact_westmoringas")
-		else
-			cm:force_declare_war("vik_fact_northymbre", "vik_fact_westmoringas")
-		end
-	end
-	if dilemma == "sw_northleode_betrayal_east_engle" then
-		if choice == 0 then
-			cm:force_declare_war("vik_fact_northleode", "vik_fact_northymbre")
-			if (not dev.get_faction("vik_fact_east_engle"):at_war_with(dev.get_faction("vik_fact_northymbre"))) then
-				cm:force_declare_war("vik_fact_east_engle", "vik_fact_northymbre")
-			end
-		end
-	end
-	if dilemma == "sw_northleode_betrayal_mierce" then
-		if choice == 0 then
-			cm:force_declare_war("vik_fact_northleode", "vik_fact_northymbre")
-			if (not dev.get_faction("vik_fact_mierce"):at_war_with(dev.get_faction("vik_fact_northymbre"))) then
-				cm:force_declare_war("vik_fact_mierce", "vik_fact_northymbre")
-			end
-		end
-	end
+--v function(northleode: CA_FACTION)
+function ai_northleode_start(northleode)
+    local leader = northleode:faction_leader()
+    cm:grant_unit(dev.lookup(leader), "eng_thegns")
+    cm:grant_unit(dev.lookup(leader), "eng_thegns")
+    cm:grant_unit(dev.lookup(leader), "eng_north_champion")
 end
 
 
 dev.first_tick(function(context)
-    if not dev.get_faction(faction_key):is_human() then
+    local northleode = dev.get_faction(faction_key)
+    local wicing = dev.get_faction(wicing_key)
+    local jorvik = dev.get_faction(jorvik_key)
+    if not northleode:is_human() then
+        if dev.is_new_game() then
+            ai_northleode_start(northleode)
+        end
         return
     end
-    log("Events loaded with the following flags")
-    for key, value in pairs(faction_narrative_events) do
-        log("Key ".. tostring(key).." Value "..tostring(value))
-    end
-    faction_narrative_events.books = faction_narrative_events.books + 1
-    if dev.is_new_game() then
-        EventsNorthleode(0)
-    end
-    for k = 1, #rivals do
-        local r = cm:random_number(#rivals[k])
-        local rival_to_create = rivals[k][r]
-        log("Adding Rival: "..rival_to_create)
-        PettyKingdoms.Rivals.new_rival(rival_to_create, 
-        Gamedata.kingdoms.faction_kingdoms[rival_to_create],  Gamedata.kingdoms.kingdom_provinces(dev.get_faction(rival_to_create)),
-        Gamedata.kingdoms.faction_nations[rival_to_create], Gamedata.kingdoms.nation_provinces(dev.get_faction(rival_to_create)))
-    end
-    dev.eh:add_listener(
-        "FactionTurnStart_Events",
-        "FactionTurnStart",
-        function(context) return context:faction():name() == faction_key end,
-        function(context) EventsNorthleode(cm:model():turn_number()) end,
-        true
-    );
-    if faction_narrative_events.king_of_nothing then
-        dev.eh:add_listener(
-            "NegativeDiplomaticEvent",
-            "NegativeDiplomaticEvent",
-            function(context) return (context:proposer():name() == faction_key) or (context:recipient():name() == faction_key) end,
-            function(context) 
-                if dev.get_faction(faction_key):is_vassal_of(dev.get_faction("vik_fact_northymbre")) then
+    log("loaded faction script for "..faction_key)
 
-                elseif dev.get_faction(faction_key):has_effect_bundle("sw_northleode_king_of_nothing") then
-                    cm:remove_effect_bundle("sw_northleode_king_of_nothing", faction_key)
-                    faction_narrative_events.king_of_nothing = false
-                end
-            end,
-            true
-        );
+    local northleode_opening_event = event_manager:create_event("sw_start_northleode", "mission", "standard")
+    northleode_opening_event:add_completion_condition("FactionDestroyed", function(context)
+        return context:faction():name() == wicing_key, true
+    end)
+
+    if dev.is_new_game() then
+        --apply starting bundle
+        cm:apply_effect_bundle("sw_northleode_king_of_nothing", "vik_fact_northleode", 0)
+        --fire starting mission
+        local context_for_event = event_manager:build_context_for_event(northleode, wicing)
+        event_manager:force_check_and_trigger_event_immediately(northleode_opening_event, context_for_event)
+        --add rival factions
+        for k = 1, #rivals do
+            local r = cm:random_number(#rivals[k])
+            local rival_to_create = rivals[k][r]
+            log("Adding Rival: "..rival_to_create)
+            PettyKingdoms.Rivals.new_rival(rival_to_create, 
+            Gamedata.kingdoms.faction_kingdoms[rival_to_create],  Gamedata.kingdoms.kingdom_provinces(dev.get_faction(rival_to_create)),
+            Gamedata.kingdoms.faction_nations[rival_to_create], Gamedata.kingdoms.nation_provinces(dev.get_faction(rival_to_create)))
+        end
+        --prevent this from happening too early
+        if not jorvik:is_human() then
+            cm:force_diplomacy("vik_fact_westmoringas", "vik_fact_northymbre", "war", false, false)
+            cm:force_diplomacy("vik_fact_northymbre", "vik_fact_westmoringas", "war", false, false)
+        end
     end
-    dev.eh:add_listener(
-        "DilemmaChoiceMadeEvent_Events",
-        "DilemmaChoiceMadeEvent",
-        true,
-        function(context) EventsDilemmasNorthleode(context, cm:model():turn_number()) end,
-        true
-    );
-    cm:add_listener(
-        "FactionDestroyed_Events",
-        "FactionDestroyed",
-        function(context) return context:faction():name() == "vik_fact_wicing" end,
-        function(context) 
-            log("Wicing was destroyed")
-            if not cm:get_saved_value("start_mission_done_northleode") then
-                log("Northleode hasn't completed starting mission yet")
-                cm:set_saved_value("start_mission_done_northleode", true)
-                cm:override_mission_succeeded_status("vik_fact_northleode", "sw_start_northleode", true)
+
+    --this group covers all the events which happen while Northleode is a vassal of Jorvik.
+    local faction_narrative_group = event_manager:create_new_condition_group("NorthleodeFactionEvents") 
+    faction_narrative_group:add_queue_time_condition(function(context)
+        local faction = context:faction() --:CA_FACTION
+        return faction:name() == faction_key and faction:is_vassal_of(jorvik)
+    end)
+    event_manager:register_condition_group(faction_narrative_group, "FactionTurnStart")
+
+    --the dilemma to defend fellow saxons against Strat Clut.
+    local strat_clut_dilemma = event_manager:create_event("sw_northleode_help_against_strat_clut", "dilemma", "standard")
+    strat_clut_dilemma:set_unique(true)
+    strat_clut_dilemma:add_queue_time_condition(function(context)
+        local turn = dev.turn()
+        if dev.get_faction("vik_fact_strat_clut"):at_war_with(dev.get_faction("vik_fact_westernas")) then
+            return true
+        elseif turn >= strat_clut_event_turn and (not dev.get_faction("vik_fact_westernas"):is_dead()) then
+            log("forcing war between strat clut and westernas")
+            cm:force_declare_war("vik_fact_strat_clut", "vik_fact_westernas")
+            return false
+        end
+        return false
+    end)
+    strat_clut_dilemma:add_callback(function(context)
+        if context:choice() == 0 then
+            log("forcing war between jorvik and strat clut")
+			cm:force_declare_war("vik_fact_northymbre", "vik_fact_strat_clut")
+		end
+    end)
+    strat_clut_dilemma:join_group("NorthleodeFactionEvents")
+
+    --the dilemma to defend westernas against your master.
+    local westernas_dilemma = event_manager:create_event("sw_northleode_help_against_jorvik", "dilemma", "standard")
+    westernas_dilemma:set_unique(true)
+    westernas_dilemma:add_queue_time_condition(function(context)
+        local turn = dev.turn()
+        if turn >= westmoringas_event_turn then
+            cm:force_diplomacy("vik_fact_westmoringas", "vik_fact_northymbre", "war", true, true)
+            cm:force_diplomacy("vik_fact_northymbre", "vik_fact_westmoringas", "war", true, true)
+            return true
+        else
+            return false
+        end
+    end)
+    westernas_dilemma:add_callback(function(context)
+        if context:choice() == 0 then
+            log("forcing war between northleode and jorvik")
+			cm:force_declare_war("vik_fact_northleode", "vik_fact_northymbre")
+            log("forcing war between jorvik and westmoringas")
+            cm:force_declare_war("vik_fact_northymbre", "vik_fact_westmoringas")
+		else
+			cm:force_declare_war("vik_fact_northymbre", "vik_fact_westmoringas")
+		end
+    end)
+    westernas_dilemma:join_group("NorthleodeFactionEvents")
+
+    --the dilemma to betray your vassal with Mierce.
+    local mierce_betrayal = event_manager:create_event("sw_northleode_betrayal_mierce", "dilemma", "standard")
+    mierce_betrayal:set_unique(true)
+    mierce_betrayal:add_queue_time_condition(function(context)
+        local turn = dev.turn()
+        if turn >= betrayal_event_turn then
+            local alive = not dev.get_faction("vik_fact_mierce"):is_dead()
+            local not_at_war = not dev.get_faction("vik_fact_northleode"):at_war_with(dev.get_faction("vik_fact_mierce"))
+            local not_allied = dev.get_faction("vik_fact_northymbre"):allied_with(dev.get_faction("vik_fact_mierce"))
+            return (alive) and (not_at_war) and (not_allied) and dev.chance(40)
+        else
+            return false
+        end
+    end)
+    mierce_betrayal:add_callback(function(context)
+        local choice = context:choice()
+        if choice == 0 then
+            log("forcing a war between northleode and jorvik")
+			cm:force_declare_war("vik_fact_northleode", "vik_fact_northymbre")
+			if (not dev.get_faction("vik_fact_mierce"):at_war_with(dev.get_faction("vik_fact_northymbre"))) then
+                log("forcing a war between mierce and jorvik")
+				cm:force_declare_war("vik_fact_mierce", "vik_fact_northymbre")
+			end
+		end
+    end)
+    mierce_betrayal:join_group("NorthleodeFactionEvents")
+    --the dilemma to betray your vassal with East Engle.
+    local east_engle_betrayal = event_manager:create_event("sw_northleode_betrayal_east_engle", "dilemma", "standard")
+    east_engle_betrayal:set_unique(true)
+    east_engle_betrayal:add_queue_time_condition(function(context)
+        local turn = dev.turn()
+        if turn >= betrayal_event_turn then
+            local alive = not dev.get_faction("vik_fact_east_engle"):is_dead()
+            local not_at_war = not dev.get_faction("vik_fact_northleode"):at_war_with(dev.get_faction("vik_fact_east_engle"))
+            local not_allied = dev.get_faction("vik_fact_northymbre"):allied_with(dev.get_faction("vik_fact_east_engle"))
+            return (alive) and (not_at_war) and (not_allied) and dev.chance(40)
+        else
+            return false
+        end
+    end)
+    east_engle_betrayal:add_callback(function(context)
+        local choice = context:choice()
+        if choice == 0 then
+            log("forcing a war between northleode and jorvik")
+            cm:force_declare_war("vik_fact_northleode", "vik_fact_northymbre")
+            if (not dev.get_faction("vik_fact_east_engle"):at_war_with(dev.get_faction("vik_fact_northymbre"))) then
+                log("forcing a war between east engle and jorvik")
+                cm:force_declare_war("vik_fact_east_engle", "vik_fact_northymbre")
             end
-        end,
-        true
-    );
-    dev.eh:add_listener(
-        "MissionSucceeded_Events",
-        "MissionSucceeded",
-        true,
-        function(context) EventsMissionsNorthleode(context, cm:model():turn_number(), false) end,
-        true
-    );
-    dev.eh:add_listener(
-        "MissionFailed_Events",
-        "MissionFailed",
-        true,
-        function(context) EventsMissionsNorthleode(context,cm:model():turn_number(), true) end,
-        true
-    );
+        end
+    end)
+    east_engle_betrayal:join_group("NorthleodeFactionEvents")
+
+    --check at the start of turn if Northleode is still Jorvik's vassal
+    if northleode:is_vassal_of(jorvik) then
+        dev.turn_start(faction_key, function(context)
+            if northleode:is_vassal_of(jorvik) then
+                log("Northleode is still a vassal!")
+            elseif northleode:has_effect_bundle("sw_northleode_king_of_nothing") then
+                log("northleode is no longer a vassal")
+                cm:remove_effect_bundle("sw_northleode_king_of_nothing", faction_key)
+            end
+        end)
+        dev.eh:add_listener(
+            "NorthleodeEventsDiplomatic",
+            "FactionVassalRebelled",
+            function(context)
+                return context:faction():name() == faction_key
+            end,
+            function(context)
+                log("northleode is no longer a vassal")
+                cm:remove_effect_bundle("sw_northleode_king_of_nothing", faction_key)
+            end,
+            false
+        )
+    end
+
+    --AI events
+    AIEvents.add_ai_gwined_mierce_events()
+
 end)

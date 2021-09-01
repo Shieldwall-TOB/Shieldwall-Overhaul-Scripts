@@ -214,7 +214,7 @@ local main_unit_size_caste_info = {
 	["vik_thrall_spearmen"] = { ["unit_key"] = "vik_thrall_spearmen", ["caste"] = "light", ["num_men"] = 160 },
 	["wel_archers"] = { ["unit_key"] = "wel_archers", ["caste"] = "light", ["num_men"] = 60 },
 	["wel_armoured_axemen"] = { ["unit_key"] = "wel_armoured_axemen", ["caste"] = "very_light", ["num_men"] = 40 },
-	["wel_armoured_swordsmen"] = { ["unit_key"] = "wel_armoured_swordsmen", ["caste"] = "medium", ["num_men"] = 80 },
+	["wel_armoured_swordsmen"] = { ["unit_key"] = "wel_armoured_swordsmen", ["caste"] = "heavy", ["num_men"] = 80 },
 	["wel_axemen"] = { ["unit_key"] = "wel_axemen", ["caste"] = "light", ["num_men"] = 160 },
 	["wel_cantref_spearmen"] = { ["unit_key"] = "wel_cantref_spearmen", ["caste"] = "light", ["num_men"] = 160 },
 	["wel_catapult"] = { ["unit_key"] = "wel_catapult", ["caste"] = "light", ["num_men"] = 40 },
@@ -293,9 +293,31 @@ local slave_units = {
 	["est_kerns"] = true
 } --:map<string, boolean>
 
+local general_units = {
+		--Sea Kings: 
+		["est_hearthguard"] = true,
+		["est_royal_huskarls"] = true,
+		--Great Viking Army: 
+		["dan_warlords_companions"] = true,
+		["dan_royal_huscarls"] = true,
+		--Anglo Saxons: 
+		["eng_royal_companions"] = true, 
+		["eng_royal_bodyguard"] = true,
+		--Gealic:
+		["iri_household_horsemen"] = true, 
+		["iri_household_riders"] = true,
+		--Welsh
+		["wel_teulu"] = true,
+		["wel_royal_teulu"] = true,
+		--Scottish
+		["sco_royal_followers"] = true,
+		["sco_royal_bodyguard"] = true,
+}--:map<string, boolean>
+
 
 return {
 	main_unit_size_caste_info = main_unit_size_caste_info,
 	mercenary_units = mercenary_units,
-	slave_units  = slave_units
+	slave_units  = slave_units,
+	general_units = general_units
 }

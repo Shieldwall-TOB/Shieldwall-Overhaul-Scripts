@@ -7,7 +7,7 @@ local decrees = {
         ["gold_cost"] = -1000,
         ["currency"] = "influence",
         ["currency_cost"] = 0,
-        ["cooldown"] = 20
+        ["cooldown"] = 10
     },
     [2] = {
         ["event"] = "sw_decree_northleode_tamworthige",
@@ -15,9 +15,11 @@ local decrees = {
         ["gold_cost"] = -1500,
         ["currency"] = "influence",
         ["currency_cost"] = 0,
-        ["cooldown"] = 20,
+        ["cooldown"] = 10,
         ["callback"] = function(decree) --:DECREE
             --TODO confederations for northleode decree
+            local faction = dev.get_faction(decree.owning_faction)
+            dev.lock_confederation_for_faction(faction, false)
         end
     },
     [3] = {
@@ -26,7 +28,7 @@ local decrees = {
         ["gold_cost"] = -1200,
         ["currency"] = "influence",
         ["currency_cost"] = 0,
-        ["cooldown"] = 20
+        ["cooldown"] = 10
     },
     [4] = {
         ["event"] = "sw_decree_northleode_bebbanburg",
@@ -34,7 +36,7 @@ local decrees = {
         ["gold_cost"] = -750,
         ["currency"] = "influence",
         ["currency_cost"] = 0,
-        ["cooldown"] = 20
+        ["cooldown"] = 10
     }
 } --:map<int, {event: string, duration: number, gold_cost: number, currency: string, currency_cost: number, cooldown: number, is_dilemma: boolean?, callback: (function(decree: DECREE))?}>
 
@@ -66,13 +68,24 @@ local decree_conditions = {
 }--:map<int, vector<{event: string, conditional: (function(context: WHATEVER) --> (boolean))}>>
 
 local decrees_can_relock = {
-    [1] = {true, false},
-    [2] = {true, false},
-    [3] = {true, false},
+    [1] = {false, false},
+    [2] = {false, false},
+    [3] = {false, false},
     [4] = {}
 } --:map<int, vector<boolean>>
 
 dev.first_tick(function(context)
+
+    if dev.is_new_game() then
+        local faction_list = dev.faction_list()
+        for i = 0, faction_list:num_items() - 1 do
+            local faction = faction_list:item_at(i)
+            if faction:subculture() == "vik_sub_cult_english" then
+                dev.lock_confederation_for_faction(faction, true)
+            end
+        end
+    end
+
     if dev.get_faction(faction_key):is_human() then
         PettyKingdoms.Decree.add_faction_handler(faction_key, global_cooldown)
         for i = 1, 4 do
@@ -92,6 +105,12 @@ dev.first_tick(function(context)
                 entry.is_locked = false;
             end
         end
+        dev.turn_start(faction_key, function(context)
+            local faction = context:faction() --:CA_FACTION
+            if not faction:has_effect_bundle("sw_decree_northleode_tamworthige") then
+                dev.lock_confederation_for_faction(faction, true)
+            end
+        end)
     end
 end)
 

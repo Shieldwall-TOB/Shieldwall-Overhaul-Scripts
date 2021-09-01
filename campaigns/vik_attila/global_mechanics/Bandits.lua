@@ -42,6 +42,40 @@ local function is_bandit_force_nearby(region)
     return nil
 end
 
+--v function(region:CA_REGION, owner: CA_FACTION, no_event: boolean?)
+function spawn_bandits_for_region(region, owner, no_event)
+    --double check if we have bandits here already
+    local nearby_bandit = is_bandit_force_nearby(region)
+    if not not nearby_bandit then
+        BANDITS[region:name()] = nearby_bandit
+        return
+    end
+    local num_units_to_add = 2
+    -- Sets the number of invading armies based upon difficulty settings
+    local difficulty = cm:model():difficulty_level();
+    if  difficulty == -1 then -- Hard
+        num_units_to_add = 3
+    elseif difficulty == -2 then -- Very Hard
+        num_units_to_add = 4
+    elseif difficulty == -3 then -- Legendary
+        num_units_to_add = 4
+    end
+    local bandit_army = "wel_valley_spearmen,wel_valley_spearmen,dan_fyrd_archers"
+    local random_add = {"dan_fyrd_archers", "wel_valley_spearmen", "est_fighters", "est_fighters", "dan_ceorl_javelinmen", "dan_ceorl_javelinmen", "est_mailed_horsemen"} --:vector<string>
+    for i = 1, num_units_to_add do 
+        bandit_army = bandit_army .. "," .. random_add[cm:random_number(#random_add)]
+    end
+    BANDIT_ID = BANDIT_ID + 1
+    local ID = "bandit_spawn_"..BANDIT_ID
+    cm:create_force(bandit_faction, bandit_army, region:name(), bandit_spawns[region:name()][1], bandit_spawns[region:name()][2], ID, true)
+    if (not no_event) and owner:is_human() and not region:is_province_capital() then --if we have a region that isn't a province capital this is probably a plot event calling for bandits
+        local context = events:build_context_for_event(bandit_spawn_event, region, owner)
+        events:force_check_and_queue_event(bandit_spawn_event, context)
+    end
+end
+
+
+
 dev.first_tick(function(context)
 
     events:create_event(bandit_spawn_event, "incident", "concatenate_region")
@@ -53,7 +87,7 @@ dev.first_tick(function(context)
             if context:region():owning_faction():is_null_interface() or context:region():is_province_capital() then
                 return false
             end
-            if dev.get_faction("vik_fact_west_seaxe"):is_human() and not cm:get_saved_value("start_mission_done_west_seaxe") then
+            if not cm:get_saved_value("start_mission_done") then
                 return false
             end
             if not context:region():owning_faction():is_human() then
@@ -80,34 +114,7 @@ dev.first_tick(function(context)
                 end
                 return    
             end
-            --double check if we have bandits here already
-            local nearby_bandit = is_bandit_force_nearby(region)
-            if not not nearby_bandit then
-                BANDITS[region:name()] = nearby_bandit
-                return
-            end
-            local num_units_to_add = 2
-            -- Sets the number of invading armies based upon difficulty settings
-            local difficulty = cm:model():difficulty_level();
-            if  difficulty == -1 then -- Hard
-                num_units_to_add = 3
-            elseif difficulty == -2 then -- Very Hard
-                num_units_to_add = 4
-            elseif difficulty == -3 then -- Legendary
-                num_units_to_add = 4
-            end
-            local bandit_army = "wel_valley_spearmen,wel_valley_spearmen,dan_fyrd_archers"
-            local random_add = {"dan_fyrd_archers", "wel_valley_spearmen", "est_fighters", "est_fighters", "dan_ceorl_javelinmen", "dan_ceorl_javelinmen", "est_mailed_horsemen"} --:vector<string>
-            for i = 1, num_units_to_add do 
-                bandit_army = bandit_army .. "," .. random_add[cm:random_number(#random_add)]
-            end
-            BANDIT_ID = BANDIT_ID + 1
-            local ID = "bandit_spawn_"..BANDIT_ID
-            cm:create_force(bandit_faction, bandit_army, region:name(), bandit_spawns[region:name()][1], bandit_spawns[region:name()][2], ID, true)
-            if owner:is_human() then
-                local context = events:build_context_for_event(bandit_spawn_event, region, owner)
-                events:force_check_and_queue_event(bandit_spawn_event, context)
-            end
+            spawn_bandits_for_region(region, owner)
         end,
     true)
 
@@ -136,7 +143,9 @@ dev.first_tick(function(context)
             return context:faction():name() == bandit_faction
         end,
         function(context)
-            local char_list = context:faction():character_list()
+            local faction = context:faction()--:CA_FACTION
+            local char_list = faction:character_list()
+            local factions_with_bandits = {} --:map<string, CA_FACTION>
             for i = 0, char_list:num_items() - 1 do
                 local bandit = char_list:item_at(i)
                 local region = bandit:region()
@@ -144,6 +153,7 @@ dev.first_tick(function(context)
                     dev.log("bandit region for "..tostring(bandit:command_queue_index()).."is null!")
                     return
                 end
+                factions_with_bandits[region:owning_faction():name()] = region:owning_faction()
                 if not BANDITS[region:name()] then
                     BANDITS[region:name()] = bandit:command_queue_index()
                     if region:owning_faction():is_human() then
@@ -162,9 +172,35 @@ dev.first_tick(function(context)
                     cm:force_character_force_into_stance(dev.lookup(bandit:command_queue_index()), raid_stance)
                 end
             end
+            for faction_key, faction in pairs(factions_with_bandits) do
+                if faction:has_faction_leader() then
+                    local pol_char = PettyKingdoms.CharacterPolitics.get_faction_leader(faction)
+                    if pol_char then
+                        pol_char:increment_faction_history("bandits_alive_for_turns")
+                    end
+                end
+            end
         end,
         true)
-
+    dev.eh:add_listener(
+        "FactionDestroyedBandits",
+        "FactionDestroyed",
+        function(context)
+            return context:faction():name() == bandit_faction
+        end,
+        function(context)
+            local humans = cm:get_human_factions()
+            for i = 1, #humans do
+                local faction = dev.get_faction(humans[i])
+                if faction:has_faction_leader() then
+                    local pol_char = PettyKingdoms.CharacterPolitics.get_faction_leader(faction)
+                    if pol_char then
+                        pol_char:reset_faction_history("bandits_alive_for_turns")
+                    end
+                end
+            end
+        end,
+        true)
     if dev.is_new_game() then
         local char_list = dev.get_faction(bandit_faction):character_list()
         for i = 0, char_list:num_items() - 1 do

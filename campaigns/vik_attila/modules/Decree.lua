@@ -93,6 +93,13 @@ local currency_cost_applicators = {
         if resource then
             resource:change_value(decree.currency_cost)
         end
+    end,
+    ["heroism"] = function(decree) --:DECREE
+        local faction = dev.get_faction(decree.owning_faction)
+        local resource = PettyKingdoms.FactionResource.get("vik_heroism", faction)
+        if resource then
+            resource:change_value(decree.currency_cost, "factor_decrees_heroism")
+        end
     end
 } --:map<string, function(decree: DECREE)>
 
@@ -107,6 +114,13 @@ local currency_cost_checkers = {
     ["fyrd"] = function(faction_name) --:string
         --fyrd is mierce hoards
         local resource = PettyKingdoms.FactionResource.get("sw_hoards", dev.get_faction(faction_name))
+        if not resource then
+            return 0
+        end
+        return resource.value
+    end,
+    ["heroism"] = function(faction_name) --:string
+        local resource = PettyKingdoms.FactionResource.get("vik_heroism", dev.get_faction(faction_name))
         if not resource then
             return 0
         end

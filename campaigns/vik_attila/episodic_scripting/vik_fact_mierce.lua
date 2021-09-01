@@ -10,6 +10,8 @@ local rivals = {
     {"vik_fact_circenn", "vik_fact_sudreyar"}
 } --:vector<vector<string>>
 
+local event_manager = dev.GameEvents
+
 -------------------------------------------
 ----------Events: Mierce!--------------
 -------------------------------------------
@@ -31,46 +33,222 @@ local function EventsDilemmasMierce(context, turn)
 
 end
 
+--v function(mierce: CA_FACTION)
+function ai_mierce_start(mierce)
+    local leader = mierce:faction_leader()
+    cm:grant_unit(dev.lookup(leader), "eng_thegns")
+    cm:grant_unit(dev.lookup(leader), "eng_thegns")
+    cm:grant_unit(dev.lookup(leader), "eng_earls_spearmen")
+end
+
 
 
 dev.first_tick(function(context)
-    if not dev.get_faction(faction_key):is_human() then
+    local mierce = dev.get_faction(faction_key)
+    local djurby = dev.get_faction("vik_fact_djurby")
+    local ledeborg = dev.get_faction("vik_fact_ledeborg")
+    local seisilwig = dev.get_faction("vik_fact_seisilwig")
+    local powis = dev.get_faction("vik_fact_powis")
+    local gwined = dev.get_faction("vik_fact_gwined")
+    if not mierce:is_human() then
+        ai_mierce_start(mierce)
         return
     end
+    log("loaded faction script for "..faction_key)
+
+    local mierce_starting_mission = event_manager:create_event("sw_start_mierce", "mission", "standard")
+    mierce_starting_mission:set_unique(true)
+    mierce_starting_mission:add_completion_condition("CharacterCompletedBattle", function(context)
+        local main_attacker_faction = cm:pending_battle_cache_get_attacker_faction_name(1);
+            local main_defender_faction = cm:pending_battle_cache_get_defender_faction_name(1);
+            if main_attacker_faction == "vik_fact_mierce" and main_defender_faction == "vik_fact_ledeborg" and cm:model():pending_battle():attacker():won_battle() then
+                return true, true
+            elseif main_defender_faction == "vik_fact_mierce" and main_attacker_faction == "vik_fact_ledeborg" and not cm:model():pending_battle():attacker():won_battle() then
+                return true, true
+            end
+            return false, true
+    end)
+    mierce_starting_mission:add_completion_condition("FactionDestroyed", function(context)
+        return context:faction():name() == "vik_fact_ledeborg", true
+    end)
+    mierce_starting_mission:add_mission_complete_callback(function(context)
+        cm:set_saved_value("start_mission_done", true)
+    end)
+
+    local MierceEventsGroup = event_manager:create_new_condition_group("MierceFactionNarrativeTurnStart")
+    MierceEventsGroup:add_queue_time_condition(function(context)
+        return context:faction():name() == faction_key
+    end)
+    event_manager:register_condition_group(MierceEventsGroup, "FactionTurnStart")
+
+    local WelshDecision = event_manager:create_new_condition_group("MierceWelshDecision", function(context)
+        local djurby_dealt_with = djurby:is_dead() or (not mierce:at_war_with(djurby))
+        local ledeborg_dealt_with = ledeborg:is_dead() or (not mierce:at_war_with(ledeborg))
+        local welsh_alive = (not seisilwig:is_dead()) 
+        and (not gwined:is_dead()) and (not powis:is_dead())
+        local welsh_not_yet_at_war = (not mierce:at_war_with(seisilwig))
+        and (not mierce:at_war_with(gwined)) and (not mierce:at_war_with(powis))
+
+        local turn = dev.turn() >= 8
+        if cm:model():difficulty_level() < -1 then
+            djurby_dealt_with = true
+            ledeborg_dealt_with = true
+        end
+        return djurby_dealt_with and ledeborg_dealt_with and turn and welsh_alive and welsh_not_yet_at_war and dev.chance(50)
+    end)
+    WelshDecision:set_unique(true)
+    WelshDecision:set_number_allowed_in_queue(1)
+    event_manager:register_condition_group(WelshDecision)
+
+    local welsh_event_infighting = event_manager:create_event("sw_mierce_welsh_infighting", "incident", "standard")
+    welsh_event_infighting:add_callback(function(context)
+        dev.lock_war_declaration_for_faction(gwined, false)
+        dev.lock_war_declaration_for_faction(seisilwig, false)
+        dev.lock_war_declaration_for_faction(powis, false)
+        dev.set_factions_hostile("vik_fact_gwined", "vik_fact_powis")
+        dev.set_factions_hostile("vik_fact_gwined", "vik_fact_seisilwig")
+        dev.set_factions_hostile("vik_fact_seisilwig", "vik_fact_powis")    
+    end)
+    welsh_event_infighting:join_groups("MierceFactionNarrativeTurnStart", "MierceWelshDecision")
+    
+    local welsh_event_invasion = event_manager:create_event("sw_mierce_welsh_invasion", "incident", "standard")
+    welsh_event_invasion:add_callback(function(context)
+        dev.lock_war_declaration_for_faction(powis, false)
+        dev.set_factions_hostile("vik_fact_gwined", faction_key)
+        dev.set_factions_hostile("vik_fact_powis", faction_key)
+        dev.set_factions_hostile("vik_fact_seisilwig", faction_key)  
+    end)
+    welsh_event_invasion:join_groups("MierceFactionNarrativeTurnStart", "MierceWelshDecision")
+
+    local welsh_event_early_war = event_manager:create_event("sw_mierce_welsh_war", "incident", "standard")
+    welsh_event_early_war:add_queue_time_condition(function(context)
+        if welsh_event_invasion:has_occured() then
+            local delay =  5 + cm:model():difficulty_level()
+            local turn = welsh_event_invasion:last_turn_occured() + delay <= dev.turn()
+            return turn
+        elseif (not welsh_event_infighting:has_occured()) and (mierce:at_war_with(powis) or mierce:at_war_with(gwined) or mierce:at_war_with(seisilwig)) then
+            local already_at_war_with_all_three = mierce:at_war_with(powis) and mierce:at_war_with(gwined) and mierce:at_war_with(seisilwig) 
+            local turn = 11 <= dev.turn()
+            return turn and not already_at_war_with_all_three
+        end
+        return false
+    end)
+    welsh_event_early_war:add_callback(function(context)
+        dev.lock_war_declaration_for_faction(gwined, false)
+        dev.lock_war_declaration_for_faction(seisilwig, false)
+        dev.lock_war_declaration_for_faction(powis, false)
+        if mierce:at_war_with(seisilwig) == false then
+            cm:force_declare_war("vik_fact_seisilwig", faction_key)
+        end
+        if mierce:at_war_with(powis) == false then
+            cm:force_declare_war("vik_fact_powis", faction_key)
+        end
+        if mierce:at_war_with(gwined) == false then
+            cm:force_declare_war("vik_fact_gwined", faction_key)
+        end
+    end)
+    welsh_event_early_war:set_unique(true)
+    welsh_event_early_war:join_groups("MierceFactionNarrativeTurnStart")
+
+    local welsh_event_late_war = event_manager:create_event("sw_mierce_welsh_gwined", "incident", "standard")
+    welsh_event_late_war:add_queue_time_condition(function(context)
+        if not welsh_event_infighting:has_occured() then
+            return false
+        end
+        local turn = 30 <= dev.turn()
+
+        local seisilwig_dealt_with = seisilwig:is_dead() or (not gwined:at_war_with(seisilwig))
+        local powis_dealt_with = seisilwig:is_dead() or (not gwined:at_war_with(seisilwig))
+        return turn and seisilwig_dealt_with and powis_dealt_with
+    end)
+    welsh_event_late_war:add_callback(function(context)
+        dev.set_factions_hostile("vik_fact_gwined", faction_key)
+        cm:force_diplomacy(faction_key, "vik_fact_gwined", "war", true, true)
+        if mierce:at_war_with(gwined) == false then
+            cm:force_declare_war("vik_fact_gwined", faction_key)
+        end
+    end)
+    welsh_event_late_war:set_unique(true)
+    welsh_event_late_war:join_groups("MierceFactionNarrativeTurnStart")
+
+
+    local MiercePostBattleGroup = event_manager:create_new_condition_group("MierceFactionNarrativePostBattle")
+    MiercePostBattleGroup:add_queue_time_condition(function(context)
+        return context:character():faction():name() == faction_key and context:character():won_battle()
+    end)
+    event_manager:register_condition_group(MiercePostBattleGroup, "CharacterCompletedBattle")
+
+    local djurby_regions = {
+        "vik_reg_deoraby",
+        "vik_reg_wyrcesuuyrthe"
+    }--:vector<string>
+    local djurby_capitulates_dilemma = event_manager:create_event("sw_mierce_djurby_capitulates", "dilemma", "standard")
+    djurby_capitulates_dilemma:set_unique(true)
+    djurby_capitulates_dilemma:add_queue_time_condition(function(context)
+        local start_mission_done = mierce_starting_mission:mission():was_successful()
+        local we_are_attacker = cm:pending_battle_cache_get_attacker_faction_name(1) == faction_key
+        local djurby_defeated = false
+        local djurby_forces 
+        if we_are_attacker then
+            for i = 1, cm:pending_battle_cache_num_defenders() do
+                local char_cqi, force_cqi, faction_key = cm:pending_battle_cache_get_defender(i)
+                if faction_key == "vik_fact_djurby" then
+                    djurby_defeated = true
+                end
+            end
+        else
+            for i = 1, cm:pending_battle_cache_num_attackers() do
+                local char_cqi, force_cqi, faction_key = cm:pending_battle_cache_get_attacker(i)
+                if faction_key == "vik_fact_djurby" then
+                    djurby_defeated = true
+                end
+            end
+        end
+        if djurby_defeated then
+            local was_significant = PettyKingdoms.ForceTracking.get_last_battle_significance_for_faction(djurby) >= 75
+            return start_mission_done and was_significant
+        end    
+        return false
+    end)    
+    djurby_capitulates_dilemma:add_callback(function(context)
+        if context:choice() == 0 then
+            local regions = {} --:map<string, boolean>
+            for i = 1, #djurby_regions do
+                local region = dev.get_region(djurby_regions[i])
+                regions[region:name()] = true
+                if region:owning_faction():name() == faction_key then
+                    cm:transfer_region_to_faction(region:name(), djurby:name())
+                end
+            end
+            for i = 1, djurby:region_list():num_items() - 1 do
+                local region = djurby:region_list():item_at(i)
+                if not regions[region:name()] then
+                    cm:transfer_region_to_faction(region:name(), faction_key)
+                end
+            end
+            cm:force_make_vassal(faction_key, "vik_fact_djurby")
+        else
+
+        end
+    end)
+    djurby_capitulates_dilemma:join_groups("MierceFactionNarrativePostBattle")
+
     if dev.is_new_game() then
-        cm:trigger_mission("vik_fact_mierce", "sw_start_mierce", true);
+        local context_for_event = event_manager:build_context_for_event(mierce)
+        event_manager:force_check_and_trigger_event_immediately(mierce_starting_mission, context_for_event)
+        dev.lock_war_declaration_for_faction(gwined, true)
+        dev.lock_war_declaration_for_faction(seisilwig, true)
+        dev.lock_war_declaration_for_faction(powis, true)
+        for k = 1, #rivals do
+            local r = cm:random_number(#rivals[k])
+            local rival_to_create = rivals[k][r]
+            log("Adding Rival: "..rival_to_create)
+            PettyKingdoms.Rivals.new_rival(rival_to_create, 
+            Gamedata.kingdoms.faction_kingdoms[rival_to_create],  Gamedata.kingdoms.kingdom_provinces(dev.get_faction(rival_to_create)),
+            Gamedata.kingdoms.faction_nations[rival_to_create], Gamedata.kingdoms.nation_provinces(dev.get_faction(rival_to_create)))
+        end
     end
-    if not cm:get_saved_value("start_mission_done_mierce") then
-        cm:set_saved_value("start_mission_done_mierce", true)
-        dev.eh:add_listener(
-            "StartMissionNorthleode",
-            "CharacterCompletedBattle",
-            function(context)
-                local main_attacker_faction = cm:pending_battle_cache_get_attacker_faction_name(1);
-                local main_defender_faction = cm:pending_battle_cache_get_defender_faction_name(1);
-                if main_attacker_faction == "vik_fact_mierce" and main_defender_faction == "vik_fact_ledeborg" and cm:model():pending_battle():attacker():won_battle() then
-                    return true
-                elseif main_defender_faction == "vik_fact_mierce" and main_attacker_faction == "vik_fact_ledeborg" and not cm:model():pending_battle():attacker():won_battle() then
-                    return true
-                end
-                if dev.get_faction("vik_fact_ledeborg"):is_dead() then
-                    return true
-                end
-                return false
-            end,
-            function(context)
-                cm:set_saved_value("start_mission_done_mierce", true)
-                cm:override_mission_succeeded_status("vik_fact_mierce", "sw_start_mierce", true)
-            end,
-            false)
-    end
-    for k = 1, #rivals do
-        local r = cm:random_number(#rivals[k])
-        local rival_to_create = rivals[k][r]
-        log("Adding Rival: "..rival_to_create)
-        PettyKingdoms.Rivals.new_rival(rival_to_create, 
-        Gamedata.kingdoms.faction_kingdoms[rival_to_create],  Gamedata.kingdoms.kingdom_provinces(dev.get_faction(rival_to_create)),
-        Gamedata.kingdoms.faction_nations[rival_to_create], Gamedata.kingdoms.nation_provinces(dev.get_faction(rival_to_create)))
-    end
+
+
 
 end)

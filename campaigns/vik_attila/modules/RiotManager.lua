@@ -50,25 +50,6 @@ function riot_manager.public_order(self)
     return region:sanitation() - region:squalor()
 end
 
---v function(total_food: number) --> (number, string)
-local function get_food_effect(total_food)
-    local thresholds_to_returns = {
-        [-150] = {-5, "Famine"}, --min food, famine
-        [-50] = {-3, "Food Shortages"},
-        [0] = {-2, "Food Shortages"},
-        [100] = {1, "Food Surplus"}, --default level
-        [250] = {2, "Food Surplus"}
-    }--:map<number, {number, string}>
-    local thresholds = {-150, -50, 0, 100, 250} --:vector<number>
-    for n = 1, #thresholds do
-        if total_food < thresholds_to_returns[thresholds[n]][1] then
-            return thresholds_to_returns[thresholds[n]][1], thresholds_to_returns[thresholds[n]][2]
-        end
-    end
-    --if we are above 250 food
-    return 3, "Food Surplus"
-end
-
 --v function(self: RIOT_MANAGER) --> bool
 function riot_manager.is_army_in_region(self)
     local faction = dev.get_region(self.key):owning_faction()
@@ -98,9 +79,15 @@ function riot_manager.should_riot_start(self, public_order)
         return true
     end
     local is_human = faction:is_human()
+    local food_factor = dev.mround(dev.clamp(faction:total_food() + 10, -20, 0), 1)
+    local difficulty = cm:model():difficulty_level() --1 is easy, -3 is legendary
+    if difficulty < 0 then
+        food_factor = dev.mround(food_factor * (difficulty/-0.5), 1) -- (times 1/2 on hard, times 1 on vh, times 1.5 on legendary)
+    end
+    
     local roll = cm:random_number(100)
-	self:log("Checking if region can rebel with a -PO ["..public_order.."]. They rolled ["..roll.."] ", is_human)
-	if public_order > roll then -- public order / 100 chance
+    self:log("Checking if region can rebel with a -PO ["..public_order.."] and food factor ["..tostring(food_factor).."]. They rolled ["..roll.."] ", is_human)
+	if public_order > (roll + food_factor) then -- public order / 100 chance
 		self:log("Chance check passed", is_human)
 		if self:is_army_in_region() then
             return false
@@ -120,6 +107,15 @@ function riot_manager.start_riot(self, region)
     if region:owning_faction():is_human() then
         local context = events:build_context_for_event(riot_begins_event, region, region:owning_faction())
         events:force_check_and_queue_event(riot_begins_event, context)
+        if region:has_governor() then
+            local pol_char = PettyKingdoms.CharacterPolitics.get(region:governor())
+            if pol_char then
+                pol_char:increment_faction_history("riots")
+                pol_char:reset_faction_history("turns_without_riot")
+                pol_char:increment_character_history("riots_while_governor")
+                pol_char:reset_character_history("turns_without_riot_while_governor")
+            end
+        end
     end
 end
 
@@ -160,6 +156,14 @@ function riot_manager.new_turn(self)
     elseif public_order < 0 and self:should_riot_start(-1*public_order) then
         --no riot present, and check passed
         self:start_riot(region)
+    else
+        if region:has_governor() then
+            local pol_char = PettyKingdoms.CharacterPolitics.get(region:governor())
+            if pol_char then
+                pol_char:increment_faction_history("turns_without_riot")
+                pol_char:increment_character_history("turns_without_riot_while_governor")
+            end
+        end
     end
     local is_faction_capital = owning_faction:home_region():name() == self.key
 end

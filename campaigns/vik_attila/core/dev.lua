@@ -507,6 +507,13 @@ local function dev_get_character(cqi)
 end
 
 --v function(character: CA_CHAR) --> boolean
+function dev_is_normal_character(character)
+    return character:character_type("general") and character:is_male()
+
+end
+
+
+--v function(character: CA_CHAR) --> boolean
 local function dev_is_char_normal_general(character)
     return character:character_type("general") and character:has_military_force() and character:military_force():is_army() and (not character:military_force():is_armed_citizenry()) 
 end
@@ -646,8 +653,9 @@ end
 cm:register_first_tick_callback(function(context)
     _G.game_created = true
 
-    local version = cm:get_saved_value("shieldwall_script_version")
-    if not version then
+    _G.shieldwall_version = cm:get_saved_value("shieldwall_script_version")
+    if not _G.shieldwall_version then
+        _G.shieldwall_version =  CONST.__script_version
         cm:set_saved_value("shieldwall_script_version", CONST.__script_version)
     end
     local faction_list = cm:model():world():faction_list()
@@ -786,9 +794,21 @@ local function dev_game_created()
     return _G.game_created
 end
 
---v function(faction_name: string, callback:(function(context: CA_CONTEXT)))
+--v function(faction_name: string, callback:(function(context: WHATEVER)))
 local function dev_turn_start(faction_name, callback)
     get_eh():add_listener("DevTurnStart"..faction_name, "FactionTurnStart", function(context) return context:faction():name() == faction_name end,
+    callback, true)
+end
+
+--v function(region_name: string, callback:(function(context: WHATEVER)))
+local function dev_region_turn_start(region_name, callback)
+    get_eh():add_listener("DevTurnStart"..region_name, "RegionTurnStart", function(context) return context:region():name() == region_name end,
+    callback, true)
+end
+
+--v function(trait_name: string, callback:(function(context: WHATEVER)))
+local function dev_char_with_trait_turn_start(trait_name, callback)
+    get_eh():add_listener("DevTurnStart"..tostring(trait_name), "CharacterTurnStart", function(context) return context:character():has_trait(trait_name) end,
     callback, true)
 end
 
@@ -815,6 +835,22 @@ local function dev_respond_to_dilemma(event_key, callback, persist)
 		"DilemmaChoiceMadeEvent",
 		function(context)
 			return context:dilemma() == event_key
+		end,
+        function(context)
+            MODLOG("Responding to dilemma: "..event_key)
+			callback(context)
+		end,
+		not not persist
+	)
+end
+
+--v function(event_key: string, callback: function(context: WHATEVER), persist: boolean?)
+local function dev_respond_to_mission_issued(event_key, callback, persist)
+    get_eh():add_listener(
+		event_key.."_response",
+		"MissionIssued",
+		function(context)
+			return context:mission():mission_record_key() == event_key
 		end,
         function(context)
             MODLOG("Responding to dilemma: "..event_key)
@@ -877,6 +913,20 @@ local caste_strengths = {
     very_heavy = 1.8,
     heavy = 1.5
 } --:map<string, number>
+
+--v function(character: CA_CHAR, use_value: boolean?) --> number
+local function dev_army_size(character, use_value)
+    if not dev_is_char_normal_general(character) then
+        return 0
+    end
+    local size = 0 --:number
+    local force = character:military_force()
+    local cache_entry = {} --:map<string, number>
+    for i=0,force:unit_list():num_items()-1 do
+        size = size + force:unit_list():item_at(i):percentage_proportion_of_full_strength()
+    end
+    return size
+end
 
 --v function(character: CA_CHAR, use_value: boolean?) --> map<string, number>
 local function dev_generate_force_cache_entry(character, use_value)
@@ -1079,8 +1129,13 @@ if not dev_is_new_game() then
     dev_post_first_tick(function(context) dev_clear_spawn_blockers() end)
 end
 
+
+local faction_hostile_pairs = {} --:map<string, map<string, boolean>>
+
 --v [NO_CHECK] function(faction1: string, faction2: string)
 local function dev_SetFactionsHostile(faction1, faction2)
+    faction_hostile_pairs[faction1] = faction_hostile_pairs[faction1] or {}
+    faction_hostile_pairs[faction1][faction2] = true
 	cm:cai_strategic_stance_manager_clear_all_promotions_between_factions(faction1, faction2);
 	cm:cai_strategic_stance_manager_clear_all_blocking_between_factions(faction1, faction2);
 	cm:cai_strategic_stance_manager_clear_all_promotions_between_factions(faction2, faction1);
@@ -1089,6 +1144,98 @@ local function dev_SetFactionsHostile(faction1, faction2)
 	cm:cai_strategic_stance_manager_block_all_stances_but_that_specified_towards_target_faction(faction1, faction2, "CAI_STRATEGIC_STANCE_BITTER_ENEMIES"); 
 	cm:cai_strategic_stance_manager_promote_specified_stance_towards_target_faction(faction2, faction1, "CAI_STRATEGIC_STANCE_BITTER_ENEMIES");
 	cm:cai_strategic_stance_manager_block_all_stances_but_that_specified_towards_target_faction(faction2, faction1, "CAI_STRATEGIC_STANCE_BITTER_ENEMIES"); 
+end
+
+--v [NO_CHECK] function(faction1: string, faction2: string)
+local function dev_ResetFactionDiplomaticStance(faction1, faction2)
+    if faction_hostile_pairs[faction1] then
+        faction_hostile_pairs[faction1][faction2] = nil
+    end
+	cm:cai_strategic_stance_manager_clear_all_promotions_between_factions(faction1, faction2);
+	cm:cai_strategic_stance_manager_clear_all_blocking_between_factions(faction1, faction2);
+	cm:cai_strategic_stance_manager_clear_all_promotions_between_factions(faction2, faction1);
+	cm:cai_strategic_stance_manager_clear_all_blocking_between_factions(faction2, faction1);
+	
+end
+
+
+cm:register_loading_game_callback(function(context)
+    faction_hostile_pairs = cm:load_value("FACTION_HOSTILITY", {}, context)
+end)
+
+cm:register_saving_game_callback(function(context)
+    cm:save_value("FACTION_HOSTILITY", faction_hostile_pairs, context)
+end)
+
+dev_first_tick(function(context)
+    for faction1, faction_list in pairs(faction_hostile_pairs) do
+        for faction2, _ in pairs(faction_list) do
+            if dev_get_faction(faction1):is_dead() or dev_get_faction(faction2):is_dead() then
+
+            else
+                dev_SetFactionsHostile(faction1, faction2)
+            end
+        end
+    end
+end)
+
+
+--v function(faction: CA_FACTION, lock: boolean)
+function dev_lockWarDeclarationsForFaction(faction, lock)
+    local faction_list = dev_faction_list()
+    for i = 0, faction_list:num_items() - 1 do
+        local current_faction = faction_list:item_at(i)
+        if current_faction:name() ~= faction:name() then
+            cm:force_diplomacy(faction:name(), current_faction:name(), "war", not lock, true)
+        end
+    end
+end
+
+--v function(faction: CA_FACTION, lock: boolean)
+function dev_lockConfederationForFaction(faction, lock)
+    local faction_list = dev_faction_list()
+    for i = 0, faction_list:num_items() - 1 do
+        local current_faction = faction_list:item_at(i)
+        if current_faction:name() ~= faction:name() and current_faction:subculture() == faction:subculture() then
+            cm:force_diplomacy(faction:name(), current_faction:name(), "form confederation", not lock, true)
+        end
+    end
+end
+
+--v function(faction: CA_FACTION, lock: boolean)
+function dev_LockDiplomacyForFaction(faction, lock)
+
+	local diplomacy_types = {
+		"hard military access",
+		"cancel hard military access",
+		"military alliance",
+		"vassal",
+		"peace",
+		"war",
+		"join war",
+		"break alliance",
+		"hostages",
+		"marriage",
+		"non aggression pact",
+		"soft military access",
+		"cancel soft military access",
+		"defensive alliance",
+		"form confederation",
+		"break non aggression pact",
+		"break soft military access",
+		"break defensive alliance",
+		"break vassal"
+	} --:vector<string>
+
+    local faction_list = dev_faction_list()
+    for i = 0, faction_list:num_items() - 1 do
+        local current_faction = faction_list:item_at(i)
+        if current_faction:name() ~= faction:name() and current_faction:subculture() == faction:subculture() then
+            for j = 1, #diplomacy_types do
+                cm:force_diplomacy(faction:name(), current_faction:name(), diplomacy_types[j], not lock, true)
+            end
+        end
+    end
 end
 
 --this is to get Kailua to accept how fucking stupid table.insert's alt call is.
@@ -1113,6 +1260,7 @@ return {
     get_faction = dev_get_faction,
     get_region = dev_get_region,
     get_character = dev_get_character,
+    is_char_normal = dev_is_normal_character,
     is_char_normal_general = dev_is_char_normal_general,
     turn = dev_turn,
     get_force = dev_get_force,
@@ -1136,11 +1284,15 @@ return {
     is_game_created = dev_game_created,
     is_new_game = dev_is_new_game,
     turn_start = dev_turn_start,
+    trait_turn_start = dev_char_with_trait_turn_start,
+    region_turn_start = dev_region_turn_start,
     respond_to_incident = dev_respond_to_incident,
     respond_to_dilemma = dev_respond_to_dilemma,
+    respond_to_mission_issued = dev_respond_to_mission_issued,
     last_time_sacked = dev_last_time_sacked,
     get_numbers_from_text = dev_get_numbers_from_text,
     invasion_number = dev_invasion_number,
+    army_size = dev_army_size,
     generate_force_cache_entry = dev_generate_force_cache_entry,
     create_army = dev_create_army,
     distance = dev_distance_2D,
@@ -1149,4 +1301,8 @@ return {
     spawn_blockers = SPAWN_BLOCKERS,
     clear_spawn_blockers = dev_clear_spawn_blockers,
     set_factions_hostile =  dev_SetFactionsHostile,
+    reset_faction_diplomatic_stance = dev_ResetFactionDiplomaticStance,
+    lock_war_declaration_for_faction = dev_lockWarDeclarationsForFaction,
+    lock_confederation_for_faction = dev_lockConfederationForFaction,
+    lock_diplomacy_for_faction = dev_LockDiplomacyForFaction
 }

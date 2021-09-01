@@ -53,8 +53,10 @@ dev.first_tick(function(context)
         if tribute_factions[h_name] then
             tribute = PettyKingdoms.FactionResource.new(h_name, "vik_tribute", "resource_bar", 0, tribute_max, {}, value_converter)
             TRIBUTE[h_name] = tribute
-            for key, value in pairs(tribute_factions[h_name]) do
-                tribute:set_factor(key, value)
+            if dev.is_new_game() then
+                for key, value in pairs(tribute_factions[h_name]) do
+                    tribute:set_factor(key, value)
+                end
             end
             tribute:reapply()
             dev.eh:add_listener(

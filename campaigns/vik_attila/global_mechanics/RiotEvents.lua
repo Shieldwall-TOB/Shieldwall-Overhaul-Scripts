@@ -188,6 +188,15 @@ local riot_events = {
             end
             local trait = "shield_tyrant_opressor"
             if context:choice() == 0 then
+                local pol_char = PettyKingdoms.CharacterPolitics.get(region:governor())
+                local pol_faction_leader = PettyKingdoms.CharacterPolitics.get_faction_leader(region:owning_faction())
+                if pol_char then
+                    pol_char:increment_character_history("riots_ended_violently")
+                    pol_char:increment_faction_history("riots_ended_violently")
+                end
+                if pol_faction_leader then
+                    pol_char:increment_character_history("riots_ended_violently_while_king")
+                end
                 local region_manpower = PettyKingdoms.RegionManpower.get(region:name())
                 region_manpower:mod_population_through_region(-20, "manpower_riots", true, false)
                 dev.add_trait(region:governor(), trait, true)
@@ -207,6 +216,15 @@ local riot_events = {
                 return --when we run this with the test variable we don't want crashes due to lack of governors.
             end
             if context:choice() == 0 then
+                local pol_char = PettyKingdoms.CharacterPolitics.get(region:governor())
+                local pol_faction_leader = PettyKingdoms.CharacterPolitics.get_faction_leader(region:owning_faction())
+                if pol_char then
+                    pol_char:increment_character_history("riots_ended_violently")
+                    pol_char:increment_faction_history("riots_ended_violently")
+                end
+                if pol_faction_leader then
+                    pol_char:increment_character_history("riots_ended_violently_while_king")
+                end
                 local region_manpower = PettyKingdoms.RegionManpower.get(region:name())
                 region_manpower:mod_population_through_region(-20, "manpower_riots", true, false)
             end

@@ -121,8 +121,9 @@ dev.first_tick(function(context)
         serfs:reapply()
     end    
     PettyKingdoms.RegionManpower.activate("serf", function(faction_key, factor_key, change)
-        local pop = PettyKingdoms.FactionResource.get("sw_pop_serf", dev.get_faction(factor_key))
-        if pop then
+        local pop = PettyKingdoms.FactionResource.get("sw_pop_serf", dev.get_faction(faction_key))
+        log("Changing sw_pop_serf population by ["..change.."] in "..factor_key)
+        if pop then 
             pop:change_value(change, factor_key)
         end
     end)

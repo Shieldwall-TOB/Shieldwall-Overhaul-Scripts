@@ -159,6 +159,9 @@ local kingdom_sea_region_requirements = {
 
 --v function(faction: CA_FACTION)-->vector<string>
 local function kingdom_provinces(faction) 
+    if not formable_kingdoms[faction:name()] then
+        return {}
+    end
     if kingdoms_borders[faction:name().."_1"][2] == true then
         return Gamedata.regions.region_list_to_province_list(kingdoms_borders[faction:name().."_1"][1])
     end
@@ -167,6 +170,9 @@ end
 
 --v function(faction: CA_FACTION)-->vector<string>
 local function nation_provinces(faction) 
+    if not formable_kingdoms[faction:name()] then
+        return {}
+    end
     if kingdoms_borders[faction:name().."_2"][2] == true then
         return Gamedata.regions.region_list_to_province_list(kingdoms_borders[faction:name().."_2"][1])
     end
@@ -176,6 +182,9 @@ end
 --v function(region: string, faction_key: string, level: int?) --> boolean
 local function is_region_in_kingdom(region, faction_key, level)
     local faction = dev.get_faction(faction_key)
+    if not formable_kingdoms[faction:name()] then
+        return false
+    end
     if not level then
         level = 1
     end

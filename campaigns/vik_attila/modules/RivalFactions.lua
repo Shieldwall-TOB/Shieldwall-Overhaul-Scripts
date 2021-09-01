@@ -1,5 +1,7 @@
 local rival = {} --# assume rival: RIVAL
 local instances = {} --:map<string, RIVAL>
+local rivals_to_create = {}--:map<string, boolean>
+dev.Save.attach_to_table(rivals_to_create, "RIVALS_LIST")
 
 
 local secondary_factions = {
@@ -63,7 +65,7 @@ function rival.new(faction_key, kingdom, region_list, nation, region_list_nation
     for i = 1, #region_list_national do
         self.nation_regions[region_list_national[i]] = true
     end
-
+    rivals_to_create[faction_key] = true
     return self
 
 end
@@ -212,6 +214,9 @@ end
 
 --v function(faction_key: string, kingdom: string, region_list: vector<string>, nation: string, region_list_national:vector<string>) --> RIVAL
 local function make_rival_faction(faction_key, kingdom, region_list, nation, region_list_national)
+    if (not is_string(faction_key)) or (not is_string(kingdom)) or (not is_string(nation)) then
+        return nil
+    end
     local new_rival = rival.new(faction_key, kingdom, region_list, nation, region_list_national)
     instances[faction_key] = new_rival
     new_rival:log("Created rival! "..faction_key.. " with kingdom  "..kingdom)
@@ -225,6 +230,11 @@ end
 
 dev.first_tick(function(context)
     dev.log("Rivals module adding listeners", "RIVAL")
+    for rival_to_create, value in pairs(rivals_to_create) do
+        make_rival_faction(rival_to_create, 
+        Gamedata.kingdoms.faction_kingdoms[rival_to_create],  Gamedata.kingdoms.kingdom_provinces(dev.get_faction(rival_to_create)),
+        Gamedata.kingdoms.faction_nations[rival_to_create], Gamedata.kingdoms.nation_provinces(dev.get_faction(rival_to_create)))
+    end
     dev.eh:add_listener(
         "GuarenteedEmpiresCore",
         "PendingBattle",

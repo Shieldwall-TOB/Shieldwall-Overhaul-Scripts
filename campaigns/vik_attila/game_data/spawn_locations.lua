@@ -196,6 +196,7 @@ local viking_spawns = {
 
 
 local bandit_spawns = {
+    ["vik_reg_aberffro"] = {400, 339},
     ["vik_reg_bodmine"] = {365,67}, 
     ["vik_reg_totanes"] = {429,91}, 
     ["vik_reg_waecet"] = {446,137}, 

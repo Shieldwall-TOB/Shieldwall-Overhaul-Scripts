@@ -1,6 +1,6 @@
 MANPOWER_FOREIGN = {} --:map<string, FACTION_RESOURCE>
 FOREIGN_WARRIORS = {
-    hostility = 0,
+    hostility = -3,
     last_foreigner_event_turn = -1,
     provinces_with_foreigners = {}
 } --:{hostility: int, last_foreigner_event_turn: int, provinces_with_foreigners: map<string, boolean>}

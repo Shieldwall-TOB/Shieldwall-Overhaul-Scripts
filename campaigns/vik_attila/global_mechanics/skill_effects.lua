@@ -16,8 +16,7 @@ local skill_events_post_battle = {
             return context:character():faction():is_human() and dev.chance(50) and not not PettyKingdoms.FactionResource.get("vik_heroism", context:character():faction())
         end, 
         callback = function(context) --:WHATEVER
-            PettyKingdoms.FactionResource.get("vik_heroism", context:character():faction()):change_value(2) 
-            --TODO heroism
+            PettyKingdoms.FactionResource.get("vik_heroism", context:character():faction()):change_value(2, "factor_follower_events_heroism")  
         end,
         cooldown = 3
     },
@@ -29,8 +28,7 @@ local skill_events_post_battle = {
             return context:character():faction():is_human() and dev.chance(30) and not not PettyKingdoms.FactionResource.get("vik_heroism", context:character():faction())
         end, 
         callback = function(context) --:WHATEVER
-            PettyKingdoms.FactionResource.get("vik_heroism", context:character():faction()):change_value(2) 
-            --TODO heroism
+            PettyKingdoms.FactionResource.get("vik_heroism", context:character():faction()):change_value(3, "factor_follower_events_heroism")  
         end,
         cooldown = 3
     },
@@ -42,8 +40,7 @@ local skill_events_post_battle = {
             return context:character():faction():is_human() and dev.chance(20) and not not PettyKingdoms.FactionResource.get("vik_heroism", context:character():faction())
         end, 
         callback = function(context) --:WHATEVER
-            PettyKingdoms.FactionResource.get("vik_heroism", context:character():faction()):change_value(2) 
-            --TODO heroism
+            PettyKingdoms.FactionResource.get("vik_heroism", context:character():faction()):change_value(5, "factor_follower_events_heroism") 
         end,
         cooldown = 3
     },

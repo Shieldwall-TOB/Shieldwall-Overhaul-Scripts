@@ -59,10 +59,19 @@ local function load_object(obj)
         end
     end) 
     if not ok then
-        log("Error loading object:")
+        log("Error loading object:", true)
         log(err, true)
-        log(debug.traceback())
+        log(debug.traceback(), true)
         log_tab = 0 
+    elseif obj.save.callback then
+        local ok, err = pcall(function()
+            obj.save.callback(obj)
+        end)
+        if not ok then
+            log("Error in object load callback:", true)
+            log(err, true)
+            log(debug.traceback(), true)
+        end
     end
 end
 
@@ -99,6 +108,7 @@ local function attach(obj)
         OBJECTS_PENDING[#OBJECTS_PENDING+1] = obj
     end
 end
+
 if not CONST.__do_not_save_or_load then
     cm:register_loading_game_callback(function(context)
         local x = os.clock()
