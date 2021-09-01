@@ -1,6 +1,5 @@
 --# type global SAVE_SPEC = {save: (function(any) --> string), load: (function(string) --> any)}
---# type global SAVE_SCHEMA = {name: string, for_save: vector<string>, 
---# specifiers:map<string, SAVE_SPEC>?
+--# type global SAVE_SCHEMA = {name: string, for_save: vector<string>, callback: (function(WHATEVER))?
 --#}
 
 --# assume global class RECRUITMENT_HANDLER
@@ -27,9 +26,13 @@
 
 --# assume global class GAME_EVENT_MANAGER
 --# assume global class GAME_EVENT
+--# assume global class GAME_MISSION
 --# assume global class EVENT_CONDITION_GROUP
 --# type global QUEUED_GAME_EVENT = {char_cqi: CA_CQI?, region_key: string?, 
---# faction_key: string, event_key: string}
---# type global GAME_EVENT_TRIGGER_KIND = "trait_flag" | "standard" | "concatenate_region"
+--# faction_key: string, event_key: string, other_faction: string?, target_cqi: CA_CQI?}
+--# type global GAME_EVENT_TRIGGER_KIND = "trait_flag" | "standard" | "concatenate_region" | "concatenate_faction"
 --# type global GAME_EVENT_TYPE = "dilemma" | "mission" | "incident"
---# type global GAME_EVENT_QUEUE_TIMES = "FactionTurnStart" | "CharacterTurnStart" | "RegionTurnStart" | "CharacterCompletedBattle" | "CharacterRetreatedFromBattle" | "CharacterEntersGarrison"
+--# type global GAME_EVENT_QUEUE_TIMES = "FactionTurnStart" | "CharacterTurnStart" | "RegionTurnStart" |
+--# "CharacterCompletedBattle" | "CharacterRetreatedFromBattle" | "CharacterEntersGarrison" |
+--# "MissionTargetGeneratorFactionAtWarWith"
+

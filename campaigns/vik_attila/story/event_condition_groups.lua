@@ -2,26 +2,29 @@
 --chance formula
 local condition_group = {} --# assume condition_group: EVENT_CONDITION_GROUP
 
---v function(name: string) --> EVENT_CONDITION_GROUP
-function condition_group.new(name)
+--v function(name: string, manager: GAME_EVENT_MANAGER, num_allowed_in_queue: int?) --> EVENT_CONDITION_GROUP
+function condition_group.new(name, manager, num_allowed_in_queue)
     local self = {}
     setmetatable(self, {
         __index = condition_group
     }) --# assume self: EVENT_CONDITION_GROUP
 
     self.name = name
+    self.manager = manager
     self.members = {} --:map<string, GAME_EVENT>
 
     self.last_turn_occured = -10000
+    self.last_turn_completed = -1
 
     --flags how many currently in queue, and how many allowed in queue.
-    self.num_allowed_queued = 0
+    self.num_allowed_queued = num_allowed_in_queue or 0
     self.currently_in_queue = 0
     self.ignore_queue_room_during_own_turn = false --:boolean
     self.last_queued_event = "" --:string 
 
     --allows for controlling a shared cooldown for a group of events.
     self.cooldown = 0
+    self.is_unique = false
     
     --swapouts
     --allows for setting an event which cannot queue due to violation of num_allowed_queued for this group to roll for a chance to displace the currently queued event.
@@ -38,7 +41,7 @@ function condition_group.new(name)
 
     self.save = {
         name = "event_condition_group_"..name, 
-        for_save = {"last_turn_occured", "last_queued_event"}
+        for_save = {"last_turn_occured", "last_queued_event", "currently_in_queue", "last_complete_turn"}
     }--:SAVE_SCHEMA
     dev.Save.attach_to_object(self)
     return self
@@ -47,11 +50,23 @@ end
 --queries
 --v function(self: EVENT_CONDITION_GROUP) --> boolean
 function condition_group.is_off_cooldown(self)
+    if self.is_unique then
+        return self.last_turn_occured < 0
+    end
+    if self.last_turn_completed > 0 then
+        return self.cooldown == 0 or dev.turn() > self.last_turn_completed + self.cooldown
+    end
     return self.cooldown == 0 or dev.turn() > self.last_turn_occured + self.cooldown
 end
 
 --v function(self: EVENT_CONDITION_GROUP) --> boolean
 function condition_group.has_room_in_queue(self)
+    if self.ignore_queue_room_during_own_turn and self.manager.whose_turn ~= "" then
+        if cm:model():world():whose_turn_is_it():name() == self.manager.whose_turn then
+            self.manager:log("Group "..self.name.." has is ignoring queue room because this schedule is during the faction's turn!")
+            return true
+        end
+    end
     return self.num_allowed_queued == 0 or self.currently_in_queue < self.num_allowed_queued
 end
 
@@ -76,6 +91,14 @@ function condition_group.set_cooldown(self, cooldown)
     self.cooldown = cooldown
 end
 
+--v function(self: EVENT_CONDITION_GROUP, is_unique: boolean)
+function condition_group.set_unique(self, is_unique)
+    self.is_unique = is_unique
+    if self.num_allowed_queued == 0 then
+        self.num_allowed_queued = 1
+    end
+end
+
 --v function(self: EVENT_CONDITION_GROUP, num_allowed: int)
 function condition_group.set_number_allowed_in_queue(self, num_allowed)
     self.num_allowed_queued = num_allowed
@@ -96,10 +119,18 @@ function condition_group.add_callback_on_unqueue(self, callback)
     self.unqueued_callback  = callback
 end
 
+
+--v function(self: EVENT_CONDITION_GROUP, condition: (function(context: WHATEVER) --> boolean))
+function condition_group.add_queue_time_condition(self, condition)
+    self.queue_time_condition = condition
+end
+
 --system
 --v function(self: EVENT_CONDITION_GROUP, event: string,turn: int)
 function condition_group.OnMemberEventQueued(self, event, turn)
+
     self.currently_in_queue = self.currently_in_queue + 1
+    self.manager:log("Group "..self.name.." has "..self.currently_in_queue.." events in Queue!")
     self.last_queued_event = event
 end
 
@@ -120,6 +151,10 @@ function condition_group.OnMemberEventOccured(self, event, turn)
     self.last_turn_occured = turn
 end
 
+--v function(self: EVENT_CONDITION_GROUP, event: string, turn: int)
+function condition_group.OnMemberMissionCompleted(self, event, turn)
+    self.last_turn_completed = turn
+end
 
 return {
     new = condition_group.new
