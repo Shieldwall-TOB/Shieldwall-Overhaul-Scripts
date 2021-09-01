@@ -44,6 +44,9 @@ local friendship_level_trait = "shield_friendship_" --:string
 local fame_trait = "shield_fame_"
 local fame_family_trait = "shield_family_fame_"
 
+local faction_histories = {} --:map<string, map<string, int>>
+dev.Save.attach_to_table(faction_histories, "FACTION_HISTORIES")
+
 local character_politics = {} --# assume character_politics:CHARACTER_POLITICS
 
 --v function(cqi: CA_CQI) --> CHARACTER_POLITICS
@@ -54,6 +57,8 @@ function character_politics.new(cqi)
     }) --# assume self: CHARACTER_POLITICS
 
     self.cqi = cqi
+    self.game_interface = dev.get_character(cqi)
+    self.faction_key = self.game_interface:faction():name()
     self.last_governorship = "none" --:string
     self.friendship_level = 2 --:int
     self.plot_vulnerability = 0
@@ -66,9 +71,12 @@ function character_politics.new(cqi)
     self.skills = {} --:map<string, int>
     self.personal_fame = 0
 
+    self.character_history = {} --:map<string, int>
+    faction_histories[self.faction_key] = faction_histories[self.faction_key] or {}
+    self.faction_history = faction_histories[self.faction_key]
     self.save = {
         name = "politics_"..tostring(self.cqi), 
-        for_save = {"last_governorship", "friendship_level", "general_level", "title", "last_title", "plot_vulnerability", "skills", "personal_fame"}
+        for_save = {"last_governorship", "friendship_level", "general_level", "title", "last_title", "plot_vulnerability", "skills", "personal_fame", "character_history"}
     }--:SAVE_SCHEMA
     --dev.Save.attach_to_object(self)
     return self
@@ -77,6 +85,36 @@ end
 --v function(self: CHARACTER_POLITICS, t: any)
 function character_politics.log(self, t)
     dev.log(tostring(t), "CHAR"..tostring(self.cqi))
+end
+
+--v function(self: CHARACTER_POLITICS, history_key: string) --> int
+function character_politics.get_character_history(self, history_key)
+    return self.character_history[history_key] or 0
+end
+
+--v function(self: CHARACTER_POLITICS, history_key: string)
+function character_politics.increment_character_history(self, history_key)
+    self.character_history[history_key] = (self.character_history[history_key] or 0) + 1
+end
+
+--v function(self: CHARACTER_POLITICS, history_key: string)
+function character_politics.reset_character_history(self, history_key)
+    self.character_history[history_key] = 0
+end
+
+--v function(self: CHARACTER_POLITICS, history_key: string) --> int
+function character_politics.get_faction_history(self, history_key)
+    return self.faction_history[history_key] or 0
+end
+
+--v function(self: CHARACTER_POLITICS, history_key: string)
+function character_politics.increment_faction_history(self, history_key)
+    self.faction_history[history_key] = (self.faction_history[history_key] or 0) + 1
+end
+
+--v function(self: CHARACTER_POLITICS, history_key: string)
+function character_politics.reset_faction_history(self, history_key)
+    self.faction_history[history_key] = 0
 end
 
 --v function(self: CHARACTER_POLITICS)
@@ -123,6 +161,8 @@ function character_politics.do_governor_trait(self, region)
         self:log(tostring(self.cqi) .. " is returning nil! They're probably dead")
         return
     end
+    self:increment_character_history("turns_as_governor_in_row")
+    self:increment_character_history("turns_as_governor")
     local trait_key = province_key:gsub("vik_prov_", admin_level_trait)
     local changed_trait = false --:boolean
     if self.last_governorship ~= trait_key and character:has_trait(self.last_governorship) then
@@ -188,6 +228,8 @@ function character_politics.update_loyalty_traits(self, character)
             self:log("adding new loyalty trait "..new_bundle)
             dev.add_trait(character, new_bundle, changed_trait)
         end
+        self:increment_character_history("turns_loyal_in_row")
+        self:reset_character_history("turns_disloyal_in_row")
     else
         local old_bundle = loyalty_trait
         local new_bundle = disloyalty_trait
@@ -200,6 +242,8 @@ function character_politics.update_loyalty_traits(self, character)
             self:log("adding new loyalty trait "..new_bundle)
             dev.add_trait(character, new_bundle, changed_trait)
         end
+        self:reset_character_history("turns_loyal_in_row")
+        self:increment_character_history("turns_disloyal_in_row")
     end
 end
 
@@ -237,6 +281,8 @@ end
 function character_politics.update_general_trait(self, character)
     if character:has_military_force() and character:military_force():is_army() and (not character:military_force():is_armed_citizenry()) then
         self:log("Checking general trait")
+        self:increment_character_history("turns_as_general_in_row")
+        self:increment_character_history("turns_as_general")
         if character:military_force():unit_list():num_items() > 15 then
             local old_bundle = general_level_trait..tostring(self.general_level-1)
             local new_bundle = general_level_trait.."1"
@@ -268,6 +314,7 @@ function character_politics.update_general_trait(self, character)
             self.general_level = 1
         end
     elseif self.general_level > 0 then
+        self:reset_character_history("turns_as_general_in_row")
         self:log("Not a general")
         dev.remove_trait(character, general_level_trait..tostring(self.general_level-1))
         self.general_level = 0
@@ -404,7 +451,7 @@ dev.first_tick(function(context)
         "CharacterPoliticsTurnStart",
         "CharacterTurnStart",
         function(context)
-            return context:character():faction():is_human() and dev.is_char_normal_general(context:character())
+            return context:character():faction():is_human() and dev.is_char_normal(context:character())
         end,
         function(context)
             local char = context:character() --:CA_CHAR
@@ -429,6 +476,32 @@ dev.first_tick(function(context)
         end,
         true)
     dev.eh:add_listener(
+        "CharacterPoliticsGovernorAssignedCharacterEvent",
+        "GovernorAssignedCharacterEvent",
+        function(context)
+            return context:region():owning_faction():is_human() and context:region():has_governor()
+        end,
+        function(context)
+            local region = context:region() --:CA_REGION
+            local char = region:governor() 
+            if not instances[char:command_queue_index()] then
+                instances[char:command_queue_index()] = character_politics.new(char:command_queue_index())
+                return
+            end
+            local province_key = region:province_name()
+            local trait_key = province_key:gsub("vik_prov_", admin_level_trait)
+            local character_list = region:owning_faction():character_list()
+            for i = 0, character_list:num_items() - 1 do
+                local old_gov_char = character_list:item_at(i)
+                if instances[old_gov_char:command_queue_index()] and old_gov_char:has_trait(trait_key) then
+                    dev.remove_trait(old_gov_char, trait_key)
+                    instances[old_gov_char:command_queue_index()].last_governorship = "none"
+                    instances[old_gov_char:command_queue_index()]:reset_character_history("turns_as_governor_in_row")
+                end
+            end
+        end,
+        true)
+    dev.eh:add_listener(
         "CharacterPoliticsFactionFormsKingdom",
         "FactionFormsKingdom",
         function(context)
@@ -446,7 +519,7 @@ dev.first_tick(function(context)
             "CharacterGainsTraitPolitics",
             "CharacterGainsTrait",
             function(context)
-                return context:character():faction():is_human() and dev.is_char_normal_general(context:character())
+                return context:character():faction():is_human() and dev.is_char_normal(context:character())
             end,
             function(context)
                 local char = context:character() --:CA_CHAR
@@ -474,7 +547,105 @@ dev.first_tick(function(context)
                 instance:log("Human Character skilled ["..skill.."] and has ["..tostring(instance.skills[skill]).."] skill points")
             end,
             true)
+        dev.eh:add_listener(
+            "CharacterCompletedBattlePolitics",
+            "CharacterCompletedBattle",
+            function(context)
+                return context:character():faction():is_human()
+            end,
+            function(context)
+                local char = context:character() --:CA_CHAR
+                if not instances[char:command_queue_index()] then
+                    instances[char:command_queue_index()] = character_politics.new(char:command_queue_index())
+                end
+                local pol_char = instances[char:command_queue_index()]
+                local significance = PettyKingdoms.ForceTracking.get_last_battle_significance_for_faction(char:faction())
+                pol_char:increment_character_history("battles_participated_in")
+                local pb = char:model():pending_battle()
+                local attacker_won = pb:attacker():won_battle()
+                if char:won_battle() then
+                    pol_char:increment_character_history("battles_won")
+                    pol_char:increment_character_history("battles_won_in_row")
+                    if significance > 30 then
+                        pol_char:increment_character_history("significant_battles_won")
+                    end
+                    if attacker_won then
+                        local victory_type = pb:attacker_battle_result()
+                        pol_char:increment_character_history("attacking_battles_won")
+                        pol_char:increment_character_history("num_"..victory_type)
+                    else
+                        local victory_type = pb:defender_battle_result()
+                        pol_char:increment_character_history("defending_battles_won")
+                        pol_char:increment_character_history("num_"..victory_type)
+                    end
+                else
+                    pol_char:increment_character_history("battles_lost")
+                    pol_char:reset_character_history("battles_won_in_row")
+                    if significance > 30 then
+                        pol_char:increment_character_history("significant_battles_lost")
+                    end
+                    if attacker_won then
+                        local defeat_type = pb:defender_battle_result()
+                        pol_char:increment_character_history("defending_battles_lost")
+                        pol_char:increment_character_history("num_"..defeat_type)
+                    else
+                        local defeat_type = pb:attacker_battle_result()
+                        pol_char:increment_character_history("attacking_battles_lost")
+                        pol_char:increment_character_history("num_"..defeat_type)
+                    end
+                end
+            end,
+            true)
+        dev.eh:add_listener(
+            "CharacterPerformsOccupationDecisionSackPolitics",
+            "CharacterPerformsOccupationDecisionSack",
+            function(context)
+                return context:character():faction():is_human()
+            end,
+            function(context)
+                local char = context:character() --:CA_CHAR
+                if not instances[char:command_queue_index()] then
+                    instances[char:command_queue_index()] = character_politics.new(char:command_queue_index())
+                end
+                local pol_char = instances[char:command_queue_index()]
+                local faction_leader_char = char:faction():faction_leader()
 
+                pol_char:increment_character_history("settlements_sacked")
+                pol_char:increment_faction_history("settlements_sacked")
+                if (not faction_leader_char:is_null_interface()) then
+                    if not instances[faction_leader_char:command_queue_index()] then
+                        instances[faction_leader_char:command_queue_index()] = character_politics.new(faction_leader_char:command_queue_index())
+                    end
+                    local pol_char_faction_leader = instances[faction_leader_char:command_queue_index()]
+                    pol_char:increment_character_history("settlements_sacked_while_king")
+                end
+            end,
+            true)
+        dev.eh:add_listener(
+            "CharacterPerformsOccupationDecisionOccupyPolitics",
+            "CharacterPerformsOccupationDecisionOccupy",
+            function(context)
+                return context:character():faction():is_human()
+            end,
+            function(context)
+                local char = context:character() --:CA_CHAR
+                if not instances[char:command_queue_index()] then
+                    instances[char:command_queue_index()] = character_politics.new(char:command_queue_index())
+                end
+                local pol_char = instances[char:command_queue_index()]
+                local faction_leader_char = char:faction():faction_leader()
+
+                pol_char:increment_character_history("settlements_captured")
+                pol_char:increment_faction_history("settlements_captured")
+                if (not faction_leader_char:is_null_interface()) then
+                    if not instances[faction_leader_char:command_queue_index()] then
+                        instances[faction_leader_char:command_queue_index()] = character_politics.new(faction_leader_char:command_queue_index())
+                    end
+                    local pol_char_faction_leader = instances[faction_leader_char:command_queue_index()]
+                    pol_char:increment_character_history("settlements_captured_while_king")
+                end
+            end,
+            true)
 end)
 --v function(trait_key: string, to_trait: string, effect_bonus_value: int)
 local function add_trait_cross_loyalty_to_trait(trait_key, to_trait, effect_bonus_value)
@@ -492,8 +663,16 @@ local function get_char_politics(char)
     return instances[char]
 end
 
+--v function(faction:CA_FACTION) --> CHARACTER_POLITICS
+local function get_faction_leader_politics(faction)
+    if not faction:is_human() or not faction:has_faction_leader() then
+        return nil
+    end
+    return instances[faction:faction_leader():command_queue_index()]
+end
 
 return {
+    get_faction_leader = get_faction_leader_politics,
     get = get_char_politics,
     add_trait_cross_loyalty_to_trait = add_trait_cross_loyalty_to_trait
 }
