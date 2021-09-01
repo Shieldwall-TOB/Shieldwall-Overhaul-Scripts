@@ -256,6 +256,7 @@
 --# assume CA_FACTION.has_home_region: method() --> boolean
 --# assume CA_FACTION.factions_at_war_with: method() --> CA_FACTION_LIST
 --# assume CA_FACTION.total_food: method() --> number
+--# assume CA_FACTION.tax_category: method() --> number
 --# assume CA_FACTION.has_food_shortage: method() --> boolean
 --# assume CA_FACTION.state_religion: method() --> string
 --# assume CA_FACTION.state_religion_percentage: method() --> number
@@ -356,6 +357,7 @@
 --# assume CA_CHAR.character_subtype: method(subtype: string) --> boolean
 --# assume CA_CHAR.get_forename: method() --> string
 --# assume CA_CHAR.get_surname: method() --> string
+--# assume CA_CHAR.model: method() --> CA_MODEL
 --# assume CA_CHAR.command_queue_index: method() --> CA_CQI
 ---# assume CA_CHAR.cqi: method() --> CA_CQI
 --# assume CA_CHAR.rank: method() --> int

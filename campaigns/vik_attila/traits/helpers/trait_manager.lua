@@ -31,7 +31,18 @@ function trait_manager.new(trait_key)
     self.condition_group = dev.GameEvents:create_new_condition_group(trait_key)
     self.condition_group:set_number_allowed_in_queue(1)
     self.condition_group:set_cooldown(2)
+    self.condition_group:add_queue_time_condition(function(context)
+        local char = context:character()
+        return char:character_type("general") and char:is_male();
+    end)
     dev.GameEvents:register_condition_group(self.condition_group, "CharacterTurnStart")
+    self.governor_condition_group = dev.GameEvents:create_new_condition_group(trait_key.."_governor")
+    self.governor_condition_group:set_number_allowed_in_queue(1)
+    self.governor_condition_group:set_cooldown(2)
+    self.governor_condition_group:add_queue_time_condition(function(context)
+        return context:region():has_governor()
+    end)
+    dev.GameEvents:register_condition_group(self.governor_condition_group, "RegionTurnStart")
 
     self.trait_effects_out = {} --:map<CA_CQI, map<string, int>>
     dev.first_tick(function(context)
@@ -84,10 +95,13 @@ end
 
 --v function(self: TRAIT_MANAGER, character: CA_CHAR) --> boolean
 function trait_manager.is_trait_valid_on_character(self, character)
-    if character:faction():is_human() == false then
+    if character:faction():is_human() == false or character:character_type("general") == false or character:is_male() == false then
         return false
     end
     local pol_char = PettyKingdoms.CharacterPolitics.get(character)
+    if not pol_char then
+        return false
+    end
     for i = 1, #pol_char.traits do
         if self.anti_traits[pol_char.traits[i]] then
             return false
@@ -122,13 +136,15 @@ function trait_manager.set_base_chance(self, chance)
     self.base_chance = chance
 end
 
---v function(self: TRAIT_MANAGER, dilemma_key: string, additional_condition: function(character: CA_CHAR) --> boolean, should_use_chance: boolean)
-function trait_manager.add_trait_gained_dilemma(self, dilemma_key, additional_condition, should_use_chance)
+--v function(self: TRAIT_MANAGER, dilemma_key: string, additional_condition: function(character: CA_CHAR) --> boolean, should_use_chance: boolean, callback: (function(context: WHATEVER))?)
+function trait_manager.add_trait_gained_dilemma(self, dilemma_key, additional_condition, should_use_chance, callback)
     self.already_triggered_choices[dilemma_key] = self.already_triggered_choices[dilemma_key] or {}
     local event = dev.GameEvents:create_event(dilemma_key, "dilemma", "trait_flag")
     event:add_queue_time_condition(function(context)
         local character = context:character() --:CA_CHAR
-
+        if character:has_trait(self.key) then
+            return false
+        end
         return (not self.already_triggered_choices[dilemma_key][tostring(character:command_queue_index())])
         and (not character:is_faction_leader())
         and (not should_use_chance or dev.chance(self:get_chance(character))) 
@@ -138,6 +154,10 @@ function trait_manager.add_trait_gained_dilemma(self, dilemma_key, additional_co
     event:add_callback(function(context)
         local character = context:character() --:CA_CHAR
         self.already_triggered_choices[dilemma_key][tostring(character:command_queue_index())] = true
+        if callback then
+            --# assume callback: function(context: WHATEVER)
+            callback(context)
+        end
     end)
 end
 
@@ -155,6 +175,9 @@ function trait_manager.add_trait_gain_condition_without_event(self, condition, s
                 character = context:character()
             end
             if character then
+                if character:has_trait(self.key) then
+                    return false
+                end
                 local chance_passed = (not should_use_chance) or dev.chance(self:get_chance(character))
                 return chance_passed and self:is_trait_valid_on_character(character) and condition(character)
             else
@@ -198,7 +221,7 @@ function trait_manager.add_trait_effect_condition(self, effect_suffix, duration,
                     local did_apply = false
                     for i = 0, character_list:num_items() - 1 do
                         local char = character_list:item_at(i)
-                        if char:has_trait(self.key) then
+                        if char:has_trait(self.key) and (not char:is_faction_leader()) then
                             self.trait_effects_out[char:command_queue_index()] = self.trait_effects_out[char:command_queue_index()] or {}
                             self.trait_effects_out[char:command_queue_index()][effect_suffix] = turn + duration
                             dev.add_trait(char, self.key..effect_suffix, false)
