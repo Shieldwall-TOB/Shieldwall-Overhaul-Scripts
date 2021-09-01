@@ -352,9 +352,9 @@ local function add_recruitment_resource(resource, resource_getter, resource_mod,
             local unit = context:unit() --:CA_UNIT
             local unit_key = unit:unit_key()
             local character = unit:military_force():general_character()
-            if instance.unit_costs[unit_key] then
-                local force_tracker = PettyKingdoms.ForceTracking.get_character_force_strength(character)
-                local strength = (force_tracker[unit_key] or 100)
+            local generals = Gamedata.unit_info.general_units
+            if instance.unit_costs[unit_key] and (not generals[unit_key]) then
+                local strength = unit:percentage_proportion_of_full_strength()
                 local returned_pop = dev.mround(instance.unit_costs[unit_key]*((strength/unit_recruit_percentage)/100), 1)
                 log("Character "..tostring(character:command_queue_index()).." disbanded "..unit_key.. " at "..strength.." strength worth "..returned_pop.." pop")
                 instance.mod(context:unit():faction():name(), returned_pop)
