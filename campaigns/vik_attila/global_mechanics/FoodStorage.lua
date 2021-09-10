@@ -23,10 +23,13 @@ local faction_food_storage_startpos = {
 }--:map<string, number>
 
 
-dev.new_game(function(context)
+dev.post_first_tick(function(context)
     local humans = cm:get_human_factions()
-    for i = 1, #humans do
-        local fsm = PettyKingdoms.FoodStorage.get(humans[i])
-        fsm:set_food_in_storage(faction_food_storage_startpos[humans[i]] or 0) 
+    if dev.is_new_game() then
+        for i = 1, #humans do
+            local fsm = PettyKingdoms.FoodStorage.get(humans[i])
+            fsm:set_food_in_storage(faction_food_storage_startpos[humans[i]] or 0) 
+            fsm:update_food_storage()
+        end
     end
 end)
