@@ -32,8 +32,8 @@ function trait_manager.new(trait_key)
     self.condition_group:set_number_allowed_in_queue(1)
     self.condition_group:set_cooldown(2)
     self.condition_group:add_queue_time_condition(function(context)
-        local char = context:character()
-        return char:character_type("general") and char:is_male();
+        local char = context:character() --:CA_CHAR
+        return char:character_type("general") and char:is_male() and char:family_member():come_of_age()
     end)
     dev.GameEvents:register_condition_group(self.condition_group, "CharacterTurnStart")
     self.governor_condition_group = dev.GameEvents:create_new_condition_group(trait_key.."_governor")
