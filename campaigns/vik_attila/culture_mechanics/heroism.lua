@@ -141,12 +141,14 @@ dev.first_tick(function(context)
     end
     local bandit_mission = em:create_event("sw_heroism_defeat_bandits", "mission", "standard")
     bandit_mission:add_queue_time_condition(function(context)
-        if not cm:get_saved_value("start_mission_done") then
+        if (not cm:get_saved_value("start_mission_done")) or dev.get_faction("vik_fact_jorvik"):is_dead() then
             return false
         end
-        if BANDITS[context:region():name()] then
+        if BANDITS.regions[context:region():name()] and dev.get_character(BANDITS.regions[context:region():name()])
+        and dev.get_character(BANDITS.regions[context:region():name()]):has_military_force() then
             return true
         end
+        return false
     end)
     bandit_mission:add_completion_condition("FactionDestroyed", function(context)
         return context:faction():name() == "vik_fact_jorvik", true
@@ -155,6 +157,10 @@ dev.first_tick(function(context)
         HEROISM[context:faction():name()]:change_value(3, "factor_missions_heroism")
     end)
     bandit_mission:set_cooldown(12)
+    bandit_mission:add_mission_success_callback(function(context)
+        local heroism = HEROISM[context:faction():name()]
+        heroism:change_value(5, "factor_missions_heroism")
+    end)
     bandit_mission:schedule("RegionTurnStart")
 
     local war_mission = em:create_event("sw_heroism_", "mission", "concatenate_faction")
@@ -165,7 +171,7 @@ dev.first_tick(function(context)
         end
         return false
     end)
-    war_mission:add_completion_condition("CharacterCompletesBattle", function(context) 
+    war_mission:add_completion_condition("CharacterCompletedBattle", function(context) 
         local mission_context = war_mission:mission():context()
         local char = context:character() --:CA_CHAR
         if char:faction():name() == mission_context:faction():name() and char:won_battle() then
@@ -197,19 +203,37 @@ dev.first_tick(function(context)
         end
         return false, true
     end)
+    war_mission:add_mission_success_callback(function(context)
+        local heroism = HEROISM[context:faction():name()]
+        heroism:change_value(10, "factor_missions_heroism")
+    end)
     war_mission:set_cooldown(12)
     war_mission:schedule("MissionTargetGeneratorFactionAtWarWith")    
 
     local land_mission = em:create_event("sw_heroism_region_", "mission", "concatenate_region")
     land_mission:add_completion_condition("RegionTurnStart", function(context)
-        local mission_context = war_mission:mission():context()
+        local mission_context = land_mission:mission():context()
         local region = context:region() --:CA_REGION
-        if region:name() == mission_context:name() and (not region:owning_faction():is_null_interface()) then
+        if region:name() == mission_context:region():name() and (not region:owning_faction():is_null_interface()) then
             if region:owning_faction():subculture() == "vik_sub_cult_welsh" then
                 return true, true
             end
         end
         return false, true
+    end)
+    land_mission:add_completion_condition("RegionChangesOwnership", function(context)
+        local mission_context = land_mission:mission():context()
+        local region = context:region() --:CA_REGION
+        if region:name() == mission_context:region():name() and (not region:owning_faction():is_null_interface()) then
+            if region:owning_faction():subculture() == "vik_sub_cult_welsh" then
+                return true, true
+            end
+        end
+        return false, true
+    end)
+    land_mission:add_mission_success_callback(function(context)
+        local heroism = HEROISM[context:faction():name()]
+        heroism:change_value(15, "factor_missions_heroism")
     end)
     land_mission:set_cooldown(12)
     for i = 1, #humans do
