@@ -211,10 +211,10 @@ function decree.update_panel(self)
     local can_afford = self:can_owner_afford(effective_gold)
     if CONST.__testcases.__test_decree_payloads then
         log("Decree payload test variable is active: all decrees are ignoring their unlock conditions")
-        UIScript.decree_panel.update_panel(self.i, 0, false, 0, self.currency_cost, self.currency, self.duration, true, false)
+        UIScript.decree_panel.update_panel(self.i, 0, false, self.cooldown, 0, self.currency_cost, self.currency, self.duration, true, false)
         return
     end
-    UIScript.decree_panel.update_panel(self.i, effective_cooldown, is_global, effective_gold, self.currency_cost, self.currency, self.duration, can_afford, self.is_locked)
+    UIScript.decree_panel.update_panel(self.i, effective_cooldown, is_global, self.cooldown, effective_gold, self.currency_cost, self.currency, self.duration, can_afford, self.is_locked)
 end
 
 

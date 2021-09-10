@@ -47,8 +47,8 @@ local function update_alert_icon(alert)
     end
 end
 
---v function(index: number, effective_cooldown: number, global_cooldown: boolean, effective_gold_cost: number, currency_cost: number, currency_type: string, duration: number, can_afford: boolean, is_locked: boolean)
-local function update_decree_panel(index, effective_cooldown, global_cooldown, effective_gold_cost, currency_cost, currency_type, duration, can_afford, is_locked)
+--v function(index: number, effective_cooldown: number, global_cooldown: boolean, base_cooldown: number, effective_gold_cost: number, currency_cost: number, currency_type: string, duration: number, can_afford: boolean, is_locked: boolean)
+local function update_decree_panel(index, effective_cooldown, global_cooldown, base_cooldown, effective_gold_cost, currency_cost, currency_type, duration, can_afford, is_locked)
     local faction = cm:model():world():whose_turn_is_it():name();
     local decrees = get_decree_panel()
     local template_address = decrees:Find("vik_decree_"..string.sub(faction, 10).."_"..index)
@@ -73,15 +73,25 @@ local function update_decree_panel(index, effective_cooldown, global_cooldown, e
         currencyValue:SetStateText(tostring(currency_cost))
         currencyIcon:SetState(currency_type)
     end
+
     local goldValue = UIComponent(TemplateUIC:Find("dy_value"))
     goldValue:SetStateText(tostring(effective_gold_cost))
+
     local decreeDuration = UIComponent(TemplateUIC:Find("duration"))
-    if duration > 0 then
+    if duration and duration > 0 then
         decreeDuration:SetVisible(true)
         UIComponent(decreeDuration:Find("turns_corner")):SetStateText(tostring(duration))
     else
         decreeDuration:SetVisible(false)
     end
+
+    local decreeCooldown = UIComponent(TemplateUIC:Find("cooldown"))
+    if base_cooldown == 0 then
+        decreeCooldown:SetVisible(false)
+    else
+        UIComponent(decreeCooldown:Find("turns_corner")):SetStateText(tostring(base_cooldown))
+    end
+
     local conditionUIC = UIComponent(TemplateUIC:Find("dy_condition"))
     if can_afford and (not is_locked) and effective_cooldown == 0 then
         enactButton:SetState("active")
