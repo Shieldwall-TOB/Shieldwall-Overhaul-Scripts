@@ -7,6 +7,7 @@ local check = dev.Check
 
 
 
+
 local skill_events_post_battle = {
     {
         key = "sw_heroism_bard", 
@@ -61,7 +62,7 @@ local skill_events_post_battle = {
 }--:vector<{key: string, checks: vector<(function(CA_CHAR) --> (boolean, string))>, levels:vector<int>, condition: function(context: WHATEVER) --> boolean, callback: function(context: WHATEVER), cooldown: int?}>
 
 local character_retreats = {} --:map<CA_CQI, int>
-dev.Save.persist_table(character_retreats, "skils_character_retreats", function(t) character_retreats = t end)
+dev.Save.attach_to_table(character_retreats, "skils_character_retreats")
 local skill_events_post_retreat = {
     {
         key = "sw_bard_retreat", 
@@ -105,6 +106,87 @@ local skill_events_post_retreat = {
 
 
 local skill_events_character_turn_start = {
+    {
+        key = "sw_drill_marcher", 
+        checks = {check.does_char_have_henchmen},
+        levels = {1}, 
+        condition = function(context) --:WHATEVER
+            local character = context:character() --:CA_CHAR
+            local region = character:region() --:CA_REGION
+            local force = character:military_force()
+            if region:is_null_interface() or force:is_null_interface() then
+                return false
+            end
+            local character_is_encamped = force:active_stance() == "MILITARY_FORCE_ACTIVE_STANCE_TYPE_SET_CAMP" 
+            local has_fyrd = force:unit_list():has_unit("eng_fyrd_spearmen") or force:unit_list():has_unit("eng_fyrd_archers")
+            local character_faction_has_techs = character:faction():has_technology("vik_mil_melee_2a") or character:faction():has_technology("vik_mil_missile_4")
+            return character_is_encamped and has_fyrd and character_faction_has_techs 
+        end, 
+        callback = function(context) --:WHATEVER
+
+        end,
+        cooldown = 9
+    },
+    {
+        key = "sw_drill_select_fyrd", 
+        checks = {check.does_char_have_henchmen},
+        levels = {1}, 
+        condition = function(context) --:WHATEVER
+            local character = context:character() --:CA_CHAR
+            local region = character:region() --:CA_REGION
+            local force = character:military_force()
+            if region:is_null_interface() or force:is_null_interface() then
+                return false
+            end
+            local character_is_encamped = force:active_stance() == "MILITARY_FORCE_ACTIVE_STANCE_TYPE_SET_CAMP" 
+            local has_fyrd = force:unit_list():has_unit("eng_fyrd_spearmen") or force:unit_list():has_unit("eng_fyrd_archers")
+            local character_faction_has_techs = character:faction():has_technology("vik_mil_melee_2a") or character:faction():has_technology("vik_mil_missile_4")
+            return character_is_encamped and has_fyrd and character_faction_has_techs 
+        end, 
+        callback = function(context) --:WHATEVER
+
+        end,
+        cooldown = 9
+    },
+    {
+        key = "sw_renown_captain_recruited", 
+        checks = {check.does_char_have_viking_captain},
+        levels = {1}, 
+        condition = function(context) --:WHATEVER
+            local char = context:character() --:CA_CHAR
+            return (not char:region():is_null_interface()) and FOREIGN_WARRIORS.provinces_with_foreigners[char:region():name()]
+        end, 
+        callback = function(context) --:WHATEVER
+
+        end,
+        cooldown = 10
+    },
+    {
+        key = "sw_renown_sailors_recruited", 
+        checks = {check.does_char_have_viking_captain},
+        levels = {1}, 
+        condition = function(context) --:WHATEVER
+            local char = context:character() --:CA_CHAR
+            return (not char:region():is_null_interface()) and FOREIGN_WARRIORS.provinces_with_foreigners[char:region():name()]
+        end, 
+        callback = function(context) --:WHATEVER
+
+        end,
+        cooldown = 10
+    },
+    {
+        key = "sw_renown_vikings_recruited", 
+        checks = {check.does_char_have_viking_captain},
+        levels = {1}, 
+        condition = function(context) --:WHATEVER
+            local char = context:character() --:CA_CHAR
+            return (not char:region():is_null_interface()) and FOREIGN_WARRIORS.provinces_with_foreigners[char:region():name()]
+        end, 
+        callback = function(context) --:WHATEVER
+
+        end,
+        cooldown = 10
+    },
     {
         key = "sw_skills_henchmen_1", 
         checks = {check.does_char_have_henchmen},
@@ -256,17 +338,14 @@ end)
 
 
 
-------------------------------
---------Blacksmith Items------
-------------------------------
---TODO blacksmith items
+
 --on turn start, if we have a blacksmith and we don't have a blacksmith item yet, give us a dilemma to get one.
 
 
 
 
 local blessings = {} --:map<string, {string, int, int, string?}>
-dev.Save.persist_table(blessings, "skills_blessings", function(t) blessings = t end)
+dev.Save.attach_to_table(blessings, "skills_blessings")
 --v function(char: CA_CHAR, bundle: string, turn_to_apply: int, last_bundle: int, region: string?)
 local function set_blessing_entry(char, bundle, turn_to_apply, last_bundle, region)
     blessings[tostring(char:command_queue_index())] = {bundle, turn_to_apply, last_bundle, region}
@@ -295,7 +374,7 @@ end
 ----------------------------
 
 local character_event_last_happened = {} --:map<CA_CQI, number>
-dev.Save.persist_table(character_event_last_happened, "skills_character_event_last_happened", function(t) character_event_last_happened = t end)
+dev.Save.attach_to_table(character_event_last_happened, "skills_character_event_last_happened")
 
 dev.first_tick(function(context) 
 
@@ -417,6 +496,7 @@ dev.first_tick(function(context)
     end
 
 
+
     ------------------------------
     --Gothi and Priest Blessings--
     ------------------------------
@@ -494,5 +574,4 @@ dev.first_tick(function(context)
     end, {dev.Check.does_char_have_gothi})
 
 end)
-
 
