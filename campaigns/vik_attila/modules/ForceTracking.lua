@@ -14,7 +14,7 @@ function force_tracker.new()
     self.last_battle_significance = {} --:map<string, number>
     self.last_battle_size = 0--:number
     self.last_battle_balance = 1 --:number
-    self.last_battle_faction_leaders = {} --:map<CA_CQI, string>
+    self.last_battle_faction_leaders = {} --:map<string, string>
 
     self.save = {
         name = "FORCE_CACHE",
@@ -70,7 +70,7 @@ dev.pre_first_tick(function(context)
 
             local attacker = pb:attacker()
             if attacker:is_faction_leader() then
-                instance.last_battle_faction_leaders[attacker:command_queue_index()] = attacker:faction():name()
+                instance.last_battle_faction_leaders[tostring(attacker:command_queue_index())] = attacker:faction():name()
             end
             for i = 0, attacker:military_force():unit_list():num_items() - 1 do
                 local unit = attacker:military_force():unit_list():item_at(i)
@@ -91,7 +91,7 @@ dev.pre_first_tick(function(context)
                     end
                 end
                 if char:is_faction_leader() then
-                    instance.last_battle_faction_leaders[char:command_queue_index()] = char:faction():name()
+                    instance.last_battle_faction_leaders[tostring(char:command_queue_index())] = char:faction():name()
                 end
             end;
             
@@ -108,7 +108,7 @@ dev.pre_first_tick(function(context)
 
             local defender = pb:defender()
             if defender:is_faction_leader() then
-                instance.last_battle_faction_leaders[defender:command_queue_index()] = defender:faction():name()
+                instance.last_battle_faction_leaders[tostring(defender:command_queue_index())] = defender:faction():name()
             end
             for i = 0, defender:military_force():unit_list():num_items() - 1 do
                 local unit = defender:military_force():unit_list():item_at(i)
@@ -129,7 +129,7 @@ dev.pre_first_tick(function(context)
                     end
                 end
                 if char:is_faction_leader() then
-                    instance.last_battle_faction_leaders[char:command_queue_index()] = char:faction():name()
+                    instance.last_battle_faction_leaders[tostring(char:command_queue_index())] = char:faction():name()
                 end
             end;
 
@@ -228,7 +228,7 @@ end
 
 --v function(cqi: CA_CQI) --> boolean
 local function was_character_a_faction_leader_in_last_battle(cqi)
-    return not not instance.last_battle_faction_leaders[cqi]
+    return not not instance.last_battle_faction_leaders[tostring(cqi)]
 end
 
 return {
