@@ -312,5 +312,5 @@ dev.first_tick(function(context)
         true)
 end)
 
-dev.Save.persist_table(invaders, "VIKING_RAIDERS", function(t) invaders = t end)
-dev.Save.persist_table(active_raiders, "VIKING_RAIDERS_2", function(t) active_raiders = t end)
+dev.Save.attach_to_table(invaders, "VIKING_RAIDERS")
+dev.Save.attach_to_table(active_raiders, "VIKING_RAIDERS_2")

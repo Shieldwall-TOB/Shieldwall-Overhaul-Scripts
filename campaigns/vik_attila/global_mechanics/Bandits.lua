@@ -1,5 +1,7 @@
-BANDITS = {} --:map<string,CA_CQI>
-BANDIT_ID = 0 --:number
+BANDITS = {}
+BANDITS.regions = {} --:map<string,CA_CQI>
+BANDITS.provinces = {} --:map<string, number>
+BANDITS.id = 0 --:number
 local bandit_faction = "vik_fact_jorvik"
 local raid_stance = "MILITARY_FORCE_ACTIVE_STANCE_TYPE_LAND_RAID"
 local bandit_spawns = Gamedata.spawn_locations.BanditSpawns
@@ -47,7 +49,7 @@ function spawn_bandits_for_region(region, owner, no_event)
     --double check if we have bandits here already
     local nearby_bandit = is_bandit_force_nearby(region)
     if not not nearby_bandit then
-        BANDITS[region:name()] = nearby_bandit
+        BANDITS.regions[region:name()] = nearby_bandit
         return
     end
     local num_units_to_add = 2
@@ -65,8 +67,9 @@ function spawn_bandits_for_region(region, owner, no_event)
     for i = 1, num_units_to_add do 
         bandit_army = bandit_army .. "," .. random_add[cm:random_number(#random_add)]
     end
-    BANDIT_ID = BANDIT_ID + 1
-    local ID = "bandit_spawn_"..BANDIT_ID
+    BANDITS.id = BANDITS.id + 1
+    local ID = "bandit_spawn_"..BANDITS.id
+    BANDITS.provinces[region:province_name()] = 3
     cm:create_force(bandit_faction, bandit_army, region:name(), bandit_spawns[region:name()][1], bandit_spawns[region:name()][2], ID, true)
     if (not no_event) and owner:is_human() and not region:is_province_capital() then --if we have a region that isn't a province capital this is probably a plot event calling for bandits
         local context = events:build_context_for_event(bandit_spawn_event, region, owner)
@@ -103,16 +106,21 @@ dev.first_tick(function(context)
         function(context)
             local region = context:region()
             local owner = region:owning_faction()
-            if not not BANDITS[region:name()] then
+            if not not BANDITS.regions[region:name()] then
             --bandits already exist here 
-                local bandit_cqi = tonumber(BANDITS[region:name()])  
+                local bandit_cqi = tonumber(BANDITS.regions[region:name()])  
                 --# assume bandit_cqi: CA_CQI
                 local bandit_general = dev.get_character(bandit_cqi)
                 if not bandit_general then
                     --he's probably ded.
-                    BANDITS[region:name()] = nil
+                    BANDITS.regions[region:name()] = nil
                 end
                 return    
+            end
+            if not not BANDITS.provinces[region:province_name()] then
+                if BANDITS.provinces[region:province_name()] > 0 then
+                    return 
+                end
             end
             spawn_bandits_for_region(region, owner)
         end,
@@ -146,6 +154,9 @@ dev.first_tick(function(context)
             local faction = context:faction()--:CA_FACTION
             local char_list = faction:character_list()
             local factions_with_bandits = {} --:map<string, CA_FACTION>
+            for key, value in pairs(BANDITS.provinces) do
+                BANDITS.provinces[key] = value - 1
+            end
             for i = 0, char_list:num_items() - 1 do
                 local bandit = char_list:item_at(i)
                 local region = bandit:region()
@@ -154,8 +165,8 @@ dev.first_tick(function(context)
                     return
                 end
                 factions_with_bandits[region:owning_faction():name()] = region:owning_faction()
-                if not BANDITS[region:name()] then
-                    BANDITS[region:name()] = bandit:command_queue_index()
+                if not BANDITS.regions[region:name()] then
+                    BANDITS.regions[region:name()] = bandit:command_queue_index()
                     if region:owning_faction():is_human() then
                         cm:trigger_incident(region:owning_faction():name(), "shield_rebellion_bandits_"..region:name(), true)
                     end
@@ -208,7 +219,7 @@ dev.first_tick(function(context)
             if bandit:has_military_force() then
                 cm:disable_movement_for_character(dev.lookup(bandit))
                 if not bandit:region():is_null_interface() then
-                    BANDITS[bandit:region():name()] = bandit:command_queue_index()
+                    BANDITS.regions[bandit:region():name()] = bandit:command_queue_index()
                     cm:force_character_force_into_stance(dev.lookup(bandit:command_queue_index()), raid_stance)
                 end
             end
@@ -217,8 +228,8 @@ dev.first_tick(function(context)
 end) 
 
 
-dev.Save.save_value("BANDIT_ID", BANDIT_ID, function(t) BANDIT_ID = t end)
-dev.Save.persist_table(BANDITS, "BANDITS" , function(t) BANDITS = t end)
+
+dev.Save.attach_to_table(BANDITS, "BANDITS")
 
 
 

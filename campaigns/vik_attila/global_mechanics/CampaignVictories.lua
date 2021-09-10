@@ -33,7 +33,7 @@ local victory_cutscenes = {
 local victories = {
 
 } --:map<string, {bool, bool, string, string}>
-dev.Save.persist_table(victories, "victory_cnd", function(t) victories = t end)
+dev.Save.attach_to_table(victories, "victory_cnd")
 
 
 --v function(faction: CA_FACTION, kingdom: string, long_victory: boolean, no_message:boolean?)

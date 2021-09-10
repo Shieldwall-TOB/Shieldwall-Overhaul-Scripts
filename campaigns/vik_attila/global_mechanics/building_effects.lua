@@ -75,7 +75,7 @@ local kings_court_check = function(region) --:CA_REGION
 end
 
 local characters_resupplied = {}--:map<CA_CQI, {last_bundle: string, off_cooldown_on_turn: int}>
-dev.Save.persist_table(characters_resupplied, "characters_resupplied", function(t) characters_resupplied = t end)
+dev.Save.attach_to_table(characters_resupplied, "characters_resupplied")
 
 local resupply_events = {
     sw_resupply_governor_ = {1, false, true, false},

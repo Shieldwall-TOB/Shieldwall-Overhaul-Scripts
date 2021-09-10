@@ -81,7 +81,7 @@ end
 --v function(obj: WHATEVER)
 local function attach(obj)
     if not obj.save then
-        log("Attempted to attach to an object without a savable fields schema")
+        log("Attempted to attach to an object without a savable fields schema", true)
         return
     end
     --save callback
@@ -164,20 +164,22 @@ local function persist_table(t, name, loadcall)
     end)
 end
 
---v function(name: string, item: any, loadcall: function(t: WHATEVER))
-function save_value(name, item, loadcall)
+--v function(name: string, savecall: function() --> WHATEVER, loadcall: function(t: WHATEVER))
+function save_value(name, savecall, loadcall)
     cm:register_loading_game_callback(function(context)
-        local temp = cm:load_value(name, item, context)
+        local temp = cm:load_value(name, savecall(), context)
+        log("Loaded simple value: "..name.." as "..tostring(temp))
         loadcall(temp)
     end)
 
     cm:register_saving_game_callback(function(context)
+        local item = savecall()
+        log("Saving simple value: "..name.." as "..tostring(item))
         cm:save_value(name, item, context)
     end)
 end
 
 return {
-    persist_table = persist_table,
     attach_to_object = attach,
     attach_to_table = create_dummy_object_for_table_and_attach,
     save_value = save_value

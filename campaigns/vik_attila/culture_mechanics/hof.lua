@@ -91,4 +91,4 @@ end)
 
 
 
-dev.Save.persist_table(hofs, "hof_cd", function(t) hofs = t end)
+dev.Save.attach_to_table(hofs, "hof_cd")

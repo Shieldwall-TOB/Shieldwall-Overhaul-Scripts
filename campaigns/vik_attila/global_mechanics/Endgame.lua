@@ -305,4 +305,4 @@ dev.first_tick(function(context)
 end)
 
 
-dev.Save.persist_table(END_GAME_INVASIONS, "ENDGAME_INVASIONS", function(t) END_GAME_INVASIONS = t end)
+dev.Save.attach_to_table(END_GAME_INVASIONS, "ENDGAME_INVASIONS")

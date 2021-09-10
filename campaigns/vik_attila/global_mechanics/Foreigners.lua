@@ -4,7 +4,7 @@ FOREIGN_WARRIORS = {
     last_foreigner_event_turn = -1,
     provinces_with_foreigners = {}
 } --:{hostility: int, last_foreigner_event_turn: int, provinces_with_foreigners: map<string, boolean>}
-dev.Save.persist_table(FOREIGN_WARRIORS, "FOREIGN_WARRIORS_INFO", function(t) FOREIGN_WARRIORS = t end)
+dev.Save.attach_to_table(FOREIGN_WARRIORS, "FOREIGN_WARRIORS_INFO")
 
 --v function(t: string)
 local function log(t)
