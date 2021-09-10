@@ -265,6 +265,7 @@
 --# assume CA_FACTION.has_effect_bundle: method(bundle: string) --> boolean
 --# assume CA_FACTION.unused_international_trade_route: method() --> boolean
 --# assume CA_FACTION.has_faction_leader: method() --> boolean
+--# assume CA_FACTION.model: method() --> CA_MODEL
 -- FACTION LIST
 --# assume CA_FACTION_LIST.num_items: method() --> number
 --# assume CA_FACTION_LIST.item_at: method(index: number) --> CA_FACTION
@@ -406,6 +407,7 @@
 --# assume CA_PENDING_BATTLE.defender_battle_result: method() --> string
 --# assume CA_PENDING_BATTLE.secondary_attackers: method() --> CA_CHAR_LIST
 --# assume CA_PENDING_BATTLE.secondary_defenders: method() --> CA_CHAR_LIST
+--# assume CA_PENDING_BATTLE.is_null_interface: method() --> boolean
 
 --CA MISSION
 --# assume CA_MISSION.mission_record_key: method() --> string
