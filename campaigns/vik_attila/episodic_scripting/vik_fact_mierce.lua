@@ -39,6 +39,7 @@ function ai_mierce_start(mierce)
     cm:grant_unit(dev.lookup(leader), "eng_thegns")
     cm:grant_unit(dev.lookup(leader), "eng_thegns")
     cm:grant_unit(dev.lookup(leader), "eng_earls_spearmen")
+    cm:transfer_region_to_faction("vik_reg_rocheberie", mierce:name())
 end
 
 
@@ -81,6 +82,34 @@ dev.first_tick(function(context)
     end)
     event_manager:register_condition_group(MierceEventsGroup, "FactionTurnStart")
 
+    --sir oswald
+    local mr_bones_oswald_bones = event_manager:create_event("sw_mierce_oswald_bones", "mission", "standard")
+    mr_bones_oswald_bones:add_queue_time_condition(function(context)
+        local jorvik = dev.get_region("vik_reg_eoferwic")
+        if jorvik:owning_faction():is_null_interface() then
+            return false
+        end
+        return mierce:factions_at_war_with():is_empty() or mierce:at_war_with(jorvik:owning_faction())
+    end)
+    mr_bones_oswald_bones:set_unique(true)
+    mr_bones_oswald_bones:add_completion_condition("CharacterPerformsOccupationDecisionOccupy", function(context)
+        return context:character():region():name() == "vik_reg_eoferwic" and context:character():faction():name() == mierce:name(), true
+    end)
+    mr_bones_oswald_bones:add_completion_condition("CharacterPerformsOccupationDecisionSack", function(context)
+        return context:character():region():name() == "vik_reg_eoferwic" and context:character():faction():name() == mierce:name(), true
+    end)
+    mr_bones_oswald_bones:add_mission_complete_callback(function(context)
+        local character = mierce:faction_leader()
+        if character:is_null_interface() then
+            log("Mierce completed the mission to sack Jorvik while their faction leader is dead. How the fuck does that happen.")
+            return
+        end
+        dev.add_trait(character, "vik_item_silver_reliquary", true)
+    end)
+    mr_bones_oswald_bones:join_groups("MierceFactionNarrativeTurnStart")
+
+
+    --wales
     local WelshDecision = event_manager:create_new_condition_group("MierceWelshDecision", function(context)
         local djurby_dealt_with = djurby:is_dead() or (not mierce:at_war_with(djurby))
         local ledeborg_dealt_with = ledeborg:is_dead() or (not mierce:at_war_with(ledeborg))
@@ -89,7 +118,7 @@ dev.first_tick(function(context)
         local welsh_not_yet_at_war = (not mierce:at_war_with(seisilwig))
         and (not mierce:at_war_with(gwined)) and (not mierce:at_war_with(powis))
 
-        local turn = dev.turn() >= 8
+        local turn = dev.turn() >= 15
         if cm:model():difficulty_level() < -1 then
             djurby_dealt_with = true
             ledeborg_dealt_with = true
@@ -123,12 +152,12 @@ dev.first_tick(function(context)
     local welsh_event_early_war = event_manager:create_event("sw_mierce_welsh_war", "incident", "standard")
     welsh_event_early_war:add_queue_time_condition(function(context)
         if welsh_event_invasion:has_occured() then
-            local delay =  5 + cm:model():difficulty_level()
+            local delay =  8 + cm:model():difficulty_level()
             local turn = welsh_event_invasion:last_turn_occured() + delay <= dev.turn()
             return turn
         elseif (not welsh_event_infighting:has_occured()) and (mierce:at_war_with(powis) or mierce:at_war_with(gwined) or mierce:at_war_with(seisilwig)) then
             local already_at_war_with_all_three = mierce:at_war_with(powis) and mierce:at_war_with(gwined) and mierce:at_war_with(seisilwig) 
-            local turn = 11 <= dev.turn()
+            local turn = 15 <= dev.turn()
             return turn and not already_at_war_with_all_three
         end
         return false
@@ -155,7 +184,7 @@ dev.first_tick(function(context)
         if not welsh_event_infighting:has_occured() then
             return false
         end
-        local turn = 30 <= dev.turn()
+        local turn = 40 <= dev.turn()
 
         local seisilwig_dealt_with = seisilwig:is_dead() or (not gwined:at_war_with(seisilwig))
         local powis_dealt_with = seisilwig:is_dead() or (not gwined:at_war_with(seisilwig))

@@ -62,7 +62,7 @@ dev.first_tick(function(context)
         local welsh_not_yet_at_war = (not mierce:at_war_with(seisilwig))
         and (not mierce:at_war_with(gwined)) and (not mierce:at_war_with(powis))
         and (not gwined:at_war_with(seisilwig)) and (gwined:allied_with(powis))
-        local turn = (dev.turn() >= 6) or gwined_starting_mission:mission():was_successful()
+        local turn = (dev.turn() >= 3 and dev.turn() <= 7) or gwined_starting_mission:mission():was_successful()
         return welsh_not_yet_at_war and turn
     end)
     gwined_powis_choice:add_callback(function(context)
@@ -71,15 +71,15 @@ dev.first_tick(function(context)
         else
             cm:force_break_alliance(faction_key, "vik_fact_powis")
         end
-        dev.lock_war_declaration_for_faction(mierce, false)
-        dev.lock_war_declaration_for_faction(powis, false)
 
     end)
     gwined_powis_choice:join_groups("GwinedFactionNarrativeGroup")
 
     --does Seisilwig help?
     local SeisilwigDecision = event_manager:create_new_condition_group("GwinedSeisilwigDecision", function(context)
-        return gwined_powis_choice:has_occured() and (dev.turn() >= (gwined_powis_choice:last_turn_occured() + 2)) and dev.chance(50)
+        local turn = (dev.turn() >= (gwined_powis_choice:last_turn_occured() + 5))
+        local not_at_war = not (gwined:at_war_with(seisilwig) or gwined:at_war_with(powis))
+        return gwined_powis_choice:has_occured() and turn and dev.chance(50)
     end)
     SeisilwigDecision:set_unique(true)
     event_manager:register_condition_group(SeisilwigDecision)
@@ -103,7 +103,7 @@ dev.first_tick(function(context)
     local seisilwig_betrayal = event_manager:create_event("sw_gwined_seisilwig_betrays", "incident", "standard")
     seisilwig_betrayal:set_unique(true)
     seisilwig_betrayal:add_queue_time_condition(function(context)
-        if not seisilwig_helps:has_occured() then
+        if not seisilwig_helps:has_occured() or powis:is_dead() then
             return false
         end
         local turns_since_helped = dev.turn() - seisilwig_helps:last_turn_occured() 
@@ -140,15 +140,17 @@ dev.first_tick(function(context)
     if (not powis:is_dead()) and (not mierce:is_dead()) then
         dev.turn_start("vik_fact_powis", function(context)
             if not mierce:is_dead() and dev.turn() < 20 then
-                if gwined_powis_choice:has_occured() and (dev.turn() >= (gwined_powis_choice:last_turn_occured() + 2)) and gwined_powis_choice:choice() == 0 then
-                    if not powis:at_war_with(mierce) then
-                        dev.set_factions_hostile(powis:name(), mierce:name())
-                        cm:force_declare_war(powis:name(), mierce:name())
-                    end
-                elseif gwined_powis_choice:has_occured() and seisilwig_helps:has_occured() then
-                    if not powis:at_war_with(mierce) then
-                        dev.set_factions_hostile(powis:name(), mierce:name())
-                        cm:force_declare_war(powis:name(), mierce:name())
+                if gwined_powis_choice:has_occured() and (dev.turn() >= 9) then
+                    dev.lock_war_declaration_for_faction(powis, false)
+                    dev.lock_war_declaration_for_faction(mierce, false)
+                    if (not powis:at_war_with(mierce)) then
+                        if gwined_powis_choice:choice() == 0 then
+                            dev.set_factions_hostile(powis:name(), mierce:name())
+                            cm:force_declare_war(powis:name(), mierce:name())
+                        elseif seisilwig_helps:has_occured() and (dev.turn() >= 9) then
+                            dev.set_factions_hostile(powis:name(), mierce:name())
+                            cm:force_declare_war(powis:name(), mierce:name())
+                        end
                     end
                 end
             end
