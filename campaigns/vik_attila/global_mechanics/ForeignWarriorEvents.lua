@@ -75,7 +75,7 @@ local foreigner_riot_events = {
         required_hostility = 0,
         hostility_change = 1,
         condition = function(context) --:WHATEVER
-            return not not BANDITS[context:region():name()]
+            return not not BANDITS.regions[context:region():name()]
         end,
         response = function(context) --:WHATEVER
 
