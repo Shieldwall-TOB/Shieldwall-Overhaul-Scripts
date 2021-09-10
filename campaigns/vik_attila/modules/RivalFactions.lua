@@ -79,13 +79,24 @@ end
 --v function(self: RIVAL, is_defender: boolean)
 function rival.autowin(self, is_defender)
     self:log("Rival: "..self.faction_name.." is autowinning a battle!")
-    if is_defender then
+    if not is_defender then
         cm:win_next_autoresolve_battle(self.faction_name);
         cm:modify_next_autoresolve_battle(1, 0, 1, 20, true);
     else
         cm:win_next_autoresolve_battle(self.faction_name);
         cm:modify_next_autoresolve_battle(0, 1, 20, 1, true);
     end
+    dev.eh:add_listener(
+        "CharacterCompletedBattle",
+        "CharacterCompletedBattle",
+        function(context)
+            return context:character():faction():name() == self.faction_name
+        end,
+        function(context)
+            self:log("Rival: "..self.faction_name.." won battle: ["..tostring(context:character():won_battle()).."]!")
+        end,
+        false
+    )
 end
 
 
@@ -267,6 +278,42 @@ dev.first_tick(function(context)
             end
         end,
         true)
+        dev.eh:add_listener(
+            "GuarenteedEmpiresCore",
+            "PendingBattle",
+            function(context)
+                return CONST.__utilities.__human_autowins_every_battle
+            end,
+            function(context)
+                dev.log("Human autowins battles constant is active: autowinning a battle!", "__human_autowins_every_battle")
+                local attacking_faction = context:pending_battle():attacker():faction() --:CA_FACTION
+                local defending_faction = context:pending_battle():defender():faction() --:CA_FACTION
+                local defender_rival = instances[defending_faction:name()]
+                if attacking_faction:is_human() then
+                    cm:win_next_autoresolve_battle(attacking_faction:name());
+                    cm:modify_next_autoresolve_battle(1, 0, 1, 20, true);
+                else
+                    cm:win_next_autoresolve_battle(defending_faction:name());
+                    cm:modify_next_autoresolve_battle(0, 1, 20, 1, true);
+                end
+            end,
+            true)
+        if CONST.__utilities.__human_autowins_every_battle then
+            local h = dev.get_faction(cm:get_local_faction(true))
+            if not h:model():pending_battle():is_null_interface() then
+                local pb = h:model():pending_battle() 
+                dev.log("Human autowins battles constant is active: we loaded game into a pending battle!", "__human_autowins_every_battle")
+                if pb:attacker():faction():is_human() then
+                    dev.log("Human autowins battles constant is active: autowinning an attacker battle!", "__human_autowins_every_battle")
+                    cm:win_next_autoresolve_battle(h:name());
+                    cm:modify_next_autoresolve_battle(1, 0, 1, 20, true);
+                elseif pb:defender():faction():is_human() then
+                    dev.log("Human autowins battles constant is active: autowinning a defender battle!", "__human_autowins_every_battle")
+                    cm:win_next_autoresolve_battle(h:name());
+                    cm:modify_next_autoresolve_battle(0, 1, 20, 1, true);
+                end
+            end
+        end
 end)
 
 return {

@@ -20,6 +20,7 @@ return {
         __test_tribute_events = false,
     },
     __utilities = { --coded cheats or data creation scripts.
-        __create_land_spawns = false
+        __create_land_spawns = false,
+        __human_autowins_every_battle = true -- will hard ctd in MP
     }
 }
