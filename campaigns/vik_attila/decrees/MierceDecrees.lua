@@ -3,7 +3,7 @@ local global_cooldown = 0
 local decrees = {
     [1] = {
         ["event"] = "sw_decree_mierce_warriors",
-        ["duration"] = 10,
+        ["duration"] = 6,
         ["gold_cost"] = 0,
         ["currency"] = "fyrd",
         ["currency_cost"] = -1,
@@ -11,7 +11,7 @@ local decrees = {
     },
     [2] = {
         ["event"] = "sw_decree_mierce_lords",
-        ["duration"] = 10,
+        ["duration"] = 6,
         ["gold_cost"] = 0,
         ["currency"] = "fyrd",
         ["currency_cost"] = -1,
@@ -19,7 +19,7 @@ local decrees = {
     },
     [3] = {
         ["event"] = "sw_decree_mierce_church",
-        ["duration"] = 10,
+        ["duration"] = 6,
         ["gold_cost"] = 0,
         ["currency"] = "fyrd",
         ["currency_cost"] = -1,
@@ -27,11 +27,11 @@ local decrees = {
     },
     [4] = {
         ["event"] = "sw_decree_mierce_pay_hoards",
-        ["duration"] = 6,
+        ["duration"] = 0,
         ["gold_cost"] = -3000,
         ["currency"] = "fyrd",
         ["currency_cost"] = 1,
-        ["cooldown"] = 1,
+        ["cooldown"] = 0
     }
 } --:map<int, {event: string, duration: number, gold_cost: number, currency: string, currency_cost: number, cooldown: number, is_dilemma: boolean?, callback: (function(decree: DECREE))?}>
 

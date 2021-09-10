@@ -3,11 +3,11 @@ local global_cooldown = 0
 local decrees = {
     [1] = {
         ["event"] = "sw_decree_gwined_song_of_mead",
-        ["duration"] = 6,
+        ["duration"] = 12,
         ["gold_cost"] = -1250,
         ["currency"] = "heroism",
-        ["currency_cost"] = -20,
-        ["cooldown"] = 20,
+        ["currency_cost"] = -15,
+        ["cooldown"] = 32,
         ["callback"] = function(decree) --:DECREE
             local owner = dev.get_faction(decree.owning_faction)
             for i = 0, owner:region_list():num_items() - 1 do
@@ -23,27 +23,27 @@ local decrees = {
     },
     [2] = {
         ["event"] = "sw_decree_gwined_song_of_horses",
-        ["duration"] = 6,
+        ["duration"] = 12,
         ["gold_cost"] = -1500,
         ["currency"] = "heroism",
         ["currency_cost"] = -20,
-        ["cooldown"] = 20
+        ["cooldown"] = 32
     },
     [3] = {
         ["event"] = "sw_decree_gwined_song_of_pendragon",
-        ["duration"] = 6,
+        ["duration"] = 12,
         ["gold_cost"] = -1750,
         ["currency"] = "heroism",
         ["currency_cost"] = -20,
-        ["cooldown"] = 20
+        ["cooldown"] = 32
     },
     [4] = {
         ["event"] = "sw_decree_gwined_song_of_thousand_sons",
-        ["duration"] = 6,
+        ["duration"] = 12,
         ["gold_cost"] = -1000,
         ["currency"] = "heroism",
-        ["currency_cost"] = -20,
-        ["cooldown"] = 20,
+        ["currency_cost"] = -15,
+        ["cooldown"] = 32
 
     }
 } --:map<int, {event: string, duration: number, gold_cost: number, currency: string, currency_cost: number, cooldown: number, is_dilemma: boolean?, callback: (function(decree: DECREE))?}>
