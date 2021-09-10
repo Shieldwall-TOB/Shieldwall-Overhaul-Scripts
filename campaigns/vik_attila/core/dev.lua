@@ -135,7 +135,7 @@ local function dev_print_all_uicomponent_children(uic)
 	end;
 end;
 
---don't call this one root. Just dont. 
+--don't call this on root. Just dont. 
 --v [NO_CHECK] function(uic: CA_UIC)
 local function dev_print_all_uicomponent_details(uic)
     log_uicomponent(uic)
@@ -458,6 +458,13 @@ if CONST.__log_characters then
 end
 
 
+
+
+
+
+
+
+
 --dev shortcut library
 
 --v function(key: string) --> CA_FACTION
@@ -493,14 +500,19 @@ local function dev_get_region(region_key)
     return cm:model():world():region_manager():region_by_key(region_key);
 end
 
---v function(cqi: CA_CQI) --> CA_CHAR
+--v [NO_CHECK] function(cqi: CA_CQI) --> CA_CHAR
 local function dev_get_character(cqi)
-
-	
-	
+    local char_cqi = cqi
+	if is_string(char_cqi) then
+        char_cqi = tonumber(cqi)
+    elseif is_number(char_cqi) then
+        --do nothing
+    else
+        dev.log("Called get character with a non-cqi non-string value ["..tostring(cqi).."]")
+    end
 	local model = cm:model();
-	if model:has_character_command_queue_index(cqi) then
-		return model:character_for_command_queue_index(cqi);
+	if model:has_character_command_queue_index(char_cqi) then
+		return model:character_for_command_queue_index(char_cqi);
 	end;
 
 	return nil;
@@ -508,7 +520,7 @@ end
 
 --v function(character: CA_CHAR) --> boolean
 function dev_is_normal_character(character)
-    return character:character_type("general") and character:is_male()
+    return character:character_type("general") and character:is_male() and character:family_member():come_of_age()
 
 end
 
