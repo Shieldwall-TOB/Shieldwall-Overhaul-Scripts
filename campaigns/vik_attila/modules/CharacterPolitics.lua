@@ -43,6 +43,7 @@ local disloyalty_trait = "shield_trait_disloyal" --:string
 local friendship_level_trait = "shield_friendship_" --:string
 local fame_trait = "shield_fame_"
 local fame_family_trait = "shield_family_fame_"
+local personal_fame_max = 15 --:int
 
 local faction_histories = {} --:map<string, map<string, int>>
 dev.Save.attach_to_table(faction_histories, "FACTION_HISTORIES")
@@ -69,7 +70,8 @@ function character_politics.new(cqi)
     self.home_region = "none" --:string
     self.traits = {} --:vector<string>
     self.skills = {} --:map<string, int>
-    self.personal_fame = 0
+    self.personal_fame = 1
+    self.num_items = 0
 
     self.character_history = {} --:map<string, int>
     faction_histories[self.faction_key] = faction_histories[self.faction_key] or {}
@@ -78,7 +80,7 @@ function character_politics.new(cqi)
         name = "politics_"..tostring(self.cqi), 
         for_save = {"last_governorship", "friendship_level", "general_level", "title", "last_title", "plot_vulnerability", "skills", "personal_fame", "character_history"}
     }--:SAVE_SCHEMA
-    --dev.Save.attach_to_object(self)
+    dev.Save.attach_to_object(self)
     return self
 end 
 
@@ -256,6 +258,7 @@ function character_politics.update_king_traits(self, character)
         dev.remove_trait(character, loyalty_trait)
         dev.remove_trait(character, disloyalty_trait)
         dev.remove_trait(character, friendship_level_trait..tostring(self.friendship_level))
+        dev.eh:trigger_event("TraitsClearedFromFactionLeader", character)
     end
     local trait_key = basic_king_title
     local changed_trait = false --:boolean
@@ -330,13 +333,13 @@ function character_politics.refresh_fame_traits(self)
     end
     self:log("Refreshing fame trait")
 
-    local daddy_issues = 0
+    local daddy_issues = 1
     local own_fame = self.personal_fame
     --note to self: you have to use "has_father" to avoid crashes here. FamilyMember:father() returns an interface that isn't null but crashes when used.
     if character:family_member():has_father() then 
         local dad = character:family_member()
         self:log("Dad exists")
-        for i = 1, 5 do
+        for i = 1, personal_fame_max do
             --self:log("About to ask if dad has "..fame_trait..i)
             if dad:has_trait(fame_trait..i) then
                 self:log("Father has fame trait level "..i)
@@ -349,15 +352,15 @@ function character_politics.refresh_fame_traits(self)
     self:log("Own trait should be "..own_trait.." family trait should be "..fam_trait)
     if daddy_issues > own_fame then
         --when dad is more famous than you
-        if not character:has_trait(own_trait) then
-            dev.add_trait(character, own_trait, true)
+        if not character:has_trait(fam_trait) then
+            dev.add_trait(character, fam_trait, daddy_issues > 1)
         end
         if character:has_trait(own_trait) then
             dev.remove_trait(character, own_trait) 
         end
-    elseif own_fame > 0 then
+    else
         --when you are known personally.
-        for i = 1, 5 do
+        for i = 1, personal_fame_max do
             local old_trait = fame_trait..i
             if character:has_trait(old_trait) then
                 if i ~= own_fame then
@@ -369,7 +372,7 @@ function character_politics.refresh_fame_traits(self)
             dev.remove_trait(character, fam_trait)
         end
         if not character:has_trait(own_trait) then
-            dev.add_trait(character, own_trait, true)
+            dev.add_trait(character, own_trait, own_fame > 1)
         end
     end
 end
@@ -378,7 +381,7 @@ end
 
 --v function(self: CHARACTER_POLITICS)
 function character_politics.increase_personal_fame(self)
-    if self.personal_fame == 5 then
+    if self.personal_fame == personal_fame_max then
         self:log("Asked to increase personal fame, but it is already at 5! This should be checked for on personal-fame-granting events")
         return
     end
@@ -528,6 +531,9 @@ dev.first_tick(function(context)
                 end
                 instances[char:command_queue_index()].traits[#instances[char:command_queue_index()].traits+1] = context.string
                 instances[char:command_queue_index()]:log("Gained trait: "..context.string)
+                if string.find(context.string, "item_") then
+                    instances[char:command_queue_index()].num_items = instances[char:command_queue_index()].num_items + 1
+                end
             end,
             true)
         dev.eh:add_listener(

@@ -101,6 +101,8 @@ local ok, err = pcall( function()
     require("decrees/NorthleodeDecrees")
     require("decrees/GwinedDecrees")
 
+    require("global_mechanics/Aversion")
+    require("global_mechanics/Items")
     require("global_mechanics/tech_effects")
     building_effects = require("global_mechanics/building_effects")
     require("global_mechanics/skill_effects")
@@ -177,7 +179,7 @@ local ok, err = pcall( function()
     require("episodic_scripting/vik_fact_gwined")
 
     --geopols
-    require("episodic_scripting/geopolitics_south_england")
+    --require("episodic_scripting/geopolitics_south_england")
 end) 
 if not ok then
     dev.log("Error loading episodic scripts!")
@@ -196,6 +198,10 @@ if not ok then
     dev.log(tostring(err))
     dev.log(debug.traceback())
 end
+
+
+--
+--
 
 --[[ old vanilla shit
 require("vik_start");
