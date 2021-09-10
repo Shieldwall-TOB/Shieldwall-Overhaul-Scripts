@@ -11,8 +11,8 @@
 
 personalities_initialised = false --:boolean
 
---v function(faction: string)
-function new_campaign_cai_personalities(faction)
+--v function(context: WHATEVER)
+function new_campaign_cai_personalities(context)
 	if personalities_initialised == false then
 	
 		output("Setting CAI personalities");
@@ -111,4 +111,5 @@ function new_campaign_cai_personalities(faction)
 		dev.log("Already set startpos CAI personalities, so no need to do it again!");
 	end
 end
-dev.Save.save_value("personalities_initialised", personalities_initialised, function(saved_copy) personalities_initialised = saved_copy end)
+dev.first_tick(new_campaign_cai_personalities)
+dev.Save.save_value("personalities_initialised", function() return personalities_initialised end, function(saved_copy) personalities_initialised = saved_copy end)
