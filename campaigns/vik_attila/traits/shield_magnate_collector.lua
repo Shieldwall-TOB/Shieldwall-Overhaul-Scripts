@@ -1,6 +1,6 @@
 local tm = trait_manager.new("shield_magnate_collector")
 
-tm:set_anti_traits("shield_faithful_charitable")
+tm:set_anti_traits("shield_faithful_charitable", "shield_elder_beloved")
 
 tm:set_base_chance(0)
 dev.first_tick(function(context)
