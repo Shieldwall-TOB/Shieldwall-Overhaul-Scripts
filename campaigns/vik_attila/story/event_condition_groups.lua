@@ -2,8 +2,8 @@
 --chance formula
 local condition_group = {} --# assume condition_group: EVENT_CONDITION_GROUP
 
---v function(name: string, manager: GAME_EVENT_MANAGER, num_allowed_in_queue: int?) --> EVENT_CONDITION_GROUP
-function condition_group.new(name, manager, num_allowed_in_queue)
+--v function(name: string, manager: GAME_EVENT_MANAGER, num_allowed_in_queue: int?, use_mission_cooldown_mode: boolean?) --> EVENT_CONDITION_GROUP
+function condition_group.new(name, manager, num_allowed_in_queue, use_mission_cooldown_mode)
     local self = {}
     setmetatable(self, {
         __index = condition_group
@@ -15,6 +15,7 @@ function condition_group.new(name, manager, num_allowed_in_queue)
 
     self.last_turn_occured = -10000
     self.last_turn_completed = -1
+    self.use_mission_cooldown_mode = not not use_mission_cooldown_mode
 
     --flags how many currently in queue, and how many allowed in queue.
     self.num_allowed_queued = num_allowed_in_queue or 0
@@ -41,7 +42,7 @@ function condition_group.new(name, manager, num_allowed_in_queue)
 
     self.save = {
         name = "event_condition_group_"..name, 
-        for_save = {"last_turn_occured", "last_queued_event", "currently_in_queue", "last_complete_turn"}
+        for_save = {"last_turn_occured", "last_queued_event", "currently_in_queue", "last_turn_completed"}
     }--:SAVE_SCHEMA
     dev.Save.attach_to_object(self)
     return self
@@ -53,7 +54,7 @@ function condition_group.is_off_cooldown(self)
     if self.is_unique then
         return self.last_turn_occured < 0
     end
-    if self.last_turn_completed > 0 then
+    if self.use_mission_cooldown_mode then
         return self.cooldown == 0 or dev.turn() > self.last_turn_completed + self.cooldown
     end
     return self.cooldown == 0 or dev.turn() > self.last_turn_occured + self.cooldown

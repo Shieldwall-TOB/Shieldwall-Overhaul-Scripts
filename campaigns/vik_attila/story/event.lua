@@ -30,7 +30,7 @@ local game_interface_by_type = {
     end
 } --:map<string, function(faction_key: string, event_key: string)>
 
-local condition_contructor = nil --:function(string, GAME_EVENT_MANAGER, int?) --> EVENT_CONDITION_GROUP
+local condition_contructor = nil --:function(string, GAME_EVENT_MANAGER, int?, bool?) --> EVENT_CONDITION_GROUP
 
 
 --v function(manager: GAME_EVENT_MANAGER, key: string, type_group: EVENT_CONDITION_GROUP, trigger_kind: GAME_EVENT_TRIGGER_KIND) --> GAME_EVENT
@@ -52,12 +52,12 @@ function game_event.new(manager, key, type_group, trigger_kind)
     if self.trigger_kind == "standard" then
         limit = 1
     end
-    self.own_group = condition_contructor(key, manager, limit)
+    self.own_group = condition_contructor(key, manager, limit, self.event_type == "mission")
     self.own_group:add_event(self)
     self.manager:register_condition_group(self.own_group)
     self.mission_detail = nil --:GAME_MISSION
     if self.event_type == "mission" then
-        self.mission_detail = game_mission.new(self.manager, self.key)
+        self.mission_detail = game_mission.new(self.manager, self.key, trigger_kind)
     end
     self.last_choice_made = 0
     self.groups = {
@@ -308,7 +308,7 @@ function game_event.trigger(self, custom_event_context)
     end
 end
 
---v function(event_condition_group_prototype: function(string, GAME_EVENT_MANAGER, int?) --> EVENT_CONDITION_GROUP)
+--v function(event_condition_group_prototype: function(string, GAME_EVENT_MANAGER, int?, bool?) --> EVENT_CONDITION_GROUP)
 local function init(event_condition_group_prototype)
     condition_contructor = event_condition_group_prototype
 end

@@ -1,8 +1,8 @@
 local game_mission = {} --# assume game_mission: GAME_MISSION
 
 
---v function(manager: GAME_EVENT_MANAGER, key: string) --> GAME_MISSION
-function game_mission.new(manager, key)
+--v function(manager: GAME_EVENT_MANAGER, key: string, trigger_type: GAME_EVENT_TRIGGER_KIND) --> GAME_MISSION
+function game_mission.new(manager, key, trigger_type)
     local self = {}
     setmetatable(self, {
         __index = game_mission
@@ -10,6 +10,7 @@ function game_mission.new(manager, key)
 
     self.key = key
     self.manager = manager
+    self.trigger_type = trigger_type
     self.is_active = false --:boolean
     self.is_complete = false --:boolean
     self.did_succeed = false --:boolean
@@ -44,6 +45,10 @@ end
 
 --v function(self: GAME_MISSION) --> WHATEVER
 function game_mission.context(self)
+    if self.is_active == false then
+        self.manager:log("Asked for mission context for "..self.key.." which is not an active mission right now!")
+        return nil
+    end
     if self.stored_context == nil then
         local mission_info = self.manager:get_mission_info(self.key)
         self.stored_context = self.manager:build_context_from_queued_event(mission_info)
@@ -60,7 +65,18 @@ function game_mission.complete_mission(self, context, is_success)
     self.turn_completed = dev.turn()
     self.is_active = false
     self.did_succeed = is_success
-    cm:override_mission_succeeded_status(context:faction():name(), self.key, is_success)
+    local in_game_key = self.key
+    if self.trigger_type == "concatenate_region" then
+        in_game_key = in_game_key .. context:region():name()
+        self.manager:log("Mission was concatenate_region type, key is "..in_game_key)
+    elseif self.trigger_type == "concatenate_faction" then
+        in_game_key = in_game_key .. context:other_faction():name()
+        self.manager:log("Mission was concatenate_faction type, key is "..in_game_key)
+    else
+        self.manager:log("Mission was "..self.trigger_type.." type, key is "..in_game_key)
+    end
+
+    cm:override_mission_succeeded_status(context:faction():name(), in_game_key, is_success)
     self.completion_callback(context)
     if is_success then
         self.mission_success_callback(context)
@@ -75,7 +91,10 @@ function game_mission.complete_mission(self, context, is_success)
     local event_object = context:game_event()
     --# assume event_object: {key: string, groups: vector<EVENT_CONDITION_GROUP>}
     for i = 1, #event_object.groups do
-        event_object.groups[i]:OnMemberMissionCompleted(event_object.key, self.turn_completed)
+        local this_group = event_object.groups[i]
+        if this_group.use_mission_cooldown_mode then
+            this_group:OnMemberMissionCompleted(event_object.key, self.turn_completed)
+        end
     end
 end
 

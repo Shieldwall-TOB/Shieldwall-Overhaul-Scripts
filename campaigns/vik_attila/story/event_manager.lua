@@ -398,8 +398,12 @@ function game_event_manager.fire_queued_events(self, player_faction)
                 end
                 event_object:trigger(context)
             else
-                self:log("Queued Dilemma: "..event_object.key.." is flagged on character")
-                table.insert(other_player_events, queue_record)
+                if dev.get_character(queue_record.char_cqi) and not dev.get_character(queue_record.char_cqi):is_faction_leader() then
+                    self:log("Queued Dilemma: "..event_object.key.." is flagged on character")
+                    table.insert(other_player_events, queue_record)
+                else
+                    self:log("Queued Dilemma: "..event_object.key.." is flagged on a character who is either dead or who has become faction leader, erasing it from queue")
+                end
             end
         else
             self:log("Queued Event "..event_object.key.." is for the other human!")
@@ -421,13 +425,14 @@ function game_event_manager.start_player_turn(self, player_faction)
     --do faction turn start trigger time
     local qt = "FactionTurnStart" --:GAME_EVENT_QUEUE_TIMES
     local scheduled_groups = self.schedule[qt]
-    local context = self:build_context_for_event(player_faction)
+
     self:log("Checking schedule: "..qt)
     for i = 1, #scheduled_groups do
         local this_group = scheduled_groups[i]
         self:log("Checking group: "..this_group.name)
         for event_key, event_object in pairs(this_group.members) do
             self:log("Checking event: "..event_key)
+            local context = self:build_context_for_event(player_faction, event_object)
             local can_queue, displaces_event = self:can_queue_event(this_group, event_object, context)
             if can_queue and displaces_event then
                 if self:remove_event_from_queue(displaces_event, true) then
@@ -538,25 +543,25 @@ function game_event_manager.completed_battle(self, context)
     for i = 1, cm:pending_battle_cache_num_attackers() do
         local char_cqi, force_cqi, faction_key = cm:pending_battle_cache_get_attacker(i)
         local faction = dev.get_faction(faction_key)
-        self:log("Found a human with char_cqi "..tostring(char_cqi))      
         if dev.get_character(char_cqi) then 
             if faction:is_human() then
+                self:log("Found a human with char_cqi "..tostring(char_cqi))    
                 players_in_battle[char_cqi] = faction
                 has_humans = true
             end
         else
             self:log("Character "..char_cqi.." was returned by the pending battle cache, but no longer exists. They died in battle.")
             local other_char, other_force, other_faction = cm:pending_battle_cache_get_defender(1)
-            characters_died_in_battle[char_cqi] = {char_cqi, force_cqi, faction_key}
+            characters_died_in_battle[char_cqi] = {char_cqi, force_cqi, faction_key, other_char, other_faction}
         end 
     end
 
     for i = 1, cm:pending_battle_cache_num_defenders() do
         local char_cqi, force_cqi, faction_key = cm:pending_battle_cache_get_defender(i)
         local faction = dev.get_faction(faction_key)
-        self:log("Found a human with char_cqi "..tostring(char_cqi))
         if dev.get_character(char_cqi) then 
             if faction:is_human() then
+                self:log("Found a human with char_cqi "..tostring(char_cqi))
                 players_in_battle[char_cqi] = faction
                 has_humans = true
             end
@@ -808,6 +813,26 @@ local function initialize_game_events()
                             if not ok then
                                 active_manager:log("Failed to remove flagged dilemma "..key.." from the Queue after it fired!")
                             end
+                        end
+                    end
+                end
+            end,
+            true)
+        dev.eh:add_listener(
+            "EventsCore",
+            "TraitsClearedFromFactionLeader",
+            function(context)
+                return context:character():is_human()
+            end,
+            function(context)
+                local new_faction_leader = context:character() --:CA_CHAR
+                for i = 1, #active_manager.event_queue do
+                    local queue_record = active_manager.event_queue[i]
+                    local event_object = active_manager.events[queue_record.event_key]
+                    if event_object.trigger_kind == "trait_flag" then
+                        local character = dev.get_character(queue_record.char_cqi)
+                        if character and character:command_queue_index() == new_faction_leader:command_queue_index() then
+                            active_manager:remove_event_from_queue(queue_record.event_key, true)
                         end
                     end
                 end
