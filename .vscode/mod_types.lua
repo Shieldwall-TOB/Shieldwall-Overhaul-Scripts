@@ -33,6 +33,6 @@
 --# type global GAME_EVENT_TRIGGER_KIND = "trait_flag" | "standard" | "concatenate_region" | "concatenate_faction"
 --# type global GAME_EVENT_TYPE = "dilemma" | "mission" | "incident"
 --# type global GAME_EVENT_QUEUE_TIMES = "FactionTurnStart" | "CharacterTurnStart" | "RegionTurnStart" |
---# "CharacterCompletedBattle" | "CharacterRetreatedFromBattle" | "CharacterEntersGarrison" |
+--# "ShieldwallCharacterCompletedBattle" | "CharacterRetreatedFromBattle" | "CharacterEntersGarrison" |
 --# "MissionTargetGeneratorFactionAtWarWith"
 

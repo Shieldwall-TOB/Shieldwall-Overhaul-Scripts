@@ -157,7 +157,7 @@ dev.pre_first_tick(function(context)
     )
     dev.eh:add_listener(
         "ForceCacheCharacterCompletedBattle",
-        "CharacterCompletedBattle",
+        "ShieldwallCharacterCompletedBattle",
         function(context)
             return context:character():faction():is_human() and (not context:character():military_force():is_null_interface()) and dev.is_char_normal_general(context:character()) 
         end,

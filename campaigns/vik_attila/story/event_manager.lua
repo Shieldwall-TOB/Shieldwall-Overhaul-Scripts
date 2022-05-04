@@ -6,7 +6,7 @@ function game_event_manager.log(self, t)
 end
 
 local queue_times = {
-    "FactionTurnStart", "CharacterTurnStart", "RegionTurnStart", "CharacterCompletedBattle", "CharacterRetreatedFromBattle",
+    "FactionTurnStart", "CharacterTurnStart", "RegionTurnStart", "ShieldwallCharacterCompletedBattle", "CharacterRetreatedFromBattle",
     "CharacterEntersGarrison", "MissionTargetGeneratorFactionAtWarWith"
 } --:vector<GAME_EVENT_QUEUE_TIMES>
 
@@ -575,7 +575,7 @@ function game_event_manager.completed_battle(self, context)
     if not has_humans then
         return
     end
-    local qt = "CharacterCompletedBattle" --:GAME_EVENT_QUEUE_TIMES
+    local qt = "ShieldwallCharacterCompletedBattle" --:GAME_EVENT_QUEUE_TIMES
     if was_retreat then
         qt = "CharacterRetreatedFromBattle"
     end
@@ -751,7 +751,7 @@ local function initialize_game_events()
         )
         dev.eh:add_listener(
             "EventsCore",
-            "CharacterCompletedBattle",
+            "ShieldwallCharacterCompletedBattle",
             function(context)
                 local character = context:character() --:CA_CHAR
                 return not character:won_battle()

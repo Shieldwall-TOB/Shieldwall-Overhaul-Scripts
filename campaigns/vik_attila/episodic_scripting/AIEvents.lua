@@ -5,6 +5,15 @@ local event_manager = dev.GameEvents
 local function log(t) dev.log(tostring(t), "NARR") end
 
 
+local function add_danelaw_geopolitics()
+
+
+
+end
+
+
+
+
 local function add_ai_gwined_mierce_events()
     local mierce = dev.get_faction("vik_fact_mierce")
     local djurby = dev.get_faction("vik_fact_djurby")

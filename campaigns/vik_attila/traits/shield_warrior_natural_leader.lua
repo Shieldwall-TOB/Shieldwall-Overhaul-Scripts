@@ -14,5 +14,5 @@ dev.first_tick(function(context)
             end
         end
         return false
-    end, false, "CharacterCompletedBattle")
+    end, false, "ShieldwallCharacterCompletedBattle")
 end)

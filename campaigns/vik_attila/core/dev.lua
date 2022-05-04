@@ -662,6 +662,28 @@ local function dev_is_new_game()
     return not cm:get_saved_value("dev_new_game_callback")
 end
 
+--CharacterCompletedBattle fires before the game is created when you fight battles manually.
+--This breaks a lot of stuff.
+--We solve this by storing the characters who have completed battles in order to artifically echo the event in script.
+local char_completed_battle_cache = {} --:vector<CA_CQI>
+cm:add_listener(
+    "CharacterCompletedBattleAfterManualResolution",
+    "CharacterCompletedBattle",
+    function(context)
+        return true
+    end,
+    function(context)
+        local char = context:character() --:CA_CHAR
+        if not _G.game_created then
+            MODLOG("Character completed battle fired on ["..tostring(char:command_queue_index()).."] before first tick, queuing it to echo after first tick", "FTC")
+            table.insert(char_completed_battle_cache, char:command_queue_index())
+        else
+            get_eh():trigger_event("ShieldwallCharacterCompletedBattle", char)
+        end
+    end,
+    true
+)
+
 cm:register_first_tick_callback(function(context)
     _G.game_created = true
 
@@ -800,6 +822,16 @@ cm:register_first_tick_callback(function(context)
     end
     cm:set_saved_value("dev_new_game_callback", true)
     MODLOG(string.format("First tick complete: elapsed time: %.4f\n", os.clock() - x), "FTC")
+    for i = 1, #char_completed_battle_cache do
+        local char_cqi = char_completed_battle_cache[i]
+        local char = dev_get_character(char_cqi)
+        if char then
+            MODLOG("Firing Queued CharacterCompletedBattle event for "..tostring(char_cqi))
+            get_eh():trigger_event("ShieldwallCharacterCompletedBattle", char)
+        else
+            MODLOG("Failed to acquire character in ShieldwallCharacterCompletedBattle event for "..tostring(char_cqi))
+        end
+    end
 end)
 --v function() --> boolean
 local function dev_game_created()

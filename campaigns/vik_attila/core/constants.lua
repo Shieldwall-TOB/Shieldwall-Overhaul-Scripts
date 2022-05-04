@@ -1,7 +1,6 @@
 return {
     __script_version = 1, --used to help maintain save compatibility when I have to make changes to saved tables.
     __write_output_to_logfile = true, -- write log files
-    __allow_test_buttons = true, --allows the pressing of the F9-F12 key scripted test functions
     __should_output_ui = false, --outputs UI object details on click. Spams the log a bit so leave it off when not doing UI work.
     __log_game_objects = false, --Logs all game object types to a series of files. For use once per patch.
     __should_output_save_load = false, --Outputs the internals of the functions which save and load objects. Only necessary for debugging.
@@ -21,6 +20,6 @@ return {
     },
     __utilities = { --coded cheats or data creation scripts.
         __create_land_spawns = false,
-        __human_autowins_every_battle = true -- will hard ctd in MP
+        __human_autowins_every_battle = false -- will hard ctd in MP
     }
 }

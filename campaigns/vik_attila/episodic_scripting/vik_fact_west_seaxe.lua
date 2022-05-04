@@ -56,6 +56,7 @@ dev.first_tick(function(context)
     end)
 
 
+
     if dev.is_new_game() then
         local context_for_event = event_manager:build_context_for_event(wessex)
         event_manager:force_check_and_trigger_event_immediately(wessex_starting_mission, context_for_event)

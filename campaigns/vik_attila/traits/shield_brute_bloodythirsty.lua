@@ -33,4 +33,4 @@ tm:add_trait_gain_condition_without_event(function(char)
         end
     end
     return false
-end, false, "CharacterCompletedBattle")
+end, false, "ShieldwallCharacterCompletedBattle")

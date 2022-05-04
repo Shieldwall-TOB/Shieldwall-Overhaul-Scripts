@@ -171,7 +171,7 @@ dev.first_tick(function(context)
         end
         return false
     end)
-    war_mission:add_completion_condition("CharacterCompletedBattle", function(context) 
+    war_mission:add_completion_condition("ShieldwallCharacterCompletedBattle", function(context) 
         local mission_context = war_mission:mission():context()
         local char = context:character() --:CA_CHAR
         if char:faction():name() == mission_context:faction():name() and char:won_battle() then
@@ -294,11 +294,14 @@ dev.first_tick(function(context)
         true)
 
     local heroism_champion_event = em:create_event("sw_heroism_champion", "incident", "standard")
-
+    heroism_champion_event:add_callback(function(context)
+        local heroism = HEROISM[context:faction():name()]
+        heroism:change_value(3, "factor_champion_follower_heroism")
+    end)
 
     dev.eh:add_listener(
         "CharacterCompletedBattlePolitics",
-        "CharacterCompletedBattle",
+        "ShieldwallCharacterCompletedBattle",
         function(context)
             local char = context:character() --:CA_CHAR
             local pb = char:model():pending_battle()

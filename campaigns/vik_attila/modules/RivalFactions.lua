@@ -86,17 +86,7 @@ function rival.autowin(self, is_defender)
         cm:win_next_autoresolve_battle(self.faction_name);
         cm:modify_next_autoresolve_battle(0, 1, 20, 1, true);
     end
-    dev.eh:add_listener(
-        "CharacterCompletedBattle",
-        "CharacterCompletedBattle",
-        function(context)
-            return context:character():faction():name() == self.faction_name
-        end,
-        function(context)
-            self:log("Rival: "..self.faction_name.." won battle: ["..tostring(context:character():won_battle()).."]!")
-        end,
-        false
-    )
+
 end
 
 
@@ -315,6 +305,20 @@ dev.first_tick(function(context)
             end
         end
 end)
+
+dev.eh:add_listener(
+    "CharacterCompletedBattle",
+    "CharacterCompletedBattle",
+    function(context)
+        return true
+    end,
+    function(context)
+        local char = context:character()
+        dev.log("Faction: "..char:faction():name().." won battle: ["..tostring(context:character():won_battle()).."]!", "PB")
+    end,
+    true
+)
+
 
 return {
     is_rival = is_rival,

@@ -555,7 +555,7 @@ dev.first_tick(function(context)
             true)
         dev.eh:add_listener(
             "CharacterCompletedBattlePolitics",
-            "CharacterCompletedBattle",
+            "ShieldwallCharacterCompletedBattle",
             function(context)
                 return context:character():faction():is_human()
             end,

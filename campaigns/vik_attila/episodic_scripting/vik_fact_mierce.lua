@@ -59,15 +59,29 @@ dev.first_tick(function(context)
 
     local mierce_starting_mission = event_manager:create_event("sw_start_mierce", "mission", "standard")
     mierce_starting_mission:set_unique(true)
-    mierce_starting_mission:add_completion_condition("CharacterCompletedBattle", function(context)
-        local main_attacker_faction = cm:pending_battle_cache_get_attacker_faction_name(1);
-            local main_defender_faction = cm:pending_battle_cache_get_defender_faction_name(1);
-            if main_attacker_faction == "vik_fact_mierce" and main_defender_faction == "vik_fact_ledeborg" and cm:model():pending_battle():attacker():won_battle() then
-                return true, true
-            elseif main_defender_faction == "vik_fact_mierce" and main_attacker_faction == "vik_fact_ledeborg" and not cm:model():pending_battle():attacker():won_battle() then
-                return true, true
+    mierce_starting_mission:add_completion_condition("ShieldwallCharacterCompletedBattle", function(context)
+        local mission_context = mierce_starting_mission:mission():context()
+        local char = context:character() --:CA_CHAR
+        if char:faction():name() == mission_context:faction():name() and char:won_battle() then
+            local pb = char:model():pending_battle()
+            local attacker_won = pb:attacker():won_battle()
+            if attacker_won then
+                for i = 1, cm:pending_battle_cache_num_defenders() do
+                    local char_cqi, force_cqi, faction_key = cm:pending_battle_cache_get_defender(i)
+                    if faction_key == mission_context:other_faction():name() and PettyKingdoms.ForceTracking.was_char_cqi_a_faction_leader_in_last_battle(char_cqi) then
+                        return true, true
+                    end
+                end
+            else
+                for i = 1, cm:pending_battle_cache_num_attackers() do
+                    local char_cqi, force_cqi, faction_key = cm:pending_battle_cache_get_attacker(i)
+                    if faction_key == mission_context:other_faction():name() and PettyKingdoms.ForceTracking.was_char_cqi_a_faction_leader_in_last_battle(char_cqi) then
+                        return true, true
+                    end
+                end
             end
-            return false, true
+        end
+        return false, true
     end)
     mierce_starting_mission:add_completion_condition("FactionDestroyed", function(context)
         return context:faction():name() == "vik_fact_ledeborg", true
@@ -205,7 +219,7 @@ dev.first_tick(function(context)
     MiercePostBattleGroup:add_queue_time_condition(function(context)
         return context:character():faction():name() == faction_key and context:character():won_battle()
     end)
-    event_manager:register_condition_group(MiercePostBattleGroup, "CharacterCompletedBattle")
+    event_manager:register_condition_group(MiercePostBattleGroup, "ShieldwallCharacterCompletedBattle")
 
     local djurby_regions = {
         "vik_reg_deoraby",
@@ -263,7 +277,7 @@ dev.first_tick(function(context)
     djurby_capitulates_dilemma:join_groups("MierceFactionNarrativePostBattle")
 
     if dev.is_new_game() then
-        local context_for_event = event_manager:build_context_for_event(mierce)
+        local context_for_event = event_manager:build_context_for_event(mierce, ledeborg)
         event_manager:force_check_and_trigger_event_immediately(mierce_starting_mission, context_for_event)
         dev.lock_war_declaration_for_faction(gwined, true)
         dev.lock_war_declaration_for_faction(seisilwig, true)

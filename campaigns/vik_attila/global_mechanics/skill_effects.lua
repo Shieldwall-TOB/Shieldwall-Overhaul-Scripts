@@ -380,7 +380,7 @@ dev.first_tick(function(context)
 
     local PostBattleSkillEvents = event_manager:create_new_condition_group("SkillEventsPostBattle")
     PostBattleSkillEvents:set_number_allowed_in_queue(1)
-    event_manager:register_condition_group(PostBattleSkillEvents, "CharacterCompletedBattle")
+    event_manager:register_condition_group(PostBattleSkillEvents, "ShieldwallCharacterCompletedBattle")
 
     for i = 1, #skill_events_post_battle do
         local event_info = skill_events_post_battle[i]

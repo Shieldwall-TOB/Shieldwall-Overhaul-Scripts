@@ -30,13 +30,19 @@ function game_mission.new(manager, key, trigger_type)
         for_save = {"is_active", "is_complete", "turn_activated", "turn_completed", "did_succeed"}
     }--:SAVE_SCHEMA
     dev.Save.attach_to_object(self)
-
+    if self.is_active then
+        self.manager:log("Mission ["..self.key.."] is active after loading game!")
+    end
     return self
 
 end
 
 --v function(self: GAME_MISSION) --> boolean
 function game_mission.was_successful(self)
+    if self.is_active == true then
+        self.manager:log("Asked if mission ["..self.key.."] was successful, but that mission is currently active!")
+        return false
+    end
     if self.is_complete == false then
         self.manager:log("Asked if mission ["..self.key.."] was successful, but that mission isn't complete!")
     end
@@ -127,6 +133,7 @@ function game_mission.add_completion_condition(self, condition_event, condition)
         self.completion_events[#self.completion_events+1] = condition_event 
         self.completion_conditions[condition_event] = condition
         if self.is_active then
+            self.manager:log("completion condition for "..self.key.." on event "..condition_event.." is being listened immediately because the event is active")
             dev.eh:add_listener(
                 condition_event..self.key.."MissionListener",
                 condition_event,
